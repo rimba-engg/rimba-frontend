@@ -1,9 +1,9 @@
 {
   "name": "rimba-webapp",
-  "version": "2.5.0",
+  "version": "2.7.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "tsc --noEmit && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

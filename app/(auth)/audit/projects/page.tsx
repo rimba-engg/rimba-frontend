@@ -19,12 +19,26 @@ interface Checklist {
   created_at: string;
   updated_at: string;
   custom_fields: any[];
+  progress_percentage: number;
 }
 
 interface ChecklistResponse {
   data: {
     checklists: Checklist[];
   };
+}
+
+interface CreateChecklistResponse {
+  status: number;
+  message?: string;
+  data?: {
+    checklist_id: string;
+  };
+}
+
+interface DeleteChecklistResponse {
+  status: number;
+  message?: string;
 }
 
 export default function ProjectsPage() {
@@ -35,12 +49,8 @@ export default function ProjectsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
-    name: '',
-    verifier: '',
-    afpRound: '',
-    year: '',
-  });
+  const [formData, setFormData] = useState({ name: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchChecklists();
@@ -60,13 +70,28 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleFilterChange = (field: string, value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-  };
+  const handleCreateChecklist = async () => {
+    if (isSubmitting || !formData.name.trim()) return;
+    setIsSubmitting(true);
 
-  const handleCreateProject = () => {
-    // TODO: Implement create checklist API integration
-    setShowCreateModal(false);
+    try {
+      const response = await api.post<CreateChecklistResponse>('/audit/v2/checklist/create/', {
+        checklist_name: formData.name
+      });
+
+      if (response.status === 200) {
+        await fetchChecklists(); // Refresh the list
+        setShowCreateModal(false);
+        setFormData({ name: '' });
+      } else {
+        throw new Error(response.message || 'Failed to create checklist');
+      }
+    } catch (err) {
+      setError('Failed to create checklist');
+      console.error('Error creating checklist:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleProjectClick = (checklistId: string) => {
@@ -75,9 +100,16 @@ export default function ProjectsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      // TODO: Implement delete checklist API integration
-      await fetchChecklists(); // Refresh the list
-      setShowDeleteConfirm(null);
+      const response = await api.post<DeleteChecklistResponse>('/audit/v2/checklist/delete/', {
+        checklist_id: id
+      });
+
+      if (response.status === 200) {
+        await fetchChecklists(); // Refresh the list
+        setShowDeleteConfirm(null);
+      } else {
+        throw new Error(response.message || 'Failed to delete checklist');
+      }
     } catch (err) {
       setError('Failed to delete checklist');
       console.error('Error deleting checklist:', err);
@@ -112,7 +144,6 @@ export default function ProjectsPage() {
                 <Plus size={16} />
                 New Checklist
               </button>
-              
             </div>
           </div>
 
@@ -123,14 +154,14 @@ export default function ProjectsPage() {
               created_at: new Date(checklist.created_at).toLocaleDateString(),
               updated_at: new Date(checklist.updated_at).toLocaleDateString(),
               items_count: checklist.checklist_items.length,
-              status: checklist.checklist_items.length > 0 ? 'In Progress' : 'Completed',
+              progress_percentage: checklist.progress_percentage,
             }))}
             columns={[
               { id: 'name', name: 'Name' },
               { id: 'created_at', name: 'Created Date' },
               { id: 'updated_at', name: 'Last Updated' },
               { id: 'items_count', name: '# Tasks' },
-              { id: 'status', name: 'Status' },
+              { id: 'progress_percentage', name: 'Progress' },
             ]}
             onEdit={(id) => setShowEditModal(id)}
             onDelete={(id) => setShowDeleteConfirm(id)}
@@ -148,21 +179,16 @@ export default function ProjectsPage() {
       <ProjectFormModal
         isOpen={showCreateModal || showEditModal !== null}
         mode={showCreateModal ? 'create' : 'edit'}
-        project={showCreateModal ? {} : checklists.find(c => c._id === showEditModal) || {}}
+        project={showCreateModal ? formData : checklists.find(c => c._id === showEditModal) || {}}
         onClose={() => {
           setShowCreateModal(false);
           setShowEditModal(null);
+          setFormData({ name: '' });
         }}
-        onChange={() => {
-          // TODO: Implement form changes
+        onChange={(field, value) => {
+          setFormData(prev => ({ ...prev, [field]: value }));
         }}
-        onSubmit={() => {
-          if (showCreateModal) {
-            handleCreateProject();
-          } else {
-            setShowEditModal(null);
-          }
-        }}
+        onSubmit={handleCreateChecklist}
       />
     </div>
   );

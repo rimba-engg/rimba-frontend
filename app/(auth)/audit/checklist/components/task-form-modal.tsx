@@ -27,7 +27,7 @@ export function TaskFormModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="!mt-0 fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-[800px] max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-semibold">
@@ -43,95 +43,19 @@ export function TaskFormModal({
           </Button>
         </div>
         <form onSubmit={onSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="issueNumber">Issue Number</Label>
-                <Input
-                  id="issueNumber"
-                  name="issueNumber"
-                  value={formData.issueNumber}
-                  onChange={onChange}
-                  placeholder="e.g., NC-2023-001"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={onChange}
-                  placeholder="Describe the task..."
-                  required
-                  className="h-32"
-                />
-              </div>
-              <div>
-                <Label htmlFor="documentRef">Document Reference</Label>
-                <Input
-                  id="documentRef"
-                  name="documentRef"
-                  value={formData.documentRef}
-                  onChange={onChange}
-                  placeholder="e.g., OPR-2023-15"
-                />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="standardRef">Standard Reference</Label>
-                <Input
-                  id="standardRef"
-                  name="standardRef"
-                  value={formData.standardRef}
-                  onChange={onChange}
-                  placeholder="e.g., 95488(c)(5)(A)"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="auditorComment">Auditor's Comment</Label>
-                <Textarea
-                  id="auditorComment"
-                  name="auditorComment"
-                  value={formData.auditorComment}
-                  onChange={onChange}
-                  placeholder="Auditor's observations..."
-                  required
-                  className="h-32"
-                />
-              </div>
-              <div>
-                <Label htmlFor="classification">Classification</Label>
-                <select
-                  id="classification"
-                  name="classification"
-                  value={formData.classification || ''}
-                  onChange={onChange}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
-                  <option value="">Select classification</option>
-                  <option value="Non-conformance">Non-conformance</option>
-                  <option value="Misstatement">Misstatement</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="brightmarkComment">Brightmark's Comment</Label>
-                <Textarea
-                  id="brightmarkComment"
-                  name="brightmarkComment"
-                  value={formData.brightmarkComment}
-                  onChange={onChange}
-                  placeholder="Resolution or action taken..."
-                  required
-                  className="h-32"
-                />
-              </div>
-            </div>
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={onChange}
+              placeholder="Describe the task..."
+              required
+              className="h-32"
+            />
           </div>
+
           <div className="flex justify-end gap-3 mt-6">
             <Button
               type="button"

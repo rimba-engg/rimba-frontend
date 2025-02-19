@@ -59,7 +59,7 @@ export enum TaskStatus {
 }
 
 export interface Checklist {
-  _id: string;
+  id: string;
   checklist_name: string;
   checklist_items: Array<ChecklistItem>;
   created_by: User;
@@ -93,13 +93,7 @@ export interface Document {
 
 export interface ExtendedChecklistItem {
   id: string;
-  issueNumber: string;
   description: string;
-  documentRef: string;
-  standardRef: string;
-  auditorComment: string;
-  classification: 'Non-conformance' | 'Misstatement' | null;
-  brightmarkComment: string;
   createdBy: User | null;
   status: TaskStatus;
   assignedTo?: string;
@@ -110,13 +104,7 @@ export interface ExtendedChecklistItem {
 }
 
 export interface FormData {
-  issueNumber: string;
   description: string;
-  documentRef: string;
-  standardRef: string;
-  auditorComment: string;
-  classification: 'Non-conformance' | 'Misstatement' | null;
-  brightmarkComment: string;
 }
 
 export interface CustomColumn {

@@ -9,7 +9,7 @@ interface Project {
   created_at: string;
   updated_at: string;
   items_count: number;
-  status: string;
+  progress_percentage: number;
 }
 
 interface Column {
@@ -32,17 +32,6 @@ export function ProjectsTable({
   onDelete,
   onProjectClick,
 }: ProjectsTableProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-green-100 text-green-800';
-      case 'In Progress':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   return (
     <div className="overflow-x-auto">
       <div className="inline-block min-w-full align-middle">
@@ -84,9 +73,17 @@ export function ProjectsTable({
                   {project.items_count}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                    {project.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 transition-all duration-300"
+                        style={{ width: `${project.progress_percentage}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600 min-w-[3rem]">
+                      {project.progress_percentage}%
+                    </span>
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex items-center gap-3">

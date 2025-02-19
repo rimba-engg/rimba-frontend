@@ -37,7 +37,7 @@ export function ProjectFormModal({
       <div className="bg-white rounded-lg p-6 w-[600px] max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-semibold">
-            {mode === 'create' ? 'Create New Project' : 'Edit Project Information'}
+            {mode === 'create' ? 'Create Checklist' : 'Edit Info'}
           </h3>
           <Button
             variant="ghost"
@@ -49,14 +49,16 @@ export function ProjectFormModal({
           </Button>
         </div>
         <div className="space-y-4">
-          <div>
-            <Label>Project Name</Label>
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
             <div className="flex items-center gap-2">
               <Building className="text-gray-400" size={20} />
               <Input
+                id="name"
                 value={project.name || ''}
                 onChange={(e) => onChange('name', e.target.value)}
-                placeholder="Enter project name"
+                placeholder="Enter checklist name"
+                required
               />
             </div>
           </div>
@@ -97,7 +99,7 @@ export function ProjectFormModal({
             onClick={onSubmit}
             className="bg-[#1B4D3E] hover:bg-[#163B30]"
           >
-            {mode === 'create' ? 'Create Project' : 'Save Changes'}
+            {mode === 'create' ? 'Create' : 'Save Changes'}
           </Button>
         </div>
       </div>
