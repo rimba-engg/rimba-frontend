@@ -1,7 +1,7 @@
 import { User, Customer, LoginResponse, SelectCustomerResponse, ApiError } from './types';
 
 const BASE_URL = 'https://app.rimba.ai';
-// const BASE_URL = 'https://9344233e61dd.ngrok.app';
+// const BASE_URL = 'http://localhost:8000';
 
 class ApiClient {
   private static instance: ApiClient;
