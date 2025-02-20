@@ -89,6 +89,7 @@ const fetchContractData = async (id: string): Promise<{
         ghg: number;
         outgoing_sd: string;
         outgoing_sd_url: string;
+        group_id: string;
       }[][];
     };
   }>(`/v2/contract/outgoing/${id}/`);
@@ -125,6 +126,7 @@ const fetchContractData = async (id: string): Promise<{
         ghg: allocation.ghg,
         outgoingSD: allocation.outgoing_sd,
         outgoingSDUrl: allocation.outgoing_sd_url,
+        groupId: allocation.group_id,
       }))
     ) || [],
     warehouses: data.warehouses,
@@ -388,37 +390,39 @@ export default function ContractPage() {
                         <td className="px-4 py-3">{allocation.warehouse}</td>
                         <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
                         <td className="px-4 py-3">{allocation.ghg}</td>
-                        <td className="px-4 py-3">
-                          {allocation.outgoingSD === 'Not generated' ? (
-                            <div className="space-y-2">
-                              <Input
-                                placeholder="SD Number"
-                                className="w-40"
-                              />
-                              <Input
-                                placeholder="Certification Number"
-                                className="w-40"
-                              />
-                              <Button
-                                size="sm"
-                                onClick={() => handleGenerateTemplate(
-                                  allocation.groupId,
-                                  'SD-123', // Replace with actual input values
-                                  'CERT-123'
-                                )}
+                        {index === 0 && (
+                          <td className="px-4 py-3" rowSpan={group.length}>
+                            {allocation.outgoingSD === 'Not generated' ? (
+                              <div className="space-y-2">
+                                <Input
+                                  placeholder="SD Number"
+                                  className="w-40"
+                                />
+                                <Input
+                                  placeholder="Certification Number"
+                                  className="w-40"
+                                />
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleGenerateTemplate(
+                                    allocation.groupId,
+                                    'SD-123', // Replace with actual input values
+                                    'CERT-123'
+                                  )}
+                                >
+                                  Generate Template
+                                </Button>
+                              </div>
+                            ) : (
+                              <a
+                                href={allocation.outgoingSDUrl}
+                                className="text-primary hover:underline"
                               >
-                                Generate Template
-                              </Button>
-                            </div>
-                          ) : (
-                            <a
-                              href={allocation.outgoingSDUrl}
-                              className="text-primary hover:underline"
-                            >
-                              {allocation.outgoingSD}
-                            </a>
-                          )}
-                        </td>
+                                {allocation.outgoingSD}
+                              </a>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
