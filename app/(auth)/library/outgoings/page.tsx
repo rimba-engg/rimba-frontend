@@ -159,7 +159,7 @@ export default function OutgoingPage() {
   });
 
   const handleContractClick = (contractId: string) => {
-    router.push(`/library/contract?id=${contractId}`);
+    router.push(`/library/outgoing-contract?id=${contractId}`);
   };
 
   if (loading) {
