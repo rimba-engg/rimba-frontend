@@ -1,4 +1,4 @@
-import { User, Customer, LoginResponse, SelectCustomerResponse, ApiError } from './types';
+import { LoginResponse, SelectCustomerResponse } from './types';
 
 const BASE_URL = 'https://app.rimba.ai';
 // const BASE_URL = 'http://localhost:8000';

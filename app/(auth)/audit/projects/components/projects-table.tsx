@@ -1,42 +1,22 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { Edit2, Trash2, ChevronRight } from 'lucide-react';
-
-interface Project {
-  id: string;
-  name: string;
-  updated_at: string;
-  items_count: number;
-  progress_percentage: number;
-  custom_fields?: Array<{
-    id: string;
-    value: string;
-  }>;
-}
-
-interface Column {
-  id: string;
-  name: string;
-  type?: string;
-  options?: string[];
-}
-
-interface ProjectsTableProps {
-  projects: Project[];
-  columns: Column[];
+import { type Checklist, type ColumnSchema } from '@/lib/types';
+interface ChecklistTableProps {
+  projects: Checklist[];
+  columns: ColumnSchema[];
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  onProjectClick: (id: string) => void;
+  onChecklistClick: (id: string) => void;
 }
 
-export function ProjectsTable({
+export function ChecklistTable({
   projects,
   columns,
   onEdit,
   onDelete,
-  onProjectClick,
-}: ProjectsTableProps) {
+  onChecklistClick,
+}: ChecklistTableProps) {
   return (
     <div className="overflow-x-auto">
       <div className="inline-block min-w-full align-middle">
@@ -45,7 +25,7 @@ export function ProjectsTable({
             <tr>
               {columns.map((column) => (
                 <th 
-                  key={column.id} 
+                  key={column.name} 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
                 >
                   {column.name}
@@ -58,10 +38,10 @@ export function ProjectsTable({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {projects.map((project) => (
-              <tr key={project.id} className="hover:bg-gray-50">
+              <tr key={project._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button 
-                    onClick={() => onProjectClick(project.id)}
+                    onClick={() => onChecklistClick(project._id)}
                     className="group flex items-center gap-1 text-primary hover:text-primary/80"
                   >
                     <span className="font-medium">{project.name}</span>
@@ -69,10 +49,10 @@ export function ProjectsTable({
                   </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {project.updated_at}
+                  {new Date(project.updated_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {project.items_count}
+                  {project.checklist_items.length}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
@@ -89,20 +69,20 @@ export function ProjectsTable({
                 </td>
                 {/* Render custom columns */}
                 {columns.slice(4).map((column) => (
-                  <td key={column.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.custom_fields?.find(f => f.id === column.id)?.value || '-'}
+                  <td key={column.name} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {project.schema?.find(f => f.name === column.name)?.name || '-'}
                   </td>
                 ))}
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => onEdit(project.id)}
+                      onClick={() => onEdit(project._id)}
                       className="text-blue-600 hover:text-blue-800 transition-colors"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
-                      onClick={() => onDelete(project.id)}
+                      onClick={() => onDelete(project._id)}
                       className="text-red-600 hover:text-red-800 transition-colors"
                     >
                       <Trash2 size={16} />

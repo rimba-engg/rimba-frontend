@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { X, User2, Upload, FileText, Trash2, Download } from 'lucide-react';
-import { TaskStatus, type ChecklistItem, type ColumnSchema } from '@/lib/types';
+import { TaskStatus, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 import { api } from '@/lib/api';
 
 interface TaskSidebarProps {
@@ -69,46 +69,47 @@ export function TaskSidebar({
     onClose();
   };
 
-  // TODO: Add support for all columns
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const response = await api.post<ChecklistItem>('/audit/v2/checklist/item/update/', {
-        item_id: task.id,
-        column_data: task.column_data,
-      });
+  // // TODO: Add support for all columns
+  // const handleSave = async () => {
+  //   setIsSaving(true);
+  //   try {
+  //     const response = await api.post<ChecklistItem>('/audit/v2/checklist/item/update/', {
+  //       item_id: task.id,
+  //       column_data: task.column_data,
+  //     });
 
-      if (response.status === 200) {
-        task.column_data = column_data;
-        setIsEditing(false);
-      } else {
-        console.error('Failed to update');
-      }
-    } catch (error) {
-      console.error('Error updating:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  //     if (response.status === 200) {
+  //       task.column_data = column_data;
+  //       setIsEditing(false);
+  //     } else {
+  //       console.error('Failed to update');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error updating:', error);
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // };
 
   const renderFieldInput = (column: ColumnSchema) => {
     const value = task.column_data[column.name] || '';
 
     switch (column.type) {
       case 'user':
+        const user: User = task.column_data[column.name] || {};
         return (
           <button
             onClick={() => onAssign(task.id)}
             className="mt-1 w-full flex items-center gap-2 px-3 py-2 border rounded-lg text-left"
           >
-            {task.assignedTo ? (
+            {user ? (
               <>
                 <img
-                  src={task.assignedToUser?.avatar}
+                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name)}&background=random`}
                   alt="Avatar"
                   className="w-6 h-6 rounded-full"
                 />
-                <span>{task.assignedToUser?.first_name}</span>
+                <span>{user?.first_name}</span>
               </>
             ) : (
               <>

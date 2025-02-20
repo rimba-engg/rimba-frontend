@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ChecklistClient from './components/checklist-client';
 import { api } from '@/lib/api';
-import { type User, type Checklist } from '@/lib/types';
+import { type Checklist } from '@/lib/types';
 
 interface ChecklistResponse {
   data: Checklist;

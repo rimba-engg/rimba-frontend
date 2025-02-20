@@ -2,32 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, MoreHorizontal, Plus, Grid } from 'lucide-react';
-import { ProjectsTable } from './components/projects-table';
-import { FilterModal } from './components/modals/filter-modal';
+import { Plus, Grid } from 'lucide-react';
+import { ChecklistTable } from './components/projects-table';
 import { DeleteModal } from './components/modals/delete-modal';
 import { ProjectFormModal } from './components/modals/project-form-modal';
 import { api } from '@/lib/api';
-
-interface Checklist {
-  _id: string;
-  name: string;
-  customer: string;
-  checklist_items: string[];
-  created_by: string;
-  allowed_users: string[];
-  created_at: string;
-  updated_at: string;
-  custom_fields: CustomField[];
-  progress_percentage: number;
-}
-
-interface CustomField {
-  id: string;
-  name: string;
-  type: string;
-  options?: string[];
-}
+import { type ColumnSchema, type Checklist } from '@/lib/types';
 
 interface ChecklistResponse {
   data: {
@@ -56,10 +36,9 @@ export default function ProjectsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState<Checklist>({} as Checklist);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
-  const [customColumns, setCustomColumns] = useState<CustomField[]>([]);
 
   useEffect(() => {
     fetchChecklists();
@@ -71,9 +50,6 @@ export default function ProjectsPage() {
       const response = await api.get<ChecklistResponse>('/audit/v2/checklist');
       setChecklists(response.data.checklists);
       
-      // Get unique custom fields across all checklists
-      const allCustomFields = [];
-      setCustomColumns(allCustomFields);
       setError(null);
     } catch (err) {
       setError('Failed to load checklists');
@@ -89,17 +65,27 @@ export default function ProjectsPage() {
 
     try {
       const response = await api.post<CreateChecklistResponse>('/audit/v2/checklist/create/', {
-        checklist_name: formData.name
+        name: formData.name
       });
 
       if (response.status === 200) {
         await fetchChecklists();
         setShowCreateModal(false);
-        setFormData({ name: '' });
+        // Set formData with a complete Checklist object to avoid type errors
+        setFormData({ 
+          _id: '', 
+          name: '', 
+          checklist_items: [], 
+          created_by: JSON.parse(localStorage.getItem('user') || '{}'), 
+          updated_at: new Date().toISOString() 
+        });
       } else {
         throw new Error(response.message || 'Failed to create checklist');
       }
     } catch (err) {
+      // Log the error with traceback
+      setError('Failed to create checklist');
+      console.error('Error creating checklist:', err);
       setError('Failed to create checklist');
       console.error('Error creating checklist:', err);
     } finally {
@@ -113,10 +99,11 @@ export default function ProjectsPage() {
     setError(null);
 
     try {
-      const newColumn: CustomField = {
+      const newColumn: ColumnSchema = {
         id: `custom_${Date.now()}`,
         name: 'New Column',
-        type: 'text'
+        type: 'text',
+        options: []
       };
 
       // Add the column to all checklists
@@ -124,8 +111,6 @@ export default function ProjectsPage() {
         field: newColumn
       });
 
-      setCustomColumns(prev => [...prev, newColumn]);
-      
       // Refresh checklists to get updated data
       await fetchChecklists();
     } catch (err) {
@@ -136,7 +121,7 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleProjectClick = (checklistId: string) => {
+  const handleChecklistClick = (checklistId: string) => {
     router.push(`/audit/checklist?id=${checklistId}`);
   };
 
@@ -197,30 +182,17 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          <ProjectsTable
-            projects={checklists.map(checklist => ({
-              id: checklist._id,
-              name: checklist.name,
-              updated_at: new Date(checklist.updated_at).toLocaleDateString(),
-              items_count: checklist.checklist_items.length,
-              progress_percentage: checklist.progress_percentage,
-              custom_fields: checklist.custom_fields || [],
-            }))}
+          <ChecklistTable
+            projects={checklists}
             columns={[
-              { id: 'name', name: 'Name' },
-              { id: 'updated_at', name: 'Last Updated' },
-              { id: 'items_count', name: '# Tasks' },
-              { id: 'progress_percentage', name: 'Progress' },
-              ...customColumns.map(col => ({
-                id: col.id,
-                name: col.name,
-                type: col.type,
-                options: col.options,
-              })),
+              { id: 'name', name: 'Name', type: 'text' },
+              { id: 'updated_at', name: 'Last Updated', type: 'date' },
+              { id: 'items_count', name: '# Tasks', type: 'number' },
+              { id: 'progress_percentage', name: 'Progress', type: 'number' },
             ]}
             onEdit={(id) => setShowEditModal(id)}
             onDelete={(id) => setShowDeleteConfirm(id)}
-            onProjectClick={handleProjectClick}
+            onChecklistClick={handleChecklistClick}
           />
         </div>
       </div>
@@ -234,11 +206,11 @@ export default function ProjectsPage() {
       <ProjectFormModal
         isOpen={showCreateModal || showEditModal !== null}
         mode={showCreateModal ? 'create' : 'edit'}
-        project={showCreateModal ? formData : checklists.find(c => c._id === showEditModal) || {}}
+        project={showCreateModal ? formData : checklists.find(c => c._id === showEditModal) || {} as Checklist}
         onClose={() => {
           setShowCreateModal(false);
           setShowEditModal(null);
-          setFormData({ name: '' });
+          setFormData({} as Checklist);
         }}
         onChange={(field, value) => {
           setFormData(prev => ({ ...prev, [field]: value }));

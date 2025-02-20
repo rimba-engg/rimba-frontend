@@ -1,7 +1,6 @@
 'use client';
 
 import { User2 } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
 import { type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 
 interface TaskTableProps {
@@ -26,7 +25,7 @@ export function TaskTable({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onAssign(checklist_item.id);
+              onFieldChange(checklist_item.id, column.name, user.id);
             }}
             className="flex checklist_items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
@@ -93,6 +92,8 @@ export function TaskTable({
         );
     }
   };
+
+  console.log(schema);
 
   return (
     <div className="relative w-full">

@@ -76,7 +76,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
       } else {
         const response = await api.post<ApiResponse>('/audit/v2/checklist/item/update/', {
           description: formData.description,
-          item_id: data.id
+          item_id: data._id
         });
 
         if (response.status === 200 && response.data) {
@@ -164,7 +164,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
 
     try {
       const response = await api.post<ApiResponse>('/audit/v2/delete_checklist_item/', {
-        checklist_id: data.id,
+        checklist_id: data._id,
         checklist_item_id: id
       });
 
@@ -181,25 +181,15 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
     }
   };
 
-  const handleAddColumn = async (columnData: {
-    name: string;
-    field_type: string;
-    options?: string[];
-  }) => {
+  const handleAddColumn = async (columnData: ColumnSchema) => {
     try {
-      const newColumn: ColumnSchema = {
-        name: columnData.name,
-        type: columnData.field_type as ColumnSchema['type'],
-        options: columnData.options,
-      };
-
       await api.post('/audit/v2/checklist/schema/update/', {
-        checklist_id: data.id,
-        schema: [...(data.schema || []), newColumn]
+        checklist_id: data._id,
+        schema: [...(data.schema || []), columnData]
       });
 
       // Update the schema in the data object
-      data.schema = [...(data.schema || []), newColumn];
+      data.schema = [...(data.schema || []), columnData];
       
       // Initialize the new field for all items
       setChecklistItems(prev => 
@@ -229,7 +219,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
             Checklists
           </Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          <span className="text-muted-foreground">{data.checklist_name}</span>
+          <span className="text-muted-foreground">{data.name}</span>
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={() => setShowAddModal(true)}>

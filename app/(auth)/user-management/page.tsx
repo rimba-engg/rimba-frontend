@@ -7,7 +7,8 @@ import { api } from '@/lib/api';
 import { UserFormModal } from './components/user-form-modal';
 import { DeleteUserModal } from './components/delete-user-modal';
 import { UsersTable } from './components/users-table';
-import { type UserData, type Project, type Checklist, type UserFormData, type UserListResponse, type ProjectListResponse, type ChecklistListResponse } from './types';
+import { type Checklist } from '@/lib/types';
+import { type UserData, type Project, type UserFormData, type UserListResponse, type ProjectListResponse, type ChecklistListResponse } from './types';
 
 const emptyUser: UserFormData = {
   name: '',

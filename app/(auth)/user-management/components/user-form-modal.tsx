@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { type UserFormData, type Project, type Checklist } from '../types';
+import { type UserFormData, type Project } from '../types';
+import { type Checklist } from '@/lib/types';
 
 interface UserFormModalProps {
   isOpen: boolean;

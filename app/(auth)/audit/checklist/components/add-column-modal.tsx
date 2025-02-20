@@ -12,15 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
+import { ColumnSchema } from '@/lib/types';
 interface AddColumnModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    name: string;
-    field_type: string;
-    options?: string[];
-  }) => void;
+  onSubmit: (data: ColumnSchema) => void;
 }
 
 export function AddColumnModal({
@@ -46,9 +42,9 @@ export function AddColumnModal({
       return;
     }
 
-    const formData = {
+    const formData: ColumnSchema = {
       name: name.trim(),
-      field_type: fieldType,
+      type: fieldType as ColumnSchema['type'],
       ...(fieldType === 'single_select' || fieldType === 'multi_select'
         ? { options: options.split(',').map(opt => opt.trim()).filter(Boolean) }
         : {}),

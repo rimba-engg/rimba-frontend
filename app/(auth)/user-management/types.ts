@@ -1,3 +1,5 @@
+import { type Checklist } from '@/lib/types';
+
 export interface UserData {
   id: string;
   name: string;
@@ -13,11 +15,6 @@ export interface Project {
   id: string;
   name: string;
   value: string;
-}
-
-export interface Checklist {
-  _id: string;
-  name: string;
 }
 
 export interface UserListResponse {

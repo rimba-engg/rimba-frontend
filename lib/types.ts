@@ -59,6 +59,7 @@ export enum TaskStatus {
 }
 
 export interface ColumnSchema {
+  id?: string;
   name: string;
   type: 'text' | 'single_select' | 'multi_select' | 'number' | 'date' | 'user';
   options?: Array<string>;
@@ -73,12 +74,13 @@ export interface ChecklistItem {
 }
 
 export interface Checklist {
-  id: string;
-  checklist_name: string;
+  _id: string;
+  name: string;
   checklist_items: Array<ChecklistItem>;
   created_by: User;
   updated_at: string;
-  schema?: Record<ColumnSchema>;
+  schema?: Array<ColumnSchema>;
+  progress_percentage?: number;
 }
 
 export interface Comment {

@@ -4,21 +4,13 @@ import { X, Building, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-interface Project {
-  _id?: string;
-  name: string;
-  created_at?: string;
-  updated_at?: string;
-  checklist_items?: string[];
-}
-
+import { type Checklist } from '@/lib/types';
 interface ProjectFormModalProps {
   isOpen: boolean;
   mode: 'create' | 'edit';
-  project: Partial<Project>;
+  project: Checklist;
   onClose: () => void;
-  onChange: (field: keyof Project, value: string) => void;
+  onChange: (field: keyof Checklist, value: string) => void;
   onSubmit: () => void;
 }
 
@@ -65,16 +57,6 @@ export function ProjectFormModal({
 
           {mode === 'edit' && (
             <>
-              <div>
-                <Label>Created Date</Label>
-                <div className="flex items-center gap-2">
-                  <Calendar className="text-gray-400" size={20} />
-                  <Input
-                    value={project.created_at ? new Date(project.created_at).toLocaleDateString() : ''}
-                    disabled
-                  />
-                </div>
-              </div>
               <div>
                 <Label>Last Updated</Label>
                 <div className="flex items-center gap-2">
