@@ -93,8 +93,6 @@ export function TaskTable({
     }
   };
 
-  console.log(schema);
-
   return (
     <div className="relative w-full">
       <table className="w-full border-collapse min-w-[1200px]">

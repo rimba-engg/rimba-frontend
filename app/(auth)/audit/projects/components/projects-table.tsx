@@ -38,10 +38,10 @@ export function ChecklistTable({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {projects.map((project) => (
-              <tr key={project._id} className="hover:bg-gray-50">
+              <tr key={project.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <button 
-                    onClick={() => onChecklistClick(project._id)}
+                    onClick={() => onChecklistClick(project.id)}
                     className="group flex items-center gap-1 text-primary hover:text-primary/80"
                   >
                     <span className="font-medium">{project.name}</span>
@@ -76,13 +76,13 @@ export function ChecklistTable({
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => onEdit(project._id)}
+                      onClick={() => onEdit(project.id)}
                       className="text-blue-600 hover:text-blue-800 transition-colors"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
-                      onClick={() => onDelete(project._id)}
+                      onClick={() => onDelete(project.id)}
                       className="text-red-600 hover:text-red-800 transition-colors"
                     >
                       <Trash2 size={16} />

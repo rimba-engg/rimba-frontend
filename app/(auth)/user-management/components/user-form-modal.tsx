@@ -149,14 +149,14 @@ export function UserFormModal({
             <Label>Allowed Checklists</Label>
             <div className="border rounded-lg p-4 space-y-2 max-h-[200px] overflow-y-auto">
               {checklists.map((checklist) => (
-                <div key={checklist._id} className="flex items-center space-x-2">
+                <div key={checklist.id} className="flex items-center space-x-2">
                   <Checkbox
-                    id={checklist._id}
-                    checked={isChecklistSelected(checklist._id)}
-                    onCheckedChange={() => handleChecklistToggle(checklist._id, checklist.name)}
+                    id={checklist.id}
+                    checked={isChecklistSelected(checklist.id)}
+                    onCheckedChange={() => handleChecklistToggle(checklist.id, checklist.name)}
                   />
                   <label
-                    htmlFor={checklist._id}
+                    htmlFor={checklist.id}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
                     {checklist.name}

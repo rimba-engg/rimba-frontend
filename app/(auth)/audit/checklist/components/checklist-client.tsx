@@ -25,14 +25,14 @@ const initialFormData: FormData = {
   description: '',
 };
 
-export default function ChecklistClient({ data }: { data: Checklist }) {
+export default function ChecklistClient({ checklistData }: { checklistData: Checklist }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
   const [showTaskSidebar, setShowTaskSidebar] = useState<string | null>(null);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(data.checklist_items);
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(checklistData.checklist_items);
   const [newComment, setNewComment] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +76,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
       } else {
         const response = await api.post<ApiResponse>('/audit/v2/checklist/item/update/', {
           description: formData.description,
-          item_id: data._id
+          item_id: checklistData.id
         });
 
         if (response.status === 200 && response.data) {
@@ -164,7 +164,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
 
     try {
       const response = await api.post<ApiResponse>('/audit/v2/delete_checklist_item/', {
-        checklist_id: data._id,
+        checklist_id: checklistData.id,
         checklist_item_id: id
       });
 
@@ -183,13 +183,17 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
 
   const handleAddColumn = async (columnData: ColumnSchema) => {
     try {
-      await api.post('/audit/v2/checklist/schema/update/', {
-        checklist_id: data._id,
-        schema: [...(data.schema || []), columnData]
+      const newSchema = [...(checklistData.schema || []), columnData];
+
+      console.log(checklistData);
+
+      await api.post('/audit/v2/checklist/item/schema/update/', {
+        checklist_id: checklistData.id,
+        schema: newSchema
       });
 
       // Update the schema in the data object
-      data.schema = [...(data.schema || []), columnData];
+      checklistData.schema = newSchema;
       
       // Initialize the new field for all items
       setChecklistItems(prev => 
@@ -219,7 +223,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
             Checklists
           </Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          <span className="text-muted-foreground">{data.name}</span>
+          <span className="text-muted-foreground">{checklistData.name}</span>
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={() => setShowAddModal(true)}>
@@ -253,7 +257,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
           <div className="flex-1 overflow-auto">
             <TaskTable
               checklist_items={checklistItems}
-              schema={data.schema || []}
+              schema={checklistData.schema || []}
               onFieldChange={handleFieldChange}
               onTaskClick={id => setShowTaskSidebar(id)}
             />
@@ -264,7 +268,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
       {showTaskSidebar !== null && (
         <TaskSidebar
           task={checklistItems.find(item => item.id === showTaskSidebar)!}
-          schema={data.schema}
+          schema={checklistData.schema}
           onClose={() => setShowTaskSidebar(null)}
           onStatusChange={handleStatusChange}
           onAssign={id => setShowAssignModal(id)}

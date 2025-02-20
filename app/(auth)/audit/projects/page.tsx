@@ -73,7 +73,7 @@ export default function ProjectsPage() {
         setShowCreateModal(false);
         // Set formData with a complete Checklist object to avoid type errors
         setFormData({ 
-          _id: '', 
+          id: '', 
           name: '', 
           checklist_items: [], 
           created_by: JSON.parse(localStorage.getItem('user') || '{}'), 
@@ -106,10 +106,11 @@ export default function ProjectsPage() {
         options: []
       };
 
-      // Add the column to all checklists
-      await api.post('/audit/v2/checklist/add_custom_field/', {
-        field: newColumn
-      });
+      // TODO: Add the column to all checklists
+      // // Add the column to all checklists
+      // await api.post('', {
+      //   field: newColumn
+      // });
 
       // Refresh checklists to get updated data
       await fetchChecklists();
@@ -206,7 +207,7 @@ export default function ProjectsPage() {
       <ProjectFormModal
         isOpen={showCreateModal || showEditModal !== null}
         mode={showCreateModal ? 'create' : 'edit'}
-        project={showCreateModal ? formData : checklists.find(c => c._id === showEditModal) || {} as Checklist}
+        project={showCreateModal ? formData : checklists.find(c => c.id === showEditModal) || {} as Checklist}
         onClose={() => {
           setShowCreateModal(false);
           setShowEditModal(null);

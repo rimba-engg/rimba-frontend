@@ -74,7 +74,7 @@ export interface ChecklistItem {
 }
 
 export interface Checklist {
-  _id: string;
+  id: string;
   name: string;
   checklist_items: Array<ChecklistItem>;
   created_by: User;
@@ -111,7 +111,7 @@ export interface CustomColumn {
 
 // Project Types
 export interface Project {
-  _id: string;
+  id: string;
   name: string;
   customer: string;
   checklist_items: string[];
