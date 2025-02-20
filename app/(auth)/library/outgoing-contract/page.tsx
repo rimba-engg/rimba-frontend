@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { api } from '@/lib/api';
 
 interface ContractDetails {
   id: string;
@@ -55,74 +56,79 @@ interface Warehouse {
   name: string;
 }
 
-// Mock API functions
-const fetchContractDetails = async (id: string): Promise<ContractDetails> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
+// Replace the mock API functions with real API calls
+const fetchContractData = async (id: string): Promise<{
+  contract: ContractDetails;
+  allocations: Allocation[][];
+  warehouses: Warehouse[];
+}> => {
+  const response = await api.get<{
+    status: string;
+    message: string;
+    data: {
+      contract_id: string;
+      contract_number: string;
+      for_month: string;
+      for_year: string;
+      buyer: string;
+      seller: string;
+      quantity: number;
+      product: string;
+      bill_of_lading: string;
+      doc_link: string;
+      port_of_loading: string;
+      port_of_discharge: string;
+      is_allocated: string;
+      is_ins: string;
+      warehouses: Warehouse[];
+      allocations?: {
+        contract_id: string;
+        contract_number: string;
+        warehouse: string;
+        allocated_quantity: number;
+        ghg: number;
+        outgoing_sd: string;
+        outgoing_sd_url: string;
+      }[][];
+    };
+  }>(`/v2/contract/outgoing/${id}/`);
+
+  if (response.status !== 'success') {
+    throw new Error(response.message || 'Failed to fetch contract data');
+  }
+
+  const { data } = response;
+  
   return {
-    id,
-    contractNumber: 'CTR-2024-001',
-    month: 'March',
-    year: '2024',
-    buyer: 'EcoFuels Inc.',
-    seller: 'Green Energy Corp',
-    quantity: 50000,
-    product: 'Renewable Diesel',
-    billOfLading: 'BL-24-0123',
-    docLink: '#',
-    portOfLoading: 'LANGSAT',
-    portOfDischarge: 'HUELVA',
-    isAllocated: false,
-    isINS: true,
+    contract: {
+      id: data.contract_id,
+      contractNumber: data.contract_number,
+      month: data.for_month,
+      year: data.for_year,
+      buyer: data.buyer,
+      seller: data.seller,
+      quantity: data.quantity,
+      product: data.product,
+      billOfLading: data.bill_of_lading,
+      docLink: data.doc_link,
+      portOfLoading: data.port_of_loading,
+      portOfDischarge: data.port_of_discharge,
+      isAllocated: data.is_allocated === 'true',
+      isINS: data.is_ins === 'true',
+    },
+    allocations: data.allocations?.map(group => 
+      group.map(allocation => ({
+        contractId: allocation.contract_id,
+        contractNumber: allocation.contract_number,
+        warehouse: allocation.warehouse,
+        allocatedQuantity: allocation.allocated_quantity,
+        ghg: allocation.ghg,
+        outgoingSD: allocation.outgoing_sd,
+        outgoingSDUrl: allocation.outgoing_sd_url,
+      }))
+    ) || [],
+    warehouses: data.warehouses,
   };
-};
-
-const fetchAllocations = async (id: string): Promise<Allocation[][]> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return [
-    [
-      {
-        contractId: '1',
-        contractNumber: 'INC-2024-001',
-        warehouse: 'Warehouse A',
-        allocatedQuantity: 25000,
-        ghg: 80.430,
-        groupId: 'group1',
-        outgoingSD: 'Not generated',
-        outgoingSDUrl: '',
-      },
-      {
-        contractId: '2',
-        contractNumber: 'INC-2024-002',
-        warehouse: 'Warehouse A',
-        allocatedQuantity: 25000,
-        ghg: 80.430,
-        groupId: 'group1',
-        outgoingSD: 'Not generated',
-        outgoingSDUrl: '',
-      },
-    ],
-    [
-      {
-        contractId: '3',
-        contractNumber: 'INC-2024-003',
-        warehouse: 'Warehouse B',
-        allocatedQuantity: 50000,
-        ghg: 94.140,
-        groupId: 'group2',
-        outgoingSD: 'SD-2024-001',
-        outgoingSDUrl: '#',
-      },
-    ],
-  ];
-};
-
-const fetchWarehouses = async (): Promise<Warehouse[]> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return [
-    { id: '1', name: 'Warehouse A' },
-    { id: '2', name: 'Warehouse B' },
-    { id: '3', name: 'Warehouse C' },
-  ];
 };
 
 const MONTHS = [
@@ -164,23 +170,19 @@ export default function ContractPage() {
   const loadContractData = async () => {
     try {
       setLoading(true);
-      const [contractData, allocationsData, warehousesData] = await Promise.all([
-        fetchContractDetails(contractId!),
-        fetchAllocations(contractId!),
-        fetchWarehouses(),
-      ]);
+      const data = await fetchContractData(contractId!);
       
-      setContract(contractData);
-      setAllocations(allocationsData);
-      setWarehouses(warehousesData);
+      setContract(data.contract);
+      setAllocations(data.allocations);
+      setWarehouses(data.warehouses);
       
       // Initialize update form with current values
       setUpdateForm({
-        month: contractData.month,
-        year: contractData.year,
-        quantity: contractData.quantity,
-        portOfLoading: contractData.portOfLoading,
-        portOfDischarge: contractData.portOfDischarge,
+        month: data.contract.month,
+        year: data.contract.year,
+        quantity: data.contract.quantity,
+        portOfLoading: data.contract.portOfLoading,
+        portOfDischarge: data.contract.portOfDischarge,
       });
     } catch (error) {
       console.error('Error loading contract data:', error);
@@ -384,7 +386,7 @@ export default function ContractPage() {
                           </a>
                         </td>
                         <td className="px-4 py-3">{allocation.warehouse}</td>
-                        <td className="px-4 py-3">{allocation.allocatedQuantity.toLocaleString()}</td>
+                        <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
                         <td className="px-4 py-3">{allocation.ghg}</td>
                         <td className="px-4 py-3">
                           {allocation.outgoingSD === 'Not generated' ? (
