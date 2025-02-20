@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { FileText, Search, Filter, Download, Upload, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useRouter } from 'next/navigation';
+import { YearMonthSelect } from '@/components/ui/year-month-select';
+import { api } from '@/lib/api';
 
 interface Document {
   id: string;
@@ -12,63 +14,56 @@ interface Document {
   uploadDate: string;
   type: string;
   status: 'pending' | 'extracted' | 'reconciled' | 'flagged' | 'review';
+  uploadedBy: string;
 }
 
-// Mock API function
-const fetchDocuments = async (): Promise<Document[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+interface DocumentResponse {
+  status: string;
+  message: string;
+  data: {
+    documents: Document[];
+  };
+}
 
-  return [
-    {
-      id: '123e4567-e89b-12d3-a456-426614174000',
-      name: 'Q4 2023 LCFS Report.pdf',
-      uploadDate: '2024-03-15',
-      type: 'Compliance Report',
-      status: 'reconciled',
-    },
-    {
-      id: '123e4567-e89b-12d3-a456-426614174001',
-      name: 'Equipment Maintenance Log.xlsx',
-      uploadDate: '2024-03-14',
-      type: 'Maintenance Record',
-      status: 'pending',
-    },
-    {
-      id: '123e4567-e89b-12d3-a456-426614174002',
-      name: 'Safety Inspection Results.pdf',
-      uploadDate: '2024-03-12',
-      type: 'Audit Report',
-      status: 'review',
-    },
-    {
-      id: '123e4567-e89b-12d3-a456-426614174003',
-      name: 'Environmental Impact Assessment.docx',
-      uploadDate: '2024-03-10',
-      type: 'Assessment Report',
-      status: 'flagged',
-    },
-    {
-      id: '123e4567-e89b-12d3-a456-426614174004',
-      name: 'Training Certificates.zip',
-      uploadDate: '2024-03-08',
-      type: 'Certification',
-      status: 'extracted',
-    },
-  ];
+const fetchDocuments = async (year: number, month: number): Promise<Document[]> => {
+  try {
+    const response = await api.get<DocumentResponse>(`/v2/dashboard/?current_year=${year}&current_month=${month}`);
+    const data = response;
+    console.log(data);
+    if (data.status === 'success') {
+      return data.data.documents.map((doc: any) => ({
+        id: doc._id,
+        name: doc.name,
+        uploadDate: doc.last_updated_at,
+        type: doc.document_type,
+        status: doc.status.toLowerCase(),
+        uploadedBy: doc.last_uploaded_by,
+      }));
+    } else {
+      console.error('Failed to fetch documents:', data.message);
+      return [];
+    }
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    return [];
+  }
 };
 
 export default function DocumentsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
 
   useEffect(() => {
+    setLoading(true);
     const loadDocuments = async () => {
       try {
-        const data = await fetchDocuments();
+        const data = await fetchDocuments(parseInt(selectedYear), selectedMonth + 1);
         setDocuments(data);
       } catch (error) {
         console.error('Failed to fetch documents:', error);
@@ -78,11 +73,12 @@ export default function DocumentsPage() {
     };
 
     loadDocuments();
-  }, []);
+  }, [selectedYear, selectedMonth]);
 
   const filteredDocuments = documents.filter(doc =>
     doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.type.toLowerCase().includes(searchQuery.toLowerCase())
+    doc.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    doc.status.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getStatusColor = (status: Document['status']) => {
@@ -111,13 +107,6 @@ export default function DocumentsPage() {
     router.push(`/library/document?document_id=${documentId}`);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-muted-foreground">Loading documents...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -148,23 +137,36 @@ export default function DocumentsPage() {
 
       <div className="bg-card rounded-lg shadow">
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex-1 max-w-sm">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search documents..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex justify-between items-center">
+              <div className="flex-1 max-w-sm">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search documents..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
               </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilterModal(!showFilterModal)}
+                className="ml-4"
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Filter
+              </Button>
             </div>
-            <Button variant="outline" className="ml-4">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
+            
+            <div className="max-w-md">
+              <YearMonthSelect
+                onYearChange={setSelectedYear}
+                onMonthChange={setSelectedMonth}
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -178,33 +180,50 @@ export default function DocumentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredDocuments.map((doc) => (
-                  <tr
-                    key={doc.id}
-                    className={`border-b last:border-b-0 cursor-pointer transition-colors ${getRowStyle(doc.status)}`}
-                    onClick={() => handleRowClick(doc.id)}
-                  >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span>{doc.name}</span>
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-4">
+                      <div className="flex justify-center items-center">
+                        <div className="spinner"></div>
+                        <span className="ml-2">Loading documents...</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      {new Date(doc.uploadDate).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-muted px-2 py-1 rounded text-sm">
-                        {doc.type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)}`}>
-                        {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                      </span>
+                  </tr>
+                ) : filteredDocuments.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-4 text-muted-foreground">
+                      No documents found
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredDocuments.map((doc) => (
+                    <tr
+                      key={doc.id}
+                      className={`border-b last:border-b-0 cursor-pointer transition-colors ${getRowStyle(doc.status)}`}
+                      onClick={() => handleRowClick(doc.id)}
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <span>{doc.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">
+                        {new Date(doc.uploadDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="bg-muted px-2 py-1 rounded text-sm">
+                          {doc.type}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)}`}>
+                          {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -248,6 +267,23 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .spinner {
+          border: 4px solid rgba(0, 0, 0, 0.1);
+          border-left-color: #4f46e5; /* Primary color */
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }
