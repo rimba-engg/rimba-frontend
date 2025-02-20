@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { api } from '@/lib/api';
 
 interface Contract {
   id: string;
@@ -35,78 +36,43 @@ interface Contract {
   portOfLoading: string;
 }
 
-// Mock API function
+// New implementation that uses the ApiClient from lib/api.ts
 const fetchContracts = async (): Promise<Contract[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  try {
+    // Perform a GET request using the api singleton
+    const response = await api.get<{
+      status: string;
+      message: string;
+      data: {
+        outgoing_contracts: any[];
+        products: any;
+        current_year: any;
+        YEARS: any;
+      };
+    }>('/v2/contracts/outgoing/');
 
-  return [
-    {
-      id: '1',
-      contractNumber: 'CTR-2024-001',
-      month: 'March 2024',
-      product: 'Renewable Diesel',
-      allocated: true,
-      buyer: 'EcoFuels Inc.',
-      seller: 'Green Energy Corp',
-      quantity: 50000,
-      blQuantity: 48500,
-      billOfLading: 'BL-24-0123',
-      portOfLoading: 'Port of Los Angeles'
-    },
-    {
-      id: '2',
-      contractNumber: 'CTR-2024-002',
-      month: 'March 2024',
-      product: 'Biodiesel',
-      allocated: false,
-      buyer: 'Clean Fuels LLC',
-      seller: 'Sustainable Solutions',
-      quantity: 75000,
-      blQuantity: 0,
-      billOfLading: 'Pending',
-      portOfLoading: 'Port of Seattle'
-    },
-    {
-      id: '3',
-      contractNumber: 'CTR-2024-003',
-      month: 'April 2024',
-      product: 'Renewable Diesel',
-      allocated: true,
-      buyer: 'Future Fuels Co.',
-      seller: 'Green Energy Corp',
-      quantity: 100000,
-      blQuantity: 98750,
-      billOfLading: 'BL-24-0124',
-      portOfLoading: 'Port of Oakland'
-    },
-    {
-      id: '4',
-      contractNumber: 'CTR-2024-004',
-      month: 'April 2024',
-      product: 'Sustainable Aviation Fuel',
-      allocated: false,
-      buyer: 'Eco Airways',
-      seller: 'Bio Aviation Ltd',
-      quantity: 150000,
-      blQuantity: 0,
-      billOfLading: 'Pending',
-      portOfLoading: 'Port of San Diego'
-    },
-    {
-      id: '5',
-      contractNumber: 'CTR-2024-005',
-      month: 'May 2024',
-      product: 'Renewable Diesel',
-      allocated: true,
-      buyer: 'Green Transport Inc.',
-      seller: 'Sustainable Solutions',
-      quantity: 80000,
-      blQuantity: 79500,
-      billOfLading: 'BL-24-0125',
-      portOfLoading: 'Port of Long Beach'
+    if (response.status !== 'success') {
+      throw new Error(response.message || 'Failed to fetch outgoing contracts');
     }
-  ];
+
+    // Map each contract object from the API response to the Contract type
+    return response.data.outgoing_contracts.map(contract => ({
+      id: contract.contract_id,
+      contractNumber: contract.contract_number,
+      month: contract.for_month,
+      product: contract.product,
+      allocated: contract.is_allocated === "true", // convert string "true"/"false" to boolean
+      buyer: contract.buyer,
+      seller: contract.seller,
+      quantity: Number(contract.quantity) || 0,
+      blQuantity: Number(contract.bl_quantity) || 0,
+      billOfLading: contract.bill_of_loading,
+      portOfLoading: contract.port_of_loading
+    }));
+  } catch (error) {
+    console.error('Error fetching contracts:', error);
+    return [];
+  }
 };
 
 type SortConfig = {
