@@ -22,39 +22,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
+import { ContractDetails, Allocation, Warehouse } from './types';
 
-interface ContractDetails {
-  id: string;
-  contractNumber: string;
-  month: string;
-  year: string;
-  buyer: string;
-  seller: string;
-  quantity: number;
-  product: string;
-  billOfLading: string;
-  docLink: string;
-  portOfLoading: string;
-  portOfDischarge: string;
-  isAllocated: boolean;
-  isINS: boolean;
-}
-
-interface Allocation {
-  contractId: string;
-  contractNumber: string;
-  warehouse: string;
-  allocatedQuantity: number;
-  ghg: number;
-  groupId: string;
-  outgoingSD: string;
-  outgoingSDUrl: string;
-}
-
-interface Warehouse {
-  id: string;
-  name: string;
-}
 
 // Replace the mock API functions with real API calls
 const fetchContractData = async (id: string): Promise<{

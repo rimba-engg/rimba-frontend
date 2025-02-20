@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import { YearSelector } from '@/components/selectors/year-selector';
 
 interface Contract {
   id: string;
@@ -37,7 +38,7 @@ interface Contract {
 }
 
 // New implementation that uses the ApiClient from lib/api.ts
-const fetchContracts = async (): Promise<Contract[]> => {
+const fetchContracts = async (year: string): Promise<Contract[]> => {
   try {
     // Perform a GET request using the api singleton
     const response = await api.get<{
@@ -49,7 +50,7 @@ const fetchContracts = async (): Promise<Contract[]> => {
         current_year: any;
         YEARS: any;
       };
-    }>('/v2/contracts/outgoing/');
+    }>(`/v2/contracts/outgoing/?current_year=${year}`);
 
     if (response.status !== 'success') {
       throw new Error(response.message || 'Failed to fetch outgoing contracts');
@@ -80,6 +81,8 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
+
+
 export default function OutgoingPage() {
   const router = useRouter();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -94,14 +97,15 @@ export default function OutgoingPage() {
     seller: '',
     portOfLoading: ''
   });
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
 
   useEffect(() => {
     loadContracts();
-  }, []);
+  }, [selectedYear]);
 
   const loadContracts = async () => {
     try {
-      const data = await fetchContracts();
+      const data = await fetchContracts(selectedYear);
       setContracts(data);
     } catch (error) {
       console.error('Failed to fetch contracts:', error);
@@ -200,10 +204,19 @@ export default function OutgoingPage() {
                 />
               </div>
             </div>
-            <Button variant="outline" className="ml-4">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
-            </Button>
+            <div className='flex items-center gap-2'>
+              <YearSelector 
+                value={selectedYear}
+                onValueChange={setSelectedYear}
+                startYear={2023} // optional
+                endYear={2026}   // optional
+              />
+              <Button variant="outline" className="ml-4">
+                <Filter className="w-4 h-4 mr-2" />
+                Filter
+              </Button>
+
+            </div>
           </div>
 
           <div className="rounded-md border">
