@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { ContractDetails, Allocation, Warehouse } from './types';
+import { Loader } from '@/components/ui/loader';
 
 
 // Replace the mock API functions with real API calls
@@ -226,7 +227,7 @@ export default function ContractPage() {
   if (loading || !contract) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-muted-foreground">Loading contract details...</div>
+        <Loader text="Loading contract details..." size="lg" />
       </div>
     );
   }

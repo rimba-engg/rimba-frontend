@@ -22,6 +22,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { YearSelector } from '@/components/selectors/year-selector';
+import { Loader } from '@/components/ui/loader';
 
 interface Contract {
   id: string;
@@ -39,6 +40,7 @@ interface Contract {
 
 // New implementation that uses the ApiClient from lib/api.ts
 const fetchContracts = async (year: string): Promise<Contract[]> => {
+  console.log('Fetching contracts for year:', year);
   try {
     // Perform a GET request using the api singleton
     const response = await api.get<{
@@ -100,19 +102,28 @@ export default function OutgoingPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
 
   useEffect(() => {
-    loadContracts();
-  }, [selectedYear]);
+    const controller = new AbortController();
+    
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchContracts(selectedYear);
+        setContracts(data);
+      } catch (error) {
+        const err = error as Error;
+        if (err.name === 'AbortError') {
+          return;
+        }
+        console.error('Failed to fetch contracts:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadContracts = async () => {
-    try {
-      const data = await fetchContracts(selectedYear);
-      setContracts(data);
-    } catch (error) {
-      console.error('Failed to fetch contracts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchData();
+
+    return () => controller.abort();
+  }, [selectedYear]);
 
   const handleSort = (key: keyof Contract) => {
     setSortConfig(current => ({
@@ -150,13 +161,13 @@ export default function OutgoingPage() {
 
   const filteredContracts = sortedContracts.filter(contract => {
     const matchesSearch = Object.values(contract).some(value =>
-      value.toString().toLowerCase().includes(searchQuery.toLowerCase())
+      value !== undefined && value.toString().toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const matchesFilters = Object.entries(filters).every(([key, value]) => {
       if (!value) return true;
       const contractValue = contract[key as keyof Contract];
-      return contractValue.toString().toLowerCase().includes(value.toLowerCase());
+      return contractValue !== undefined && contractValue.toString().toLowerCase().includes(value.toLowerCase());
     });
 
     return matchesSearch && matchesFilters;
@@ -169,7 +180,7 @@ export default function OutgoingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-muted-foreground">Loading contracts...</div>
+        <Loader text="Loading contracts..." size="lg" />
       </div>
     );
   }
