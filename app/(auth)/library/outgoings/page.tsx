@@ -161,13 +161,13 @@ export default function OutgoingPage() {
 
   const filteredContracts = sortedContracts.filter(contract => {
     const matchesSearch = Object.values(contract).some(value =>
-      value.toString().toLowerCase().includes(searchQuery.toLowerCase())
+      value !== undefined && value.toString().toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const matchesFilters = Object.entries(filters).every(([key, value]) => {
       if (!value) return true;
       const contractValue = contract[key as keyof Contract];
-      return contractValue.toString().toLowerCase().includes(value.toLowerCase());
+      return contractValue !== undefined && contractValue.toString().toLowerCase().includes(value.toLowerCase());
     });
 
     return matchesSearch && matchesFilters;
