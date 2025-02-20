@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Download, Share2, MoreVertical, FileText, Calendar, User, Tag, Clock, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/lib/api';
 
 interface Comment {
   id: number;
@@ -25,40 +26,12 @@ interface DocumentDetails {
   description: string;
   version: string;
   lastModified: string;
+  document_preview_url: string;
   comments: Comment[];
+  review_reasons: string[];
+  extracted_data: [];
 }
 
-const documentsData: Record<string, DocumentDetails> = {
-  '123e4567-e89b-12d3-a456-426614174000': {
-    id: '123e4567-e89b-12d3-a456-426614174000',
-    name: 'Q4 2023 LCFS Report.pdf',
-    type: 'Compliance Report',
-    uploadDate: '2024-03-15',
-    uploadedBy: 'John Doe',
-    status: 'approved',
-    tags: ['LCFS', 'Q4 2023', 'Compliance'],
-    description: 'Quarterly Low Carbon Fuel Standard compliance report for Q4 2023.',
-    version: '1.2',
-    lastModified: '2024-03-16 14:30',
-    comments: [
-      {
-        id: 1,
-        user: 'Jane Smith',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=32&h=32&fit=crop',
-        text: 'All calculations have been verified and look correct.',
-        timestamp: '2024-03-15 09:15',
-      },
-      {
-        id: 2,
-        user: 'Mike Johnson',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop',
-        text: 'Please update section 3.2 with the latest emission factors.',
-        timestamp: '2024-03-15 10:30',
-      },
-    ],
-  },
-  // Add more documents as needed
-};
 
 export default function DocumentPage() {
   const router = useRouter();
@@ -67,10 +40,46 @@ export default function DocumentPage() {
   const [newComment, setNewComment] = useState('');
 
   useEffect(() => {
-    const documentId = searchParams.get('document_id');
-    if (documentId && documentsData[documentId]) {
-      setDocumentDetails(documentsData[documentId]);
-    }
+    const fetchDocumentDetails = async () => {
+      console.log('fetching document details');
+      const documentId = searchParams.get('document_id');
+      console.log(documentId);
+      if (documentId) {
+        try {
+          const response = await api.get(`/v2/document/${documentId}/`);
+          console.log(response);
+
+          if ((response as any).status === 'success') {
+            const document = (response as any).data.document;
+            const documentDetails: DocumentDetails = {
+              id: document.id,
+              name: document.name,
+              type: document.document_type,
+              uploadDate: document.last_updated_at,
+              uploadedBy: document.last_uploaded_by,
+              status: document.status,
+              tags: document.metadata.contract_numbers, // Assuming tags are contract numbers
+              description: '', // Add description if available in the response
+              version: document.version.toString(),
+              lastModified: document.last_updated_at,
+              document_preview_url: document.preview_url,
+              comments: [], // Add comments if available in the response
+              review_reasons: document.review_reasons,
+              extracted_data: document.extracted_data,
+            };
+            setDocumentDetails(documentDetails);
+          } else {
+            console.error('Error fetching document details:', (response as any).message);
+            setDocumentDetails(null);
+          }
+        } catch (error) {
+          console.error('Error fetching document details:', error);
+          setDocumentDetails(null);
+        }
+      }
+    };
+
+    fetchDocumentDetails();
   }, [searchParams]);
 
   if (!documentDetails) {
@@ -98,6 +107,7 @@ export default function DocumentPage() {
     setNewComment('');
   };
 
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -115,17 +125,34 @@ export default function DocumentPage() {
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">
           {/* Document Preview */}
-          <div className="bg-card rounded-lg shadow p-6 min-h-[600px] flex items-center justify-center">
-            <div className="text-center">
-              <FileText className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                Document preview not available
-              </p>
-              <Button variant="outline" className="mt-4">
-                <Download className="w-4 h-4 mr-2" />
-                Download to View
-              </Button>
-            </div>
+          <div className="bg-card rounded-lg shadow p-6 min-h-[600px] flex flex-col relative">
+            {documentDetails.document_preview_url ? (
+              <>
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(documentDetails.document_preview_url)}&embedded=true`}
+                  className="flex-1 w-full h-full"
+                  title="Document Preview"
+                  style={{ border: 'none' }}
+                />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => window.open(documentDetails.document_preview_url, '_blank')}
+                    className="bg-green-50"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-center">
+                <FileText className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  Document preview not available
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Comments Section */}
@@ -207,6 +234,12 @@ export default function DocumentPage() {
               </div>
 
               <div className="flex items-center gap-2 text-sm">
+                <Tag className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Status:</span>
+                <span>{documentDetails.status}</span>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Last Modified:</span>
                 <span>{documentDetails.lastModified}</span>
@@ -227,9 +260,9 @@ export default function DocumentPage() {
               </div>
 
               <div className="pt-4 border-t">
-                <h3 className="text-sm font-medium mb-2">Description</h3>
-                <p className="text-sm text-muted-foreground">
-                  {documentDetails.description}
+                <h3 className="text-sm font-medium mb-2" style={{ color: 'red' }}>Review Reasons</h3>
+                <p className="text-sm text-muted-foreground" style={{ color: 'red' }}>
+                  {documentDetails.review_reasons.join(', ')}
                 </p>
               </div>
             </div>
