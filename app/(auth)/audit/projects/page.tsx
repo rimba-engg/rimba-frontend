@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Filter, MoreHorizontal, Plus } from 'lucide-react';
+import { Filter, MoreHorizontal, Plus, Grid } from 'lucide-react';
 import { ProjectsTable } from './components/projects-table';
 import { FilterModal } from './components/modals/filter-modal';
 import { DeleteModal } from './components/modals/delete-modal';
@@ -18,8 +18,15 @@ interface Checklist {
   allowed_users: string[];
   created_at: string;
   updated_at: string;
-  custom_fields: any[];
+  custom_fields: CustomField[];
   progress_percentage: number;
+}
+
+interface CustomField {
+  id: string;
+  name: string;
+  type: string;
+  options?: string[];
 }
 
 interface ChecklistResponse {
@@ -51,6 +58,8 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAddingColumn, setIsAddingColumn] = useState(false);
+  const [customColumns, setCustomColumns] = useState<CustomField[]>([]);
 
   useEffect(() => {
     fetchChecklists();
@@ -61,6 +70,10 @@ export default function ProjectsPage() {
       setLoading(true);
       const response = await api.get<ChecklistResponse>('/audit/v2/checklist');
       setChecklists(response.data.checklists);
+      
+      // Get unique custom fields across all checklists
+      const allCustomFields = [];
+      setCustomColumns(allCustomFields);
       setError(null);
     } catch (err) {
       setError('Failed to load checklists');
@@ -80,7 +93,7 @@ export default function ProjectsPage() {
       });
 
       if (response.status === 200) {
-        await fetchChecklists(); // Refresh the list
+        await fetchChecklists();
         setShowCreateModal(false);
         setFormData({ name: '' });
       } else {
@@ -91,6 +104,35 @@ export default function ProjectsPage() {
       console.error('Error creating checklist:', err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAddColumn = async () => {
+    if (isAddingColumn) return;
+    setIsAddingColumn(true);
+    setError(null);
+
+    try {
+      const newColumn: CustomField = {
+        id: `custom_${Date.now()}`,
+        name: 'New Column',
+        type: 'text'
+      };
+
+      // Add the column to all checklists
+      await api.post('/audit/v2/checklist/add_custom_field/', {
+        field: newColumn
+      });
+
+      setCustomColumns(prev => [...prev, newColumn]);
+      
+      // Refresh checklists to get updated data
+      await fetchChecklists();
+    } catch (err) {
+      setError('Failed to add column');
+      console.error('Error adding column:', err);
+    } finally {
+      setIsAddingColumn(false);
     }
   };
 
@@ -105,7 +147,7 @@ export default function ProjectsPage() {
       });
 
       if (response.status === 200) {
-        await fetchChecklists(); // Refresh the list
+        await fetchChecklists();
         setShowDeleteConfirm(null);
       } else {
         throw new Error(response.message || 'Failed to delete checklist');
@@ -144,6 +186,14 @@ export default function ProjectsPage() {
                 <Plus size={16} />
                 New Checklist
               </button>
+              <button
+                onClick={handleAddColumn}
+                disabled={isAddingColumn}
+                className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Grid size={16} />
+                {isAddingColumn ? 'Adding...' : 'Add Column'}
+              </button>
             </div>
           </div>
 
@@ -151,17 +201,22 @@ export default function ProjectsPage() {
             projects={checklists.map(checklist => ({
               id: checklist._id,
               name: checklist.name,
-              created_at: new Date(checklist.created_at).toLocaleDateString(),
               updated_at: new Date(checklist.updated_at).toLocaleDateString(),
               items_count: checklist.checklist_items.length,
               progress_percentage: checklist.progress_percentage,
+              custom_fields: checklist.custom_fields || [],
             }))}
             columns={[
               { id: 'name', name: 'Name' },
-              { id: 'created_at', name: 'Created Date' },
               { id: 'updated_at', name: 'Last Updated' },
               { id: 'items_count', name: '# Tasks' },
               { id: 'progress_percentage', name: 'Progress' },
+              ...customColumns.map(col => ({
+                id: col.id,
+                name: col.name,
+                type: col.type,
+                options: col.options,
+              })),
             ]}
             onEdit={(id) => setShowEditModal(id)}
             onDelete={(id) => setShowDeleteConfirm(id)}

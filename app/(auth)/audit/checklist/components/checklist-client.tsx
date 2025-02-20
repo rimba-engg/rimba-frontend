@@ -2,31 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, X, FileText, Upload, Settings, ChevronRight, Trash2, Edit2, MoreVertical, Grid } from 'lucide-react';
+import { Plus, ChevronRight, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { TaskTable } from './task-table';
 import { TaskSidebar } from './task-sidebar';
 import { TaskFormModal } from './task-form-modal';
 import { AssignModal } from './modals/assign-modal';
-import { DeleteModal } from './modals/delete-modal';
 import { AddColumnModal } from './add-column-modal';
-import { TaskStatus, type ExtendedChecklistItem, type FormData, type CustomColumn, type User, type Checklist } from '@/lib/types';
+import { TaskStatus, type ChecklistItem, type FormData, type User, type Checklist, type ColumnSchema } from '@/lib/types';
 import { api } from '@/lib/api';
 
 interface ApiResponse {
@@ -34,16 +17,6 @@ interface ApiResponse {
   data?: {
     id: string;
     [key: string]: any;
-  };
-  message?: string;
-}
-
-interface CustomFieldResponse {
-  status: number;
-  data?: {
-    field_id: string;
-    name: string;
-    field_type: string;
   };
   message?: string;
 }
@@ -59,27 +32,7 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
   const [showTaskSidebar, setShowTaskSidebar] = useState<string | null>(null);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [checklistItems, setChecklistItems] = useState<ExtendedChecklistItem[]>(
-    data.checklist_items.map(item => ({
-      id: item.id,
-      description: item.description || '',
-      status: item.status as TaskStatus || TaskStatus.NOT_STARTED,
-      createdBy: item.created_by || null,
-      assignedTo: item.assigned_users?.[0]?.id || '',
-      assignedToUser: item.assigned_users?.[0] ? {
-        id: item.assigned_users[0].id,
-        email: item.assigned_users[0].email || '',
-        first_name: item.assigned_users[0].first_name || '',
-        last_name: item.assigned_users[0].last_name || '',
-        avatar: item.assigned_users[0].avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.assigned_users[0].first_name + ' ' + item.assigned_users[0].last_name)}&background=random`
-      } : undefined,
-      comments: [],
-      customFields: {},
-      documents: [],
-    }))
-  );
-  const [customColumns, setCustomColumns] = useState<CustomColumn[]>([]);
-  const [newColumnName, setNewColumnName] = useState('');
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(data.checklist_items);
   const [newComment, setNewComment] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,21 +74,19 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
         );
         setShowEditModal(null);
       } else {
-        // Call API to create new checklist item
         const response = await api.post<ApiResponse>('/audit/v2/checklist/item/update/', {
           description: formData.description,
           item_id: data.id
         });
 
         if (response.status === 200 && response.data) {
-          const newItem: ExtendedChecklistItem = {
+          const newItem: ChecklistItem = {
             ...formData,
             id: response.data.id,
             status: TaskStatus.NOT_STARTED,
-            createdBy: null,
             comments: [],
-            customFields: {},
             documents: [],
+            column_data: {},
           };
           setChecklistItems(prev => [...prev, newItem]);
           setShowAddModal(false);
@@ -145,72 +96,19 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
       }
     } catch (error) {
       console.error('Error creating checklist item:', error);
-      // You might want to show an error message to the user here
     } finally {
       setIsSubmitting(false);
       setFormData(initialFormData);
     }
   };
 
-  const handleAddColumn = async (columnData: {
-    name: string;
-    field_type: string;
-    options?: string[];
-  }) => {
-    try {
-      const response = await api.post<CustomFieldResponse>('/audit/v2/add_custom_field/', {
-        checklist_id: data.id,
-        name: columnData.name,
-        field_type: columnData.field_type,
-        options: columnData.options || [],
-      });
-
-      if (response.status === 200 && response.data) {
-        const columnId = columnData.name.toLowerCase().replace(/\s+/g, '_');
-        setCustomColumns(prev => [...prev, { id: columnId, name: columnData.name }]);
-        
-        setChecklistItems(prev => 
-          prev.map(item => ({
-            ...item,
-            customFields: {
-              ...item.customFields,
-              [columnId]: ''
-            }
-          }))
-        );
-        
-        setShowAddColumnModal(false);
-      }
-    } catch (error) {
-      console.error('Error adding custom field:', error);
-    }
-  };
-
-  const handleCustomFieldChange = (itemId: string, columnId: string, value: string) => {
-    setChecklistItems(prev =>
-      prev.map(item =>
-        item.id === itemId
-          ? {
-              ...item,
-              customFields: {
-                ...item.customFields,
-                [columnId]: value
-              }
-            }
-          : item
-      )
-    );
-  };
-
   const handleStatusChange = async (itemId: string, status: TaskStatus) => {
     try {
-      // Make API call to update status
       await api.post('/audit/v2/checklist/item/update/', {
         item_id: itemId,
         status: status
       });
 
-      // Update local state only after successful API call
       setChecklistItems(prev =>
         prev.map(item =>
           item.id === itemId
@@ -220,8 +118,23 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
       );
     } catch (error) {
       console.error('Failed to update status:', error);
-      // Optionally add error handling UI here
     }
+  };
+
+  const handleFieldChange = (itemId: string, columnId: string, value: string) => {
+    setChecklistItems(prev =>
+      prev.map(item =>
+        item.id === itemId
+          ? {
+              ...item,
+              column_data: {
+                ...item.column_data,
+                [columnId]: value
+              }
+            }
+          : item
+      )
+    );
   };
 
   const handleAddComment = (itemId: string) => {
@@ -250,14 +163,12 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
     setIsDeleting(true);
 
     try {
-      // Call API to delete checklist item
       const response = await api.post<ApiResponse>('/audit/v2/delete_checklist_item/', {
         checklist_id: data.id,
         checklist_item_id: id
       });
 
       if (response.status === 200) {
-        // Update local state only after successful API call
         setChecklistItems(items => items.filter(item => item.id !== id));
         setShowTaskSidebar(null);
       } else {
@@ -265,9 +176,45 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
       }
     } catch (error) {
       console.error('Error deleting checklist item:', error);
-      // You might want to show an error message to the user here
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleAddColumn = async (columnData: {
+    name: string;
+    field_type: string;
+    options?: string[];
+  }) => {
+    try {
+      const newColumn: ColumnSchema = {
+        name: columnData.name,
+        type: columnData.field_type as ColumnSchema['type'],
+        options: columnData.options,
+      };
+
+      await api.post('/audit/v2/checklist/schema/update/', {
+        checklist_id: data.id,
+        schema: [...(data.schema || []), newColumn]
+      });
+
+      // Update the schema in the data object
+      data.schema = [...(data.schema || []), newColumn];
+      
+      // Initialize the new field for all items
+      setChecklistItems(prev => 
+        prev.map(item => ({
+          ...item,
+          column_data: {
+            ...item.column_data,
+            [columnData.name]: ''
+          }
+        }))
+      );
+      
+      setShowAddColumnModal(false);
+    } catch (error) {
+      console.error('Error adding column:', error);
     }
   };
 
@@ -315,11 +262,9 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
         <div className="h-full flex flex-col">
           <div className="flex-1 overflow-auto">
             <TaskTable
-              items={checklistItems}
-              customColumns={customColumns}
-              onAssign={id => setShowAssignModal(id)}
-              onStatusChange={handleStatusChange}
-              onCustomFieldChange={handleCustomFieldChange}
+              checklist_items={checklistItems}
+              schema={data.schema || []}
+              onFieldChange={handleFieldChange}
               onTaskClick={id => setShowTaskSidebar(id)}
             />
           </div>
@@ -329,11 +274,13 @@ export default function ChecklistClient({ data }: { data: Checklist }) {
       {showTaskSidebar !== null && (
         <TaskSidebar
           task={checklistItems.find(item => item.id === showTaskSidebar)!}
+          schema={data.schema}
           onClose={() => setShowTaskSidebar(null)}
           onStatusChange={handleStatusChange}
           onAssign={id => setShowAssignModal(id)}
           onDelete={handleDelete}
           onAddComment={handleAddComment}
+          onCustomFieldChange={handleFieldChange}
           newComment={newComment}
           onNewCommentChange={setNewComment}
         />

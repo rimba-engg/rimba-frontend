@@ -58,20 +58,27 @@ export enum TaskStatus {
   COMPLETED = 'COMPLETE'
 }
 
+export interface ColumnSchema {
+  name: string;
+  type: 'text' | 'single_select' | 'multi_select' | 'number' | 'date' | 'user';
+  options?: Array<string>;
+}
+
+export interface ChecklistItem {
+  id: string;
+  status: TaskStatus;
+  comments: Comment[];
+  documents: Document[];
+  column_data: Record<string, any>;
+}
+
 export interface Checklist {
   id: string;
   checklist_name: string;
   checklist_items: Array<ChecklistItem>;
   created_by: User;
   updated_at: string;
-}
-
-export interface ChecklistItem {
-  id: string;
-  description: string;
-  status: string;
-  assigned_users: Array<User>;
-  created_by: User;
+  schema?: Record<ColumnSchema>;
 }
 
 export interface Comment {
@@ -89,18 +96,6 @@ export interface Document {
   uploadedBy: string;
   uploadedAt: string;
   url: string;
-}
-
-export interface ExtendedChecklistItem {
-  id: string;
-  description: string;
-  createdBy: User | null;
-  status: TaskStatus;
-  assignedTo?: string;
-  assignedToUser?: User;
-  comments: Comment[];
-  customFields: Record<string, string>;
-  documents: Document[];
 }
 
 export interface FormData {

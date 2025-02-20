@@ -5,44 +5,38 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { X, User2, ChevronRight, Upload, FileText, Trash2, Download, Save } from 'lucide-react';
-import { TaskStatus, type ExtendedChecklistItem, type Document } from '@/lib/types';
+import { X, User2, Upload, FileText, Trash2, Download } from 'lucide-react';
+import { TaskStatus, type ChecklistItem, type ColumnSchema } from '@/lib/types';
 import { api } from '@/lib/api';
 
 interface TaskSidebarProps {
-  task: ExtendedChecklistItem;
+  task: ChecklistItem;
+  schema?: ColumnSchema[];
   onClose: () => void;
   onStatusChange: (id: string, status: TaskStatus) => void;
   onAssign: (id: string) => void;
   onDelete: (id: string) => void;
   onAddComment: (id: string) => void;
+  onCustomFieldChange: (itemId: string, columnId: string, value: string) => void;
   newComment: string;
   onNewCommentChange: (value: string) => void;
 }
 
-interface UpdateResponse {
-  status: number;
-  message?: string;
-  data?: {
-    id: string;
-    description: string;
-  };
-}
-
 export function TaskSidebar({
   task,
+  schema = [],
   onClose,
   onStatusChange,
   onAssign,
   onDelete,
   onAddComment,
+  onCustomFieldChange,
   newComment,
   onNewCommentChange,
 }: TaskSidebarProps) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [description, setDescription] = useState(task.description);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -50,7 +44,6 @@ export function TaskSidebar({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Simulate file upload progress
     setUploadProgress(0);
     const interval = setInterval(() => {
       setUploadProgress(prev => {
@@ -76,32 +69,99 @@ export function TaskSidebar({
     onClose();
   };
 
-  const handleSaveDescription = async () => {
-    if (description === task.description) {
-      setIsEditing(false);
-      return;
-    }
-
+  // TODO: Add support for all columns
+  const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await api.post<UpdateResponse>('/audit/v2/checklist/item/update/', {
+      const response = await api.post<ChecklistItem>('/audit/v2/checklist/item/update/', {
         item_id: task.id,
-        description: description
+        column_data: task.column_data,
       });
 
       if (response.status === 200) {
-        task.description = description;
+        task.column_data = column_data;
         setIsEditing(false);
       } else {
-        // Revert changes on error
-        setDescription(task.description);
-        console.error('Failed to update description');
+        console.error('Failed to update');
       }
     } catch (error) {
-      console.error('Error updating description:', error);
-      setDescription(task.description);
+      console.error('Error updating:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const renderFieldInput = (column: ColumnSchema) => {
+    const value = task.column_data[column.name] || '';
+
+    switch (column.type) {
+      case 'user':
+        return (
+          <button
+            onClick={() => onAssign(task.id)}
+            className="mt-1 w-full flex items-center gap-2 px-3 py-2 border rounded-lg text-left"
+          >
+            {task.assignedTo ? (
+              <>
+                <img
+                  src={task.assignedToUser?.avatar}
+                  alt="Avatar"
+                  className="w-6 h-6 rounded-full"
+                />
+                <span>{task.assignedToUser?.first_name}</span>
+              </>
+            ) : (
+              <>
+                <User2 className="w-5 h-5" />
+                <span>Assign</span>
+              </>
+            )}
+          </button>
+        );
+      case 'single_select':
+      case 'multi_select':
+        return (
+          <select
+            value={value}
+            onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
+            className="mt-1 w-full px-3 py-2 rounded-lg border"
+            multiple={column.type === 'multi_select'}
+          >
+            <option value="">Select...</option>
+            {column.options?.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        );
+      case 'date':
+        return (
+          <Input
+            type="date"
+            value={value}
+            onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
+            className="mt-1"
+          />
+        );
+      case 'number':
+        return (
+          <Input
+            type="number"
+            value={value}
+            onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
+            className="mt-1"
+          />
+        );
+      default:
+        return (
+          <Textarea
+            value={value}
+            onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
+            className="mt-1"
+            rows={3}
+          />
+        );
     }
   };
 
@@ -122,74 +182,14 @@ export function TaskSidebar({
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6">
-          <div>
-            <Label>Status</Label>
-            <select
-              value={task.status}
-              onChange={(e) => onStatusChange(task.id, e.target.value as TaskStatus)}
-              className="mt-1 w-full px-3 py-2 rounded-lg border"
-            >
-              <option value={TaskStatus.NOT_STARTED}>Not Started</option>
-              <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-              <option value={TaskStatus.COMPLETED}>Completed</option>
-            </select>
-          </div>
 
-          <div>
-            <Label>Assigned To</Label>
-            <button
-              onClick={() => onAssign(task.id)}
-              className="mt-1 w-full flex items-center gap-2 px-3 py-2 border rounded-lg text-left"
-            >
-              {task.assignedTo ? (
-                <>
-                  <img
-                    src={task.assignedToUser?.avatar}
-                    alt="Avatar"
-                    className="w-6 h-6 rounded-full"
-                  />
-                  <span>{task.assignedToUser?.first_name}</span>
-                </>
-              ) : (
-                <>
-                  <User2 className="w-5 h-5" />
-                  <span>Assign</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Description</Label>
-              {!isEditing ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  Edit
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSaveDescription}
-                  disabled={isSaving}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save
-                </Button>
-              )}
+          {/* Custom Fields from Schema */}
+          {schema.map((column) => (
+            <div key={column.name}>
+              <Label>{column.name}</Label>
+              {renderFieldInput(column)}
             </div>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="mt-1"
-              rows={4}
-              readOnly={!isEditing}
-            />
-          </div>
+          ))}
 
           {/* Documents Section */}
           <div>

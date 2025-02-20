@@ -6,15 +6,20 @@ import { Edit2, Trash2, ChevronRight } from 'lucide-react';
 interface Project {
   id: string;
   name: string;
-  created_at: string;
   updated_at: string;
   items_count: number;
   progress_percentage: number;
+  custom_fields?: Array<{
+    id: string;
+    value: string;
+  }>;
 }
 
 interface Column {
-  id: keyof Project;
+  id: string;
   name: string;
+  type?: string;
+  options?: string[];
 }
 
 interface ProjectsTableProps {
@@ -64,9 +69,6 @@ export function ProjectsTable({
                   </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {project.created_at}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {project.updated_at}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -85,6 +87,12 @@ export function ProjectsTable({
                     </span>
                   </div>
                 </td>
+                {/* Render custom columns */}
+                {columns.slice(4).map((column) => (
+                  <td key={column.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {project.custom_fields?.find(f => f.id === column.id)?.value || '-'}
+                  </td>
+                ))}
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex items-center gap-3">
                     <button
