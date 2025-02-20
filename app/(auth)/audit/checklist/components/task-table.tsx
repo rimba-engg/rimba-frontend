@@ -1,7 +1,15 @@
 'use client';
 
-import { User2 } from 'lucide-react';
+import { User2, ArrowUpDown, MoreHorizontal, Eye } from 'lucide-react';
 import { type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import React from 'react';
 
 interface TaskTableProps {
   checklist_items: ChecklistItem[];
@@ -10,12 +18,78 @@ interface TaskTableProps {
   onTaskClick: (id: string) => void;
 }
 
+// Type for sort configuration
+type SortConfig = {
+  columnName: string | null;
+  direction: 'asc' | 'desc';
+};
+
 export function TaskTable({
   checklist_items,
   schema,
   onFieldChange,
   onTaskClick,
 }: TaskTableProps) {
+  // State for sorting
+  const [sortConfig, setSortConfig] = React.useState<SortConfig>({ columnName: null, direction: 'asc' });
+  
+  // State for hidden columns
+  const [hiddenColumns, setHiddenColumns] = React.useState<Set<string>>(new Set());
+
+  // Column management functions
+  const handleHideColumn = (columnName: string) => {
+    setHiddenColumns(prev => {
+      const newHidden = new Set(prev);
+      newHidden.add(columnName);
+      return newHidden;
+    });
+  };
+
+  const handleShowColumn = (columnName: string) => {
+    setHiddenColumns(prev => {
+      const newHidden = new Set(prev);
+      newHidden.delete(columnName);
+      return newHidden;
+    });
+  };
+
+  const handleDeleteColumn = (columnName: string) => {
+    console.log(`Delete column: ${columnName}`);
+    // TODO: Implement column deletion functionality
+  };
+
+  // Get visible columns
+  const visibleColumns = React.useMemo(() => {
+    return schema.filter(column => !hiddenColumns.has(column.name));
+  }, [schema, hiddenColumns]);
+
+  // Sorting handler
+  const handleSort = (columnName: string) => {
+    setSortConfig(current => ({
+      columnName,
+      direction: current.columnName === columnName && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Sort the checklist items
+  const sortedItems = React.useMemo(() => {
+    if (!sortConfig.columnName) return checklist_items;
+
+    return [...checklist_items].sort((a, b) => {
+      // Type guard to handle null columnName
+      if (!sortConfig.columnName) return 0;
+      
+      const aValue = a.column_data[sortConfig.columnName];
+      const bValue = b.column_data[sortConfig.columnName];
+
+      if (!aValue && !bValue) return 0;
+      if (!aValue) return 1;
+      if (!bValue) return -1;
+
+      const comparison = String(aValue).localeCompare(String(bValue));
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [checklist_items, sortConfig]);
 
   const renderFieldValue = (checklist_item: ChecklistItem, column: ColumnSchema) => {
     switch (column.type) {
@@ -99,18 +173,42 @@ export function TaskTable({
         <thead>
           <tr className="bg-muted/50">
             <th className="text-left py-3 px-4">#</th>
-            {schema.map(column => (
+            {visibleColumns.map(column => (
               <th key={column.name} className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                {column.name}
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort(column.name)}
+                    className="flex items-center gap-1 hover:bg-transparent"
+                  >
+                    {column.name}
+                    <ArrowUpDown className="w-4 h-4 ml-1" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-transparent">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleHideColumn(column.name)}>
+                        Hide Column
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteColumn(column.name)}>
+                        Delete Column
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {checklist_items.map((checklist_item, index) => (
+          {sortedItems.map((checklist_item, index) => (
             <tr key={checklist_item.id} className="hover:bg-muted/50 cursor-pointer border-b" onClick={() => onTaskClick(checklist_item.id)}>
               <td className="h-16 px-4 font-medium">{index + 1}</td>
-              {schema.map(column => (
+              {visibleColumns.map(column => (
                 <td key={column.name} className="w-1/3 h-16 px-4">
                   {renderFieldValue(checklist_item, column)}
                 </td>
