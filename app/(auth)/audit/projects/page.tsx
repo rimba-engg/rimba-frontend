@@ -65,7 +65,7 @@ export default function ProjectsPage() {
 
     try {
       const response = await api.post<CreateChecklistResponse>('/audit/v2/checklist/create/', {
-        name: formData.name
+        checklist_name: formData.name
       });
 
       if (response.status === 200) {
