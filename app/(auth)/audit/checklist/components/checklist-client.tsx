@@ -74,10 +74,17 @@ export default function ChecklistClient({ checklistData }: { checklistData: Chec
         );
         setShowEditModal(null);
       } else {
-        const response = await api.post<ApiResponse>('/audit/v2/checklist/item/update/', {
-          description: formData.description,
-          item_id: checklistData.id
-        });
+        if (showEditModal === null){
+          const response = await api.post<ApiResponse>('/audit/v2/checklist/item/update/', {
+            description: formData.description,
+            item_id: checklistData.id
+          });
+        } else {
+          const response = await api.post<ApiResponse>('/audit/v2/add_checklist_item/', {
+            name: formData.description,
+            checklist_id: checklistData.id
+          });
+        }
 
         if (response.status === 200 && response.data) {
           const newItem: ChecklistItem = {
