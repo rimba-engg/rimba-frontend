@@ -58,6 +58,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -107,6 +108,24 @@ export default function DocumentsPage() {
     router.push(`/library/document?document_id=${documentId}`);
   };
 
+  const handleDelete = async (documentId: string) => {
+    try {
+      setDeletingDocumentId(documentId);
+      console.log('Deleting document ID:', documentId);
+      console.log(documentId);
+      const response = await api.post('/v2/document/delete/', {
+        document_id: documentId
+      });
+
+      if ((response as any).status === 'success') {
+        setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      }
+    } catch (error) {
+      console.error('Error deleting document:', error);
+    } finally {
+      setDeletingDocumentId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -177,6 +196,7 @@ export default function DocumentsPage() {
                   <th className="text-left py-3 px-4">Upload Date</th>
                   <th className="text-left py-3 px-4">Type</th>
                   <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-left py-3 px-4">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,6 +240,26 @@ export default function DocumentsPage() {
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)}`}>
                           {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
                         </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Button
+                          variant="destructive"
+                          className="bg-red-300 text-white hover:bg-red-600 disabled:bg-red-500/50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(doc.id);
+                          }}
+                          disabled={deletingDocumentId === doc.id}
+                        >
+                          {deletingDocumentId === doc.id ? (
+                            <div className="flex items-center gap-2">
+                              <div className="spinner"></div>
+                              Deleting...
+                            </div>
+                          ) : (
+                            'Delete'
+                          )}
+                        </Button>
                       </td>
                     </tr>
                   ))
