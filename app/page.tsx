@@ -14,7 +14,10 @@ export default function Home() {
       console.log("user logged in", user);
       if (customer) {
         console.log("customer selected", customer);
-        router.push('/library/documents');  
+        if (customer.is_rng_customer)
+          router.push('/reporting/rng-mass-balance');  
+        else
+          router.push('/library/documents');  
       } else {
         console.log('user needs to select a customer account');
         router.push('/select-customer');  

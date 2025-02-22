@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { selectCustomer } from '@/lib/auth';
 import { type Customer } from '@/lib/types';
+import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -31,7 +32,11 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
 
     const response = await selectCustomer(selectedCustomerId);
     if (response.status === 'success') {
-      router.push('/library/documents');
+      const customer = getStoredCustomer();
+      if (customer?.is_rng_customer ?? false)
+        router.push('/reporting/rng-mass-balance');
+      else
+        router.push('/library/documents');
     } else {
       setError('Failed to select customer account');
     }
@@ -71,7 +76,7 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
                       <span className="text-sm text-muted-foreground">
                         Role: {customer.role}
                       </span>
-                      {customer.is_rng_customer === 'true' && (
+                      {(customer?.is_rng_customer ?? false) && (
                         <span className="px-2 text-xs bg-primary/10 text-primary rounded-full inline-block w-fit">
                           RNG Customer
                         </span>

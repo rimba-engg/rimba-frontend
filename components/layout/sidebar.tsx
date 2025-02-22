@@ -51,15 +51,27 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean): (MenuItem | Men
       { icon: Upload, label: 'Outgoing', href: '/library/outgoings' },
     ],
   }]),
-  {
+  ...(isRNGCustomer ? [
+    // RNG Case
+    {
+      icon: BarChart3,
+      label: 'Reporting',
+      items: [
+        { icon: Scale, label: 'Gas Balance', href: '/reporting/rng-mass-balance' },
+      ],
+    },
+  ] : [
+    // non RNG Case
+    {
     icon: BarChart3,
     label: 'Reporting',
     items: [
       { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
-      ...(isRNGCustomer ? [] : [{ icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' }]),
+      { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
       { icon: LineChart, label: 'Vertex', href: '/reporting/vertex' },
     ],
   },
+  ]),
   { icon: Brain, label: 'AI Extractor', href: '/ai-extractor' },
   { icon: ScrollText, label: 'RegsQA', href: '/regsqa' },
 ];
@@ -70,15 +82,15 @@ export function Sidebar() {
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-
+  
   useEffect(() => {
     const customer = getStoredCustomer();
     setCustomerData(customer);
   }, []);
 
   const isAdmin = customerData?.role === 'ADMIN';
-  const isRNGCustomer = customerData?.is_rng_customer === 'true';
-  const menuItems = getMenuItems(!!isAdmin, !!isRNGCustomer);
+  const isRNGCustomer = customerData?.is_rng_customer ?? false;
+  const menuItems = getMenuItems(isAdmin, isRNGCustomer);
 
   const toggleGroup = (label: string) => {
     setExpandedGroup(current => current === label ? null : label);
