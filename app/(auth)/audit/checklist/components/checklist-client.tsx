@@ -1,9 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, ChevronRight, Grid } from 'lucide-react';
+import { Plus, X, FileText, Upload, Settings, ChevronRight, Trash2, Edit2, MoreVertical, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { TaskTable } from './task-table';
 import { TaskSidebar } from './task-sidebar';
 import { TaskFormModal } from './task-form-modal';
@@ -74,17 +91,11 @@ export default function ChecklistClient({ checklistData }: { checklistData: Chec
         );
         setShowEditModal(null);
       } else {
-        if (showEditModal === null){
-          const response = await api.post<ApiResponse>('/audit/v2/checklist/item/update/', {
-            description: formData.description,
-            item_id: checklistData.id
-          });
-        } else {
-          const response = await api.post<ApiResponse>('/audit/v2/add_checklist_item/', {
-            name: formData.description,
-            checklist_id: checklistData.id
-          });
-        }
+  
+        const response = await api.post<ApiResponse>('/audit/v2/add_checklist_item/', {
+          name: formData.description,
+          checklist_id: checklistData.id
+        });
 
         if (response.status === 200 && response.data) {
           const newItem: ChecklistItem = {
@@ -231,6 +242,14 @@ export default function ChecklistClient({ checklistData }: { checklistData: Chec
           </Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
           <span className="text-muted-foreground">{checklistData.name}</span>
+          <div className="flex gap-2 ml-4">
+            <Badge variant="secondary" className="rounded-full">
+              Year: 2024
+            </Badge>
+            <Badge variant="secondary" className="rounded-full">
+              AFP Round: 1st
+            </Badge>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={() => setShowAddModal(true)}>

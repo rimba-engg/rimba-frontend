@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, getStoredUser } from '@/lib/auth';
+import { login, getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { type Customer } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +34,11 @@ export default function LoginPage() {
       if (response.customers) {
         router.push('/select-customer');
       } else {
-        router.push('/library/documents');
+        const customer = getStoredCustomer();
+        if (customer?.is_rng_customer ?? false)
+          router.push('/reporting/rng-mass-balance');
+        else
+          router.push('/library/documents');
       }
     } else {
       setError('Invalid credentials');

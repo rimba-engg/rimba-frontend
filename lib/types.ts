@@ -11,7 +11,7 @@ export interface Customer {
   id: string;
   name: string;
   role: string;
-  is_rng_customer: string;
+  is_rng_customer: boolean;
 }
 
 export interface LoginResponse {

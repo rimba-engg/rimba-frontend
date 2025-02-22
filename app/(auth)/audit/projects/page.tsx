@@ -6,6 +6,7 @@ import { Plus, Grid } from 'lucide-react';
 import { ChecklistTable } from './components/projects-table';
 import { DeleteModal } from './components/modals/delete-modal';
 import { ProjectFormModal } from './components/modals/project-form-modal';
+// import { AddColumnModal } from './components/modals/add-column-modal';
 import { api } from '@/lib/api';
 import { type ColumnSchema, type Checklist } from '@/lib/types';
 
@@ -33,12 +34,18 @@ export default function ProjectsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Checklist>({} as Checklist);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAddingColumn, setIsAddingColumn] = useState(false);
+  const [columns, setColumns] = useState<ColumnSchema[]>([
+    { id: 'name', name: 'Name', type: 'text' },
+    { id: 'updated_at', name: 'Last Updated', type: 'date' },
+    { id: 'items_count', name: '# Tasks', type: 'number' },
+    { id: 'progress_percentage', name: 'Progress', type: 'number' },
+  ]);
 
   useEffect(() => {
     fetchChecklists();
@@ -49,7 +56,6 @@ export default function ProjectsPage() {
       setLoading(true);
       const response = await api.get<ChecklistResponse>('/audit/v2/checklist');
       setChecklists(response.data.checklists);
-      
       setError(null);
     } catch (err) {
       setError('Failed to load checklists');
@@ -65,13 +71,12 @@ export default function ProjectsPage() {
 
     try {
       const response = await api.post<CreateChecklistResponse>('/audit/v2/checklist/create/', {
-        checklist_name: formData.name
+        name: formData.name
       });
 
       if (response.status === 200) {
         await fetchChecklists();
         setShowCreateModal(false);
-        // Set formData with a complete Checklist object to avoid type errors
         setFormData({ 
           id: '', 
           name: '', 
@@ -83,9 +88,6 @@ export default function ProjectsPage() {
         throw new Error(response.message || 'Failed to create checklist');
       }
     } catch (err) {
-      // Log the error with traceback
-      setError('Failed to create checklist');
-      console.error('Error creating checklist:', err);
       setError('Failed to create checklist');
       console.error('Error creating checklist:', err);
     } finally {
@@ -93,32 +95,16 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleAddColumn = async () => {
-    if (isAddingColumn) return;
-    setIsAddingColumn(true);
-    setError(null);
-
+  const handleAddColumn = async (columnData: ColumnSchema) => {
     try {
-      const newColumn: ColumnSchema = {
-        id: `custom_${Date.now()}`,
-        name: 'New Column',
-        type: 'text',
-        options: []
-      };
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // TODO: Add the column to all checklists
-      // // Add the column to all checklists
-      // await api.post('', {
-      //   field: newColumn
-      // });
-
-      // Refresh checklists to get updated data
-      await fetchChecklists();
-    } catch (err) {
+      setColumns(prev => [...prev, columnData]);
+      setShowAddColumnModal(false);
+    } catch (error) {
+      console.error('Error adding column:', error);
       setError('Failed to add column');
-      console.error('Error adding column:', err);
-    } finally {
-      setIsAddingColumn(false);
     }
   };
 
@@ -173,24 +159,18 @@ export default function ProjectsPage() {
                 New Checklist
               </button>
               <button
-                onClick={handleAddColumn}
-                disabled={isAddingColumn}
-                className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setShowAddColumnModal(true)}
+                className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
               >
                 <Grid size={16} />
-                {isAddingColumn ? 'Adding...' : 'Add Column'}
+                Add Column
               </button>
             </div>
           </div>
 
           <ChecklistTable
             projects={checklists}
-            columns={[
-              { id: 'name', name: 'Name', type: 'text' },
-              { id: 'updated_at', name: 'Last Updated', type: 'date' },
-              { id: 'items_count', name: '# Tasks', type: 'number' },
-              { id: 'progress_percentage', name: 'Progress', type: 'number' },
-            ]}
+            columns={columns}
             onEdit={(id) => setShowEditModal(id)}
             onDelete={(id) => setShowDeleteConfirm(id)}
             onChecklistClick={handleChecklistClick}
@@ -218,6 +198,12 @@ export default function ProjectsPage() {
         }}
         onSubmit={handleCreateChecklist}
       />
+
+      {/* <AddColumnModal
+        isOpen={showAddColumnModal}
+        onClose={() => setShowAddColumnModal(false)}
+        onSubmit={handleAddColumn}
+      /> */}
     </div>
   );
 }
