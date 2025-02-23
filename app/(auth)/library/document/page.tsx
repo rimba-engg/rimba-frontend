@@ -85,7 +85,7 @@ export default function DocumentPage() {
       const documentId = searchParams.get('document_id');
       if (documentId) {
         try {
-          const response = await api.get(`/v2/document/${documentId}/`);
+          const response = await api.get(`/v2/document/detail/${documentId}/`);
           console.log(response);
 
           if ((response as any).status === 'success') {

@@ -109,6 +109,7 @@ export default function DocumentsPage() {
   };
 
   const handleDelete = async (documentId: string) => {
+    console.log('Deleting document ID:', documentId);
     try {
       setDeletingDocumentId(documentId);
       console.log('Deleting document ID:', documentId);
