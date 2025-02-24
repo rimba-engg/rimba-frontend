@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { X, User2, Upload, FileText, Trash2, Download } from 'lucide-react';
-import { TaskStatus, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
+import { TaskStatus, type Checklist, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 import { api } from '@/lib/api';
 
 interface TaskSidebarProps {
   task: ChecklistItem;
+  checklistData: Checklist;
   schema?: ColumnSchema[];
   onClose: () => void;
   onStatusChange: (id: string, status: TaskStatus) => void;
@@ -22,8 +23,14 @@ interface TaskSidebarProps {
   onNewCommentChange: (value: string) => void;
 }
 
+interface UserResponse {
+  active_users: User[];
+  inactive_users: User[];
+}
+
 export function TaskSidebar({
   task,
+  checklistData,
   schema = [],
   onClose,
   onStatusChange,
@@ -39,6 +46,78 @@ export function TaskSidebar({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
+  const [userQuery, setUserQuery] = useState('');
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    // Load users when sidebar opens
+    fetchUsers();
+  }, [task.id]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get<UserResponse>(`/audit/v2/allowed_user_list/${checklistData.id}/`);
+      setUsers(response.active_users);
+      console.log(response.active_users);
+      console.log('users set');
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    onNewCommentChange(value);
+    setCursorPosition(cursorPos);
+
+    // Check if we should show user suggestions
+    const lastAtSymbol = value.lastIndexOf('@', cursorPos);
+    if (lastAtSymbol !== -1 && lastAtSymbol < cursorPos) {
+      const query = value.slice(lastAtSymbol + 1, cursorPos);
+      setUserQuery(query);
+      setShowUserSuggestions(true);
+    } else {
+      setShowUserSuggestions(false);
+    }
+  };
+
+  const insertMention = (user: User) => {
+    if (!cursorPosition) return;
+
+    const beforeMention = newComment.slice(0, cursorPosition - userQuery.length - 1);
+    const afterMention = newComment.slice(cursorPosition);
+    const mention = `@${user.first_name} ${user.last_name}`;
+    
+    const newValue = `${beforeMention}${mention}${afterMention}`;
+    onNewCommentChange(newValue);
+    setShowUserSuggestions(false);
+    
+    // Focus back on textarea
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      const newCursorPos = beforeMention.length + mention.length;
+      textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    try {
+      await api.post('/audit/v2/add_checklist_comment/', {
+        comment: newComment,
+        checklist_item_id: task.id
+      });
+      
+      onAddComment(task.id);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -68,28 +147,6 @@ export function TaskSidebar({
     onDelete(task.id);
     onClose();
   };
-
-  // // TODO: Add support for all columns
-  // const handleSave = async () => {
-  //   setIsSaving(true);
-  //   try {
-  //     const response = await api.post<ChecklistItem>('/audit/v2/checklist/item/update/', {
-  //       item_id: task.id,
-  //       column_data: task.column_data,
-  //     });
-
-  //     if (response.status === 200) {
-  //       task.column_data = column_data;
-  //       setIsEditing(false);
-  //     } else {
-  //       console.error('Failed to update');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error updating:', error);
-  //   } finally {
-  //     setIsSaving(false);
-  //   }
-  // };
 
   const renderFieldInput = (column: ColumnSchema) => {
     const value = task.column_data[column.name] || '';
@@ -166,17 +223,18 @@ export function TaskSidebar({
     }
   };
 
+  console.log(users);
+
   return (
     <div className="!mt-0 fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col">
       {/* Fixed Header */}
-      <div className="flex justify-between items-center p-6 border-b">
-        <h3 className="text-lg font-semibold">Task Details</h3>
+      <div className="flex justify-end items-center p-1 border-b">
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
         >
-          <X size={20} />
+          <X size={16} />
         </Button>
       </div>
 
@@ -241,29 +299,54 @@ export function TaskSidebar({
                   <div className="flex items-center gap-2 mb-2">
                     <img
                       src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop"
-                      alt={comment.user}
+                      alt={comment.user.first_name + ' ' + comment.user.last_name}
                       className="w-6 h-6 rounded-full"
                     />
-                    <span className="font-medium">{comment.user}</span>
+                    <span className="font-medium">{comment.user.first_name + ' ' + comment.user.last_name}</span>
                     <span className="text-sm text-gray-500">
-                      {new Date(comment.timestamp).toLocaleDateString()}
+                      {new Date(comment.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700">{comment.text}</p>
+                  <p className="text-sm text-gray-700">{comment.comment}</p>
                 </div>
               ))}
-              <div className="flex gap-2">
+              <div className="relative">
                 <Textarea
+                  ref={textareaRef}
                   value={newComment}
-                  onChange={(e) => onNewCommentChange(e.target.value)}
-                  placeholder="Add a comment..."
-                  className="flex-1"
+                  onChange={handleCommentChange}
+                  placeholder="Add a comment... Use @ to mention users"
+                  className="mb-2"
                 />
-                <Button
-                  onClick={() => onAddComment(task.id)}
-                  className="self-end"
-                >
-                  Add
+                
+                {/* User Suggestions Dropdown */}
+                {showUserSuggestions && (
+                  <div className="absolute bottom-full left-0 w-full bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {users
+                      .filter(user => 
+                        `${user.first_name} ${user.last_name}`
+                          .toLowerCase()
+                          .includes(userQuery.toLowerCase())
+                      )
+                      .map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => insertMention(user)}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                        >
+                          <img
+                            src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&background=random`}
+                            alt={`${user.first_name} ${user.last_name}`}
+                            className="w-6 h-6 rounded-full"
+                          />
+                          <span>{user.first_name} {user.last_name}</span>
+                        </button>
+                      ))}
+                  </div>
+                )}
+                
+                <Button onClick={handleAddComment}>
+                  Add Comment
                 </Button>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { LoginResponse, SelectCustomerResponse } from './types';
 
-export const BASE_URL = 'https://app.rimba.ai';
-// const BASE_URL = 'http://localhost:8000';
+// export const BASE_URL = 'https://app.rimba.ai';
+export const BASE_URL = 'http://localhost:8000';
 
 class ApiClient {
   private static instance: ApiClient;
@@ -74,7 +74,7 @@ class ApiClient {
       this.logout();
       return false;
     }
-    
+
     try {
       const response = await fetch(`${BASE_URL}/v2/auth/refresh/`, {
         method: 'POST',
@@ -124,12 +124,17 @@ class ApiClient {
     }
   }
 
-  public async selectCustomer(customerId: string): Promise<SelectCustomerResponse> {
+  public async selectCustomer(
+    customerId: string
+  ): Promise<SelectCustomerResponse> {
     try {
-      const response = await this.request<SelectCustomerResponse>('/v2/select/customer/', {
-        method: 'POST',
-        body: JSON.stringify({ customer_id: customerId }),
-      });
+      const response = await this.request<SelectCustomerResponse>(
+        '/v2/select/customer/',
+        {
+          method: 'POST',
+          body: JSON.stringify({ customer_id: customerId }),
+        }
+      );
 
       if (response.status === 'success' && response.data?.tokens) {
         this.setTokens(
@@ -142,7 +147,8 @@ class ApiClient {
     } catch (error) {
       return {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Customer selection failed',
+        message:
+          error instanceof Error ? error.message : 'Customer selection failed',
       };
     }
   }
@@ -155,7 +161,7 @@ class ApiClient {
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('selected_customer');
       localStorage.removeItem('user');
-      
+
       // Redirect to login page
       window.location.href = '/login';
     }
@@ -199,7 +205,10 @@ class ApiClient {
     });
   }
 
-  public async delete<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  public async delete<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' });
   }
 

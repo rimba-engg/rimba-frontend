@@ -2,24 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, X, FileText, Upload, Settings, ChevronRight, Trash2, Edit2, MoreVertical, Grid } from 'lucide-react';
+import { Plus, ChevronRight, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { TaskTable } from './task-table';
 import { TaskSidebar } from './task-sidebar';
@@ -28,6 +12,7 @@ import { AssignModal } from './modals/assign-modal';
 import { AddColumnModal } from './add-column-modal';
 import { TaskStatus, type ChecklistItem, type FormData, type User, type Checklist, type ColumnSchema } from '@/lib/types';
 import { api } from '@/lib/api';
+import { getStoredUser } from '@/lib/auth';
 
 interface ApiResponse {
   status: number;
@@ -160,10 +145,13 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
   const handleAddComment = (itemId: string) => {
     if (!newComment.trim()) return;
 
+    const currentUser = getStoredUser();
+    if (!currentUser) return;
+
     const comment = {
       id: Date.now(),
       text: newComment,
-      user: 'John Doe',
+      user: currentUser.first_name + ' ' + currentUser.last_name,
       timestamp: new Date().toISOString(),
     };
 
@@ -232,6 +220,8 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
     }
   };
 
+  console.log(checklistItems.find(item => item.id === showTaskSidebar)!);
+
   return (
     <div className="max-w-[calc(100vw-16rem)] space-y-6">
       <div className="flex justify-between items-center">
@@ -240,7 +230,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
             href="/audit/projects"
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            Checklists
+            Projects
           </Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
           <span className="text-muted-foreground">{checklistData.name}</span>
@@ -295,6 +285,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
 
       {showTaskSidebar !== null && (
         <TaskSidebar
+          checklistData={checklistData}
           task={checklistItems.find(item => item.id === showTaskSidebar)!}
           schema={checklistData.schema}
           onClose={() => setShowTaskSidebar(null)}

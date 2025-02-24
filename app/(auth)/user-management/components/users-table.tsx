@@ -41,12 +41,12 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
               <td className="py-3 px-4">
                 <div className="flex items-center gap-3">
                   <img
-                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
-                    alt={user.name}
+                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&background=random`}
+                    alt={user.first_name + ' ' + user.last_name}
                     className="w-8 h-8 rounded-full"
                   />
                   <div>
-                    <div className="font-medium">{user.name}</div>
+                    <div className="font-medium">{user.first_name + ' ' + user.last_name}</div>
                     <div className="text-sm text-muted-foreground">{user.email}</div>
                   </div>
                 </div>

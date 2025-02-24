@@ -11,7 +11,8 @@ import { type Checklist } from '@/lib/types';
 import { type UserData, type Project, type UserFormData, type UserListResponse, type ProjectListResponse, type ChecklistListResponse } from './types';
 
 const emptyUser: UserFormData = {
-  name: '',
+  first_name: '',
+  last_name: '',
   email: '',
   role: 'USER',
   project: '',
@@ -81,15 +82,16 @@ export default function UserManagementPage() {
     try {
       if (editingUser) {
         await api.put(`/user-mgt/v2/user/${editingUser.id}/`, {
-          first_name: formData.name,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
           role_name: formData.role,
           project: projects.find(proj => proj.name === formData.project)?.id,
           checklist_ids: formData.checklist_details.map(c => c.id),
         });
       } else {
         await api.post('/user-mgt/v2/user/', {
-          first_name: formData.name,
-          last_name: formData.name,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
           email: formData.email,
           password: formData.password,
           role_name: formData.role,
@@ -109,7 +111,8 @@ export default function UserManagementPage() {
   const handleEdit = (user: UserData) => {
     setEditingUser(user);
     setFormData({
-      name: user.name,
+      first_name: user.first_name,
+      last_name: user.last_name,
       email: user.email,
       role: user.role,
       project: user.project || '',

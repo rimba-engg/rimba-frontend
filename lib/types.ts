@@ -70,6 +70,7 @@ export interface ChecklistItem {
   status: TaskStatus;
   comments: Comment[];
   documents: Document[];
+  schema?: Array<ColumnSchema>;
   column_data: Record<string, any>;
 }
 
@@ -79,16 +80,17 @@ export interface Checklist {
   checklist_items: Array<ChecklistItem>;
   created_by: User;
   updated_at: string;
-  schema?: Array<ColumnSchema>;
   progress_percentage?: number;
   project_id: string;
+  schema?: Array<ColumnSchema>;
+  column_data?: Record<string, any>;
 }
 
 export interface Comment {
   id: number;
-  text: string;
-  user: string;
-  timestamp: string;
+  comment: string;
+  user: User;
+  created_at: string;
 }
 
 export interface Document {

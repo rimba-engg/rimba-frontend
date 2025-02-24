@@ -2,7 +2,8 @@ import { type Checklist } from '@/lib/types';
 
 export interface UserData {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   role: string;
   project: string;
@@ -35,7 +36,8 @@ export interface ChecklistListResponse {
 }
 
 export interface UserFormData {
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password?: string;
   role: string;

@@ -6,13 +6,14 @@ import { Plus, Grid } from 'lucide-react';
 import { ChecklistTable } from './components/projects-table';
 import { DeleteModal } from './components/modals/delete-modal';
 import { ProjectFormModal } from './components/modals/project-form-modal';
-// import { AddColumnModal } from './components/modals/add-column-modal';
+import { AddColumnModal } from './components/modals/add-column-modal';
 import { api } from '@/lib/api';
 import { type ColumnSchema, type Checklist } from '@/lib/types';
 
 interface ChecklistResponse {
   data: {
     checklists: Checklist[];
+    schema: ColumnSchema[];
   };
 }
 
@@ -29,6 +30,13 @@ interface DeleteChecklistResponse {
   message?: string;
 }
 
+const defaultColumns: ColumnSchema[] = [
+  { id: 'name', name: 'Name', type: 'text' },
+  { id: 'updated_at', name: 'Last Updated', type: 'date' },
+  { id: 'items_count', name: '# Tasks', type: 'number' },
+  { id: 'progress_percentage', name: 'Progress', type: 'number' },
+];
+
 export default function ProjectsPage() {
   const router = useRouter();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -40,12 +48,7 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Checklist>({} as Checklist);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [columns, setColumns] = useState<ColumnSchema[]>([
-    { id: 'name', name: 'Name', type: 'text' },
-    { id: 'updated_at', name: 'Last Updated', type: 'date' },
-    { id: 'items_count', name: '# Tasks', type: 'number' },
-    { id: 'progress_percentage', name: 'Progress', type: 'number' },
-  ]);
+  const [columns, setColumns] = useState<ColumnSchema[]>(defaultColumns);
 
   useEffect(() => {
     fetchChecklists();
@@ -55,6 +58,7 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       const response = await api.get<ChecklistResponse>('/audit/v2/checklist');
+      setColumns(response.data.schema);
       setChecklists(response.data.checklists);
       setError(null);
     } catch (err) {
@@ -104,8 +108,11 @@ export default function ProjectsPage() {
 
   const handleAddColumn = async (columnData: ColumnSchema) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await api.post('/audit/v2/project/schema/add/', {
+        name: columnData.name,
+        field_type: columnData.type,
+        options: columnData.options || []
+      });
 
       setColumns(prev => [...prev, columnData]);
       setShowAddColumnModal(false);
@@ -140,7 +147,7 @@ export default function ProjectsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-muted-foreground">Loading checklists...</div>
+        <div className="text-muted-foreground">Loading projects...</div>
       </div>
     );
   }
@@ -156,14 +163,14 @@ export default function ProjectsPage() {
       <div className="bg-white rounded-lg shadow">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Checklists</h2>
+            <h2 className="text-lg font-semibold text-gray-800">Projects</h2>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
               >
                 <Plus size={16} />
-                New Checklist
+                New Project
               </button>
               {/* removing add column for demo as backend is not ready */}
               {/* <button
@@ -207,11 +214,11 @@ export default function ProjectsPage() {
         onSubmit={handleCreateChecklist}
       />
 
-      {/* <AddColumnModal
+      <AddColumnModal
         isOpen={showAddColumnModal}
         onClose={() => setShowAddColumnModal(false)}
         onSubmit={handleAddColumn}
-      /> */}
+      />
     </div>
   );
 }

@@ -38,6 +38,8 @@ export function UserFormModal({
 }: UserFormModalProps) {
   if (!isOpen) return null;
 
+  console.log(formData);
+
   const handleChecklistToggle = (checklistId: string, checklistName: string) => {
     const currentDetails = formData.checklist_details || [];
     const exists = currentDetails.some(c => c.id === checklistId);
@@ -70,14 +72,26 @@ export function UserFormModal({
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => onChange('name', e.target.value)}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">First Name</Label>
+              <Input
+                id="first_name"
+                value={formData.first_name}
+                onChange={(e) => onChange('first_name', e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input
+                id="last_name"
+                value={formData.last_name}
+                onChange={(e) => onChange('last_name', e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
