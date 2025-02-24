@@ -60,13 +60,31 @@ export function TaskSidebar({
     setCustomerData(customer);
   }, []);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [documents, setDocuments] = useState<Array<{
+    id: string;
+    name: string;
+    preview_url: string;
+    size: number;
+    uploaded_at: string;
+  }>>([]);
 
   const fetchAssignedUsers = async () => {
     try {
-      const response = await api.get<{ data: User[] }>(
-        `/audit/v2/checklist/item/assigned-users/${task.id}/`
-      );
-      setAssignedUsers(response.data);
+      const response = await api.get<{ 
+        data: {
+          assigned_users: User[];
+          documents: Array<{
+            id: string;
+            name: string;
+            preview_url: string;
+            size: number;
+            uploaded_at: string;
+          }>;
+        }
+      }>(`/audit/v2/checklist/item/assigned-users/${task.id}/`);
+      
+      setAssignedUsers(response.data.assigned_users);
+      setDocuments(response.data.documents);
     } catch (error) {
       console.error('Error fetching assigned users:', error);
     }
@@ -144,6 +162,7 @@ export function TaskSidebar({
     if (!files || files.length === 0) return;
 
     try {
+      setUploadProgress(0); // Start loading
       const formData = new FormData();
       formData.append('item_id', task.id);
       Array.from(files).forEach(file => {
@@ -163,15 +182,14 @@ export function TaskSidebar({
         throw new Error('File upload failed');
       }
       
-      // Close modal and reset state
-      setShowUploadModal(false);
-      setUploadProgress(null);
+      // Refresh documents after upload
+      await fetchAssignedUsers();
       
-      // You might want to refresh the document list here
-      // Consider adding a state update or callback prop for document refresh
-
+      setShowUploadModal(false);
     } catch (error) {
       console.error('Error uploading files:', error);
+    } finally {
+      setUploadProgress(null); // End loading
     }
   };
 
@@ -440,21 +458,33 @@ export function TaskSidebar({
               </Button>
             </div>
             <div className="space-y-2">
-              {task.documents?.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+              {documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                >
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm font-medium">{doc.name}</p>
+                      <a
+                        href={doc.preview_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium hover:underline"
+                      >
+                        {doc.name}
+                      </a>
                       <p className="text-xs text-muted-foreground">
-                        {formatFileSize(doc.size)} • {new Date(doc.uploadedAt).toLocaleDateString()}
+                        {new Date(doc.uploaded_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Download className="w-4 h-4" />
-                    </Button>
+                    <a href={doc.preview_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    </a>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600">
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -579,10 +609,26 @@ export function TaskSidebar({
               )}
 
               <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowUploadModal(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowUploadModal(false)}
+                  disabled={uploadProgress !== null}
+                >
                   Cancel
                 </Button>
-                <Button onClick={() => handleFileUpload(selectedFiles)}>Upload</Button>
+                <Button 
+                  onClick={() => handleFileUpload(selectedFiles)}
+                  disabled={uploadProgress !== null}
+                >
+                  {uploadProgress !== null ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    'Upload'
+                  )}
+                </Button>
               </div>
             </div>
           </div>
