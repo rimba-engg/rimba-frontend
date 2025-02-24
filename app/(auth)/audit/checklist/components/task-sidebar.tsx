@@ -47,15 +47,28 @@ export function TaskSidebar({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
   const [showUserSuggestions, setShowUserSuggestions] = useState(false);
   const [userQuery, setUserQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const fetchAssignedUsers = async () => {
+    try {
+      const response = await api.get<{ data: User[] }>(
+        `/audit/v2/checklist/item/assigned-users/${task.id}/`
+      );
+      setAssignedUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching assigned users:', error);
+    }
+  };
 
   useEffect(() => {
-    // Load users when sidebar opens
     fetchUsers();
+    fetchAssignedUsers();
   }, [task.id]);
 
   const fetchUsers = async () => {
@@ -168,6 +181,33 @@ export function TaskSidebar({
     onClose();
   };
 
+  const handleUserAssignment = async (userId: string) => {
+    try {
+      setIsAssigning(true);
+      await api.post('/audit/v2/assign-user/checklist-item/', {
+        checklist_item_id: task.id,
+        user_id: userId
+      });
+      await fetchAssignedUsers();
+    } catch (error) {
+      console.error('Error assigning user:', error);
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
+  const handleUserUnassignment = async (userId: string) => {
+    try {
+      await api.post('/audit/v2/unassign-user/checklist-item/', {
+        checklist_item_id: task.id,
+        user_id: userId
+      });
+      await fetchAssignedUsers();  // Refresh the list after successful unassignment
+    } catch (error) {
+      console.error('Error unassigning user:', error);
+    }
+  };
+
   const renderFieldInput = (column: ColumnSchema) => {
     const value = task.column_data[column.name] || '';
 
@@ -261,6 +301,66 @@ export function TaskSidebar({
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6">
+
+          {/* User Assignment Dropdown */}
+          <div>
+            <Label>Assigned To</Label>
+            <select
+              value={users.find(u => u.id === task.assigned_user?.id)?.id || ''}
+              onChange={(e) => {
+                handleUserAssignment(e.target.value);
+              }}
+              className="mt-1 w-full px-3 py-2 rounded-lg border"
+              disabled={isAssigning}
+            >
+              <option value="">{isAssigning ? 'Assigning...' : 'Assign User...'}</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.first_name} {user.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Assigned Users List */}
+          {assignedUsers.length > 0 && (
+            <div>
+              <Label className="mb-2">Currently Assigned</Label>
+              <div className="space-y-2">
+                {assignedUsers.map((user) => (
+                  <div 
+                    key={user.id}
+                    className="flex items-center gap-3 p-2 bg-muted rounded-lg"
+                  >
+                    <img
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&background=random`}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {user.first_name} {user.last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-red-600 bg-red-50 hover:bg-red-100 rounded-full p-2 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUserUnassignment(user.id);
+                      }}
+                    >
+                      <X className="w-5 h-5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Custom Fields from Schema */}
           {schema.map((column) => (

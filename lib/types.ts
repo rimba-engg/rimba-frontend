@@ -72,6 +72,7 @@ export interface ChecklistItem {
   documents: Document[];
   schema?: Array<ColumnSchema>;
   column_data: Record<string, any>;
+  assigned_user?: User;
 }
 
 export interface Checklist {
