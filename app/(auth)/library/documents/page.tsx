@@ -6,7 +6,8 @@ import { FileText, Search, Filter, Download, Upload, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { YearMonthSelect } from '@/components/ui/year-month-select';
-import { api } from '@/lib/api';
+import { api,BASE_URL } from '@/lib/api';
+import { MONTHS } from '@/lib/constants';
 
 interface Document {
   id: string;
@@ -49,6 +50,7 @@ const fetchDocuments = async (year: number, month: number): Promise<Document[]> 
   }
 };
 
+
 export default function DocumentsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +61,7 @@ export default function DocumentsPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -128,6 +131,40 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleExportData = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch(`${BASE_URL}/v2/extractions/bulk/download/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({
+          month: Number(selectedMonth) + 1,
+          year: selectedYear
+        })
+      });
+
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `documents_${MONTHS[Number(selectedMonth)]}_${selectedYear}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export data');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -141,9 +178,11 @@ export default function DocumentsPage() {
           <Button
             variant="outline"
             className="border-primary text-primary hover:bg-primary hover:text-white"
+            onClick={handleExportData}
+            disabled={isExporting}
           >
             <Download className="w-4 h-4 mr-2" />
-            Export
+            {isExporting ? 'Exporting...' : 'Export'}
           </Button>
           <Button
             onClick={() => setShowUploadModal(true)}
