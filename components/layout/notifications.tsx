@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
 
 import { BASE_URL } from '@/lib/api';
 
@@ -17,11 +18,14 @@ interface Notification {
   created_at: string;
   status: 'READ' | 'UNREAD';
   type: 'success' | 'warning' | 'info';
+  checklist_id?: string;
+  reference_id?: string; // checklist_item_id
 }
 
 export function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -39,7 +43,9 @@ export function Notifications() {
           message: apiNotif.message,
           created_at: apiNotif.created_at,
           status: apiNotif.status,
-          type: 'info'
+          type: 'info',
+          checklist_id: apiNotif.checklist_id,
+          reference_id: apiNotif.reference_id
         }));
         
         setNotifications(mappedNotifications);
@@ -133,7 +139,12 @@ export function Notifications() {
                 className={`p-4 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer ${
                   notification.status === 'UNREAD' ? 'bg-primary/5' : ''
                 }`}
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => {
+                  markAsRead(notification.id);
+                  if (notification.checklist_id && notification.reference_id) {
+                    router.push(`/audit/checklist?id=${notification.checklist_id}`);
+                  }
+                }}
               >
                 <div className="flex gap-3">
                   {getNotificationIcon(notification.type)}

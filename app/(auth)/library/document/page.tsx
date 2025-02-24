@@ -79,6 +79,8 @@ export default function DocumentPage() {
 
   const [isUpdating, setIsUpdating] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(true);  // Add loading state
+
   useEffect(() => {
     const fetchDocumentDetails = async () => {
       console.log('fetching document details');
@@ -121,13 +123,25 @@ export default function DocumentPage() {
         } catch (error) {
           console.error('Error fetching document details:', error);
           setDocumentDetails(null);
+        } finally {  // Add finally block
+          setIsLoading(false);
         }
+      } else {
+        setIsLoading(false);
       }
     };
 
     fetchDocumentDetails();
   }, [searchParams]);
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="spinner mr-2"></div>
+        <p className="text-muted-foreground mt-4">Loading document...</p>
+      </div>
+    );
+  }
 
   if (!documentDetails) {
     return (
@@ -135,7 +149,7 @@ export default function DocumentPage() {
         <FileText className="w-16 h-16 text-muted-foreground mb-4" />
         <h1 className="text-2xl font-bold mb-2">Document Not Found</h1>
         <p className="text-muted-foreground mb-4">
-          The document you're looking for doesn't exist or has been moved.
+          The document couldn't be loaded. It may not exist or you don't have permission to view it.
         </p>
         <Button onClick={() => router.push('/documents')}>Back to Documents</Button>
       </div>
