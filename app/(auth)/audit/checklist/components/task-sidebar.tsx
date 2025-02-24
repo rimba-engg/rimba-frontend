@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { X, User2, Upload, FileText, Trash2, Download } from 'lucide-react';
+import { X, User2, Upload, FileText, Trash2, Download, Loader2 } from 'lucide-react';
 import { TaskStatus, type Checklist, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 import { api } from '@/lib/api';
 import { BASE_URL } from '@/lib/api';
@@ -208,6 +208,18 @@ export function TaskSidebar({
     }
   };
 
+  const handleStatusChange = async (newStatus: TaskStatus) => {
+    try {
+      await api.post('/audit/v2/checklist/item/status/update/', {
+        item_id: task.id,
+        status: newStatus
+      });
+      onStatusChange(task.id, newStatus);
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
   const renderFieldInput = (column: ColumnSchema) => {
     const value = task.column_data[column.name] || '';
 
@@ -303,7 +315,7 @@ export function TaskSidebar({
         <div className="p-6 space-y-6">
 
           {/* User Assignment Dropdown */}
-          <div>
+          <div className="relative">
             <Label>Assigned To</Label>
             <select
               value={users.find(u => u.id === task.assigned_user?.id)?.id || ''}
@@ -313,13 +325,18 @@ export function TaskSidebar({
               className="mt-1 w-full px-3 py-2 rounded-lg border"
               disabled={isAssigning}
             >
-              <option value="">{isAssigning ? 'Assigning...' : 'Assign User...'}</option>
+              <option value="">Assign User...</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.first_name} {user.last_name}
                 </option>
               ))}
             </select>
+            {isAssigning && (
+              <div className="absolute right-3 top-9">
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* Assigned Users List */}
@@ -361,6 +378,22 @@ export function TaskSidebar({
               </div>
             </div>
           )}
+
+          {/* Add Status Selector */}
+          <div>
+            <Label>Status</Label>
+            <select
+              value={task.status}
+              onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
+              className="mt-1 w-full px-3 py-2 rounded-lg border"
+            >
+              {Object.values(TaskStatus).map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Custom Fields from Schema */}
           {schema.map((column) => (
