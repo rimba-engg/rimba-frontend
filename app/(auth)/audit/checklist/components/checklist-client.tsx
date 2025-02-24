@@ -126,7 +126,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
     }
   };
 
-  const handleFieldChange = (itemId: string, columnId: string, value: string) => {
+  const handleFieldChange = async (itemId: string, columnId: string, value: string) => {
     setChecklistItems(prev =>
       prev.map(item =>
         item.id === itemId
@@ -140,6 +140,17 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
           : item
       )
     );
+
+    try {
+      console.log(` columnId: ${columnId}`)
+      await api.post('/audit/v2/update_item_custom_field_value/', {
+        checklist_item_id: itemId,
+        custom_field_id: columnId,
+        value: value
+      });
+    } catch (error) {
+      console.error('Failed to update custom field:', error);
+    }
   };
 
   const handleAddComment = (itemId: string) => {
