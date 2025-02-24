@@ -54,7 +54,7 @@ export function AllChecklistSidebar({
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
       <Input
-        value={(checklist[field] as string) || ''}
+        value={(checklist.column_data?.[field] as string) || ''}
         onChange={(e) => onFieldChange(field, e.target.value)}
         disabled={!isEditing}
         className="w-full"
@@ -68,7 +68,7 @@ export function AllChecklistSidebar({
     <div className="fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col">
       {/* Sidebar Header */}
       <div className="flex justify-between items-center p-2 border-b">
-        <h3 className="text-lg font-semibold">Edit Checklist</h3>
+        <h3 className="text-lg font-semibold">Checklist: {checklist.name}</h3>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X size={16} />
         </Button>
@@ -77,7 +77,6 @@ export function AllChecklistSidebar({
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6">
-          {renderField('Name', 'name')}
           {columns.slice(4).map((column) => (
             <div key={column.name}>
               {renderField(column.name, column.name as keyof Checklist)}
