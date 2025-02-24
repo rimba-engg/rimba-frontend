@@ -70,5 +70,5 @@ export default function ChecklistPage() {
     );
   }
 
-  return <ChecklistClient checklistData={checklistData} />;
+  return <ChecklistClient checklistData={checklistData} refreshChecklist={fetchChecklistDetails} />;
 }

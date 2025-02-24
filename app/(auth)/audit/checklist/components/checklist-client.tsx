@@ -42,7 +42,7 @@ const initialFormData: FormData = {
   description: '',
 };
 
-export default function ChecklistClient({ checklistData }: { checklistData: Checklist }) {
+export default function ChecklistClient({ checklistData, refreshChecklist }: { checklistData: Checklist, refreshChecklist: () => void }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
@@ -98,16 +98,18 @@ export default function ChecklistClient({ checklistData }: { checklistData: Chec
         });
 
         if (response.status === 200 && response.data) {
-          const newItem: ChecklistItem = {
-            ...formData,
-            id: response.data.id,
-            status: TaskStatus.NOT_STARTED,
-            comments: [],
-            documents: [],
-            column_data: {},
-          };
-          setChecklistItems(prev => [...prev, newItem]);
+          // const newItem: ChecklistItem = {
+          //   ...formData,
+          //   id: response.data.id,
+          //   status: TaskStatus.NOT_STARTED,
+          //   comments: [],
+          //   documents: [],
+          //   column_data: {},
+          // };
+          // setChecklistItems(prev => [...prev, newItem]);
+          
           setShowAddModal(false);
+          refreshChecklist();
         } else {
           throw new Error(response.message || 'Failed to create checklist item');
         }
