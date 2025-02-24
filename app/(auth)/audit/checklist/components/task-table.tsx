@@ -10,8 +10,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import React from 'react';
-
+import { api } from '@/lib/api';
 interface TaskTableProps {
+  checklistId: string;
   checklist_items: ChecklistItem[];
   schema: ColumnSchema[];
   onFieldChange: (itemId: string, columnId: string, value: string) => void;
@@ -25,12 +26,14 @@ type SortConfig = {
 };
 
 export function TaskTable({
+  checklistId,
   checklist_items,
   schema,
   onFieldChange,
   onTaskClick,
 }: TaskTableProps) {
   // State for sorting
+  console.log(`checklistId: ${checklistId}`);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ columnName: null, direction: 'asc' });
   
   // State for hidden columns
@@ -53,9 +56,24 @@ export function TaskTable({
     });
   };
 
-  const handleDeleteColumn = (columnName: string) => {
+  const handleDeleteColumn = async (columnName: string) => {
     console.log(`Delete column: ${columnName}`);
-    // TODO: Implement column deletion functionality
+    try {
+      const payload = {
+        checklist_id: checklistId,
+        column_name: columnName,
+      };
+      await api.post('/audit/v2/checklist/item/schema/delete/', payload);
+      console.log(`Column ${columnName} deleted successfully`);
+      // Optionally, update the state to reflect the deleted column
+      setHiddenColumns(prev => {
+        const newHidden = new Set(prev);
+        newHidden.add(columnName);
+        return newHidden;
+      });
+    } catch (error) {
+      console.error('Error deleting column:', error);
+    }
   };
 
   // Get visible columns

@@ -290,6 +290,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
         <div className="h-full flex flex-col">
           <div className="flex-1 overflow-auto">
             <TaskTable
+              checklistId={checklistData.id}
               checklist_items={checklistItems}
               schema={checklistData.schema || []}
               onFieldChange={handleFieldChange}
