@@ -1,7 +1,7 @@
 'use client';
 
 import { User2, ArrowUpDown, MoreHorizontal, Eye } from 'lucide-react';
-import { type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
+import { Customer, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,8 +9,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { getStoredCustomer } from '@/lib/auth';
 interface TaskTableProps {
   checklistId: string;
   checklist_items: ChecklistItem[];
@@ -32,6 +33,12 @@ export function TaskTable({
   onFieldChange,
   onTaskClick,
 }: TaskTableProps) {
+  // For demonstration, assuming logged in user role is ADMIN.
+  const [customerData, setCustomerData] = useState<Customer | null>(null);
+  useEffect(() => {
+    const customer = getStoredCustomer();
+    setCustomerData(customer);
+  }, []);
   // State for sorting
   console.log(`checklistId: ${checklistId}`);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ columnName: null, direction: 'asc' });
@@ -110,43 +117,68 @@ export function TaskTable({
   }, [checklist_items, sortConfig]);
 
   const renderFieldValue = (checklist_item: ChecklistItem, column: ColumnSchema) => {
+    // Determine if field is editable based on schema definition and logged in user's role.
+    // If column.editable is not set, the field is editable.
+    const isEditable = !column.editable || (column.editable === 'ADMIN' && customerData?.role === 'ADMIN');
+
     switch (column.type) {
-      case 'user':
+      case 'user': {
         const user: User = checklist_item.column_data[column.name] || {};
-        return (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onFieldChange(checklist_item.id, column.name, user.id);
-            }}
-            className="flex checklist_items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            {user ? (
-              <>
+        if (isEditable) {
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onFieldChange(checklist_item.id, column.name, user.id);
+              }}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              {user && user.id ? (
+                <>
+                  <img
+                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      user.first_name + ' ' + user.last_name
+                    )}&background=random`}
+                    alt="Avatar"
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <span>{user.first_name}</span>
+                </>
+              ) : (
+                <>
+                  <User2 className="w-5 h-5" />
+                  <span>Assign</span>
+                </>
+              )}
+            </button>
+          );
+        } else {
+          return (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {user && user.avatar ? (
                 <img
-                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&background=random`}
+                  src={user.avatar}
                   alt="Avatar"
                   className="w-6 h-6 rounded-full"
                 />
-                <span>{user.first_name}</span>
-              </>
-            ) : (
-              <>
+              ) : (
                 <User2 className="w-5 h-5" />
-                <span>Assign</span>
-              </>
-            )}
-          </button>
-        );
+              )}
+              {user && user.first_name ? user.first_name : "Assign"}
+            </div>
+          );
+        }
+      }
       case 'single_select':
       case 'multi_select':
         return (
           <select
             value={checklist_item.column_data[column.name] || ''}
-            onChange={(e) => onFieldChange(checklist_item.id, column.name, e.target.value)}
+            onChange={isEditable ? (e) => onFieldChange(checklist_item.id, column.name, e.target.value) : undefined}
             className="w-full px-2 py-1 border rounded text-sm"
             onClick={(e) => e.stopPropagation()}
             multiple={column.type === 'multi_select'}
+            disabled={!isEditable}
           >
             <option value="">Select...</option>
             {column.options?.map((option) => (
@@ -161,9 +193,10 @@ export function TaskTable({
           <input
             type="date"
             value={checklist_item.column_data[column.name] || ''}
-            onChange={(e) => onFieldChange(checklist_item.id, column.name, e.target.value)}
+            onChange={isEditable ? (e) => onFieldChange(checklist_item.id, column.name, e.target.value) : undefined}
             className="w-full px-2 py-1 border rounded text-sm"
             onClick={(e) => e.stopPropagation()}
+            disabled={!isEditable}
           />
         );
       case 'number':
@@ -171,17 +204,31 @@ export function TaskTable({
           <input
             type="number"
             value={checklist_item.column_data[column.name] || ''}
-            onChange={(e) => onFieldChange(checklist_item.id, column.name, e.target.value)}
+            onChange={isEditable ? (e) => onFieldChange(checklist_item.id, column.name, e.target.value) : undefined}
             className="w-full px-2 py-1 border rounded text-sm"
             onClick={(e) => e.stopPropagation()}
+            disabled={!isEditable}
           />
         );
       default:
-        return (
-          <div className="w-full min-h-[60px] text-sm p-2 rounded-md">
-            {checklist_item.column_data[column.name] || ''}
-          </div>
-        );
+        // For a default "text" field, if it is editable we render an input so that changes can be made.
+        if (isEditable) {
+          return (
+            <input
+              type="text"
+              value={checklist_item.column_data[column.name] || ''}
+              onChange={(e) => onFieldChange(checklist_item.id, column.name, e.target.value)}
+              className="w-full min-h-[60px] text-sm p-2 rounded-md"
+              onClick={(e) => e.stopPropagation()}
+            />
+          );
+        } else {
+          return (
+            <div className="w-full min-h-[60px] text-sm p-2 rounded-md">
+              {checklist_item.column_data[column.name] || ''}
+            </div>
+          );
+        }
     }
   };
 
