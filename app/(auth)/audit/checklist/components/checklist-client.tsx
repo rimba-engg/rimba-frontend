@@ -150,9 +150,14 @@ export default function ChecklistClient({ checklistData, refreshChecklist }: { c
 
     const comment = {
       id: Date.now(),
-      text: newComment,
-      user: currentUser.first_name + ' ' + currentUser.last_name,
-      timestamp: new Date().toISOString(),
+      comment: newComment,
+      user: {
+        id: currentUser.id,
+        first_name: currentUser.first_name,
+        last_name: currentUser.last_name,
+        email: currentUser.email,
+      },
+      created_at: new Date().toISOString(),
     };
 
     setChecklistItems(prev =>
