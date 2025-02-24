@@ -70,26 +70,33 @@ export default function ProjectsPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await api.post<CreateChecklistResponse>('/audit/v2/checklist/create/', {
-        name: formData.name
-      });
+      const payload = {
+        checklist_name: formData.name,
+        project_id: formData.project_id,
+      };
+
+      const response = await api.post<CreateChecklistResponse>(
+        '/audit/v2/checklist/create/',
+        payload
+      );
 
       if (response.status === 200) {
         await fetchChecklists();
         setShowCreateModal(false);
-        setFormData({ 
-          id: '', 
-          name: '', 
-          checklist_items: [], 
-          created_by: JSON.parse(localStorage.getItem('user') || '{}'), 
-          updated_at: new Date().toISOString() 
+        setFormData({
+          id: '',
+          name: '',
+          project_id: '',
+          checklist_items: [],
+          created_by: JSON.parse(localStorage.getItem('user') || '{}'),
+          updated_at: new Date().toISOString(),
         });
       } else {
         throw new Error(response.message || 'Failed to create checklist');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error creating checklist:', error);
       setError('Failed to create checklist');
-      console.error('Error creating checklist:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -158,13 +165,14 @@ export default function ProjectsPage() {
                 <Plus size={16} />
                 New Checklist
               </button>
-              <button
+              {/* removing add column for demo as backend is not ready */}
+              {/* <button
                 onClick={() => setShowAddColumnModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
               >
                 <Grid size={16} />
                 Add Column
-              </button>
+              </button> */}
             </div>
           </div>
 

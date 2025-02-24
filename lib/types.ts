@@ -81,6 +81,7 @@ export interface Checklist {
   updated_at: string;
   schema?: Array<ColumnSchema>;
   progress_percentage?: number;
+  project_id: string;
 }
 
 export interface Comment {
