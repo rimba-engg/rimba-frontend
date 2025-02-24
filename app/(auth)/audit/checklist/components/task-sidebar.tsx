@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { X, User2, Upload, FileText, Trash2, Download } from 'lucide-react';
 import { TaskStatus, type Checklist, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 import { api } from '@/lib/api';
-
+import { BASE_URL } from '@/lib/api';
 interface TaskSidebarProps {
   task: ChecklistItem;
   checklistData: Checklist;
@@ -51,6 +51,7 @@ export function TaskSidebar({
   const [userQuery, setUserQuery] = useState('');
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   useEffect(() => {
     // Load users when sidebar opens
@@ -119,20 +120,39 @@ export function TaskSidebar({
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev === null || prev >= 100) {
-          clearInterval(interval);
-          return null;
-        }
-        return prev + 10;
+    try {
+      const formData = new FormData();
+      formData.append('item_id', task.id);
+      Array.from(files).forEach(file => {
+        formData.append('documents', file);
       });
-    }, 200);
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${BASE_URL}/audit/v2/checklist/item/file/upload/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('File upload failed');
+      }
+      
+      // Close modal and reset state
+      setShowUploadModal(false);
+      setUploadProgress(null);
+      
+      // You might want to refresh the document list here
+      // Consider adding a state update or callback prop for document refresh
+
+    } catch (error) {
+      console.error('Error uploading files:', error);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -391,7 +411,7 @@ export function TaskSidebar({
                   className="hidden"
                   id="file-upload"
                   multiple
-                  onChange={handleFileUpload}
+                  onChange={(e) => setSelectedFiles(e.target.files)}
                 />
                 <Button
                   variant="outline"
@@ -401,18 +421,16 @@ export function TaskSidebar({
                 </Button>
               </div>
 
-              {uploadProgress !== null && (
+              {selectedFiles && (
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Uploading...</span>
-                    <span>{uploadProgress}%</span>
+                  <div className="text-sm text-muted-foreground">
+                    Selected files:
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all duration-200"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
+                  {Array.from(selectedFiles).map((file, index) => (
+                    <div key={index} className="text-sm">
+                      {file.name}
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -423,7 +441,7 @@ export function TaskSidebar({
                 >
                   Cancel
                 </Button>
-                <Button>Upload</Button>
+                <Button onClick={() => handleFileUpload(selectedFiles)}>Upload</Button>
               </div>
             </div>
           </div>
