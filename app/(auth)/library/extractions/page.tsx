@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Search, Filter, Download } from 'lucide-react';
+import { FileText, Search, Filter, Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { StatCard } from '@/components/ui/statcard';
-import { api } from '@/lib/api'; // Adjust the import path as necessary
+import { api,BASE_URL } from '@/lib/api'; // Adjust the import path as necessary
 import { MONTHS } from '@/lib/constants';
 import {
   Table,
@@ -60,43 +60,17 @@ const fetchExtractions = async (month: number, year: number): Promise<ApiRespons
 export default function ExtractionsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<string>('3'); // Default to March
+  const [selectedMonth, setSelectedMonth] = useState<string>('3'); // Default to APRIL
   const [selectedYear, setSelectedYear] = useState<number>(2024); // Default to 2024
   const [selectedDocType, setSelectedDocType] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [extractionData, setExtractionData] = useState<ApiResponse['data'] | null>(null);
-  const [extractions, setExtractions] = useState([]);
-  const [cachedExtractions, setCachedExtractions] = useState<Record<string, any>>({});
-  const [filters, setFilters] = useState({});
+  const [isExporting, setIsExporting] = useState(false);
 
+  // Add useEffect hook to load data on mount
   useEffect(() => {
-    const cacheKey = JSON.stringify(filters);
-    
-    // Check if we have cached data for these exact filters
-    if (cachedExtractions[cacheKey]) {
-      setExtractions(cachedExtractions[cacheKey]);
-      return;
-    }
-
-    // Fetch new data only when filters change and not in cache
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/extractions?${new URLSearchParams(filters)}`);
-        const data = await response.json();
-        setExtractions(data);
-        
-        // Cache the data with filter combination as key
-        setCachedExtractions(prev => ({
-          ...prev,
-          [cacheKey]: data
-        }));
-      } catch (error) {
-        console.error('Error fetching extractions:', error);
-      }
-    };
-
-    fetchData();
-  }, [filters]);
+    loadExtractions();
+  }, []); // Empty dependency array runs only once on mount
 
   const loadExtractions = async () => {
     try {
@@ -113,10 +87,13 @@ export default function ExtractionsPage() {
       setLoading(false);
     }
   };
+  
 
   const handleFilter = async () => {
     await loadExtractions();
   };
+
+  
 
   const handleDocumentClick = (documentId: string) => {
     router.push(`/library/document?document_id=${documentId}`);
@@ -168,21 +145,27 @@ export default function ExtractionsPage() {
     ));
   };
 
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters);
-  };
-
   const handleExportData = async () => {
     try {
-      setLoading(true);
+      setIsExporting(true);
       console.log('Exporting data for:', selectedDocType, selectedMonth, selectedYear);
-      const response = await api.post('/v2/extractions/download/', {
-        month: Number(selectedMonth) + 1,
-        year: selectedYear,
-        document_type: selectedDocType
+      
+      const response = await fetch(`${BASE_URL}/v2/extractions/download/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        },
+        body: JSON.stringify({
+          month: Number(selectedMonth) + 1,
+          year: selectedYear,
+          document_type: selectedDocType
+        })
       });
-      console.log('API response:', response);
-      const blob = new Blob([response as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -195,7 +178,7 @@ export default function ExtractionsPage() {
       console.error('Export error:', error);
       alert('Failed to export data');
     } finally {
-      setLoading(false);
+      setIsExporting(false);
     }
   };
 
@@ -213,9 +196,19 @@ export default function ExtractionsPage() {
           onClick={handleExportData}
           variant="outline" 
           className="ml-auto h-8"
+          disabled={isExporting}
         >
-          <Download className="w-4 h-4 mr-2" />
-          Export Data
+          {isExporting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin text-green-500" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 mr-2" />
+              Export Data
+            </>
+          )}
         </Button>
       </div>
 
@@ -337,7 +330,7 @@ export default function ExtractionsPage() {
       <style jsx>{`
         .spinner {
           border: 4px solid rgba(0, 0, 0, 0.1);
-          border-left-color: #4f46e5; /* Primary color */
+          border-left-color: #10b981; /* Changed from #4f46e5 to green-400 */
           border-radius: 50%;
           width: 24px;
           height: 24px;
