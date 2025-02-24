@@ -173,13 +173,13 @@ export default function ProjectsPage() {
                 New Project
               </button>
               {/* removing add column for demo as backend is not ready */}
-              {/* <button
+              <button
                 onClick={() => setShowAddColumnModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
               >
                 <Grid size={16} />
                 Add Column
-              </button> */}
+              </button>
             </div>
           </div>
 
