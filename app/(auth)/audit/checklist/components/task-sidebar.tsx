@@ -10,6 +10,8 @@ import { Customer, TaskStatus, type Checklist, type ChecklistItem, type ColumnSc
 import { api } from '@/lib/api';
 import { BASE_URL } from '@/lib/api';
 import { getStoredCustomer } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
+
 interface TaskSidebarProps {
   task: ChecklistItem;
   checklistData: Checklist;
@@ -42,6 +44,7 @@ export function TaskSidebar({
   newComment,
   onNewCommentChange,
 }: TaskSidebarProps) {
+  const router = useRouter();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -461,7 +464,8 @@ export function TaskSidebar({
               {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between p-2 bg-muted rounded-lg"
+                  className="flex items-center justify-between p-2 bg-muted rounded-lg cursor-pointer"
+                  onClick={() => router.push(`/library/document?document_id=${doc.id}`)}
                 >
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />
