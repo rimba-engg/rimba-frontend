@@ -396,7 +396,7 @@ export function TaskSidebar({
           </div>
 
           {/* Custom Fields from Schema */}
-          {schema.map((column) => (
+          {schema.filter(column => column.name !== 'Status').map((column) => (
             <div key={column.name}>
               <Label>{column.name}</Label>
               {renderFieldInput(column)}
