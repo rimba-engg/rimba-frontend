@@ -129,13 +129,6 @@ export default function ProjectsPage() {
     router.push(`/audit/checklist?id=${checklistId}`);
   };
 
-  const handleFieldChange = (field: keyof Checklist, value: string) => {
-    // TODO: call api to update checklist
-    if (selectedChecklist) {
-      setSelectedChecklist({ ...selectedChecklist, [field]: value });
-    }
-  };
-
   const handleEditClick = (id: string) => {
     const checklist = checklists.find(c => c.id === id);
     if (checklist) {
@@ -243,7 +236,7 @@ export default function ProjectsPage() {
           checklist={selectedChecklist}
           columns={columns}
           onClose={() => setShowAllChecklistSidebar(false)}
-          onFieldChange={handleFieldChange}
+          reloadChecklists={fetchChecklists}
         />
       )}
     </div>

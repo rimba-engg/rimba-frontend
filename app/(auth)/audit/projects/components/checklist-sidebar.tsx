@@ -11,14 +11,14 @@ interface AllChecklistSidebarProps {
   checklist: Checklist;
   columns: ColumnSchema[];
   onClose: () => void;
-  onFieldChange: (field: keyof Checklist, value: string) => void;
+  reloadChecklists: () => void;
 }
 
 export function AllChecklistSidebar({
   checklist,
   columns,
   onClose,
-  onFieldChange,
+  reloadChecklists,
 }: AllChecklistSidebarProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [columnData, setColumnData] = useState<Record<string, string>>(checklist.column_data || {});
@@ -48,21 +48,62 @@ export function AllChecklistSidebar({
       console.error('Error updating checklist:', error);
     } finally {
       onClose();
+      reloadChecklists();
       setIsLoading(false);
     }
   };
 
-  // Render a labeled input field for checklist data
-  const renderField = (label: string, field: keyof Checklist) => (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <Input
-        value={columnData[field] || ''}
-        onChange={(e) => setColumnData({ ...columnData, [field]: e.target.value })}
-        className="w-full"
-      />
-    </div>
-  );
+  // Render a field based on its type
+  const renderField = (column: ColumnSchema) => {
+    const field = column.name as keyof Checklist;
+    const value = columnData[field] || '';
+
+    switch (column.type) {
+      case 'single_select':
+        return (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{column.name}</label>
+            <select
+              value={value}
+              onChange={(e) => setColumnData({ ...columnData, [field]: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border"
+            >
+              <option value="">Select...</option>
+              {column.options?.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      case 'date':
+        return (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{column.name}</label>
+            <Input
+              type="date"
+              value={value}
+              onChange={(e) => setColumnData({ ...columnData, [field]: e.target.value })}
+              className="w-full"
+            />
+          </div>
+        );
+      default:
+      case 'number':
+      case 'text':
+        return (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">{column.name}</label>
+            <Input
+              value={value}
+              onChange={(e) => setColumnData({ ...columnData, [field]: e.target.value })}
+              className="w-full"
+            />
+          </div>
+        );
+    }
+  };
 
   return (
     <div className={`fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col ${isLoading ? 'bg-gray-800 opacity-100' : ''}`}>
@@ -79,7 +120,7 @@ export function AllChecklistSidebar({
         <div className="p-6 space-y-6">
           {columns.slice(4).map((column) => (
             <div key={column.name}>
-              {renderField(column.name, column.name as keyof Checklist)}
+              {renderField(column)}
             </div>
           ))}
         </div>
