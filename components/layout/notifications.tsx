@@ -133,6 +133,7 @@ export function Notifications() {
                   markAsRead(notification.id);
                   if (notification.checklist_id && notification.reference_id) {
                     router.push(`/audit/checklist?id=${notification.checklist_id}&checklist_item_id=${notification.reference_id}`);
+                    setShowNotifications(false);
                   }
                 }}
               >
