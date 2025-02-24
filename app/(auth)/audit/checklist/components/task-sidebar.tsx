@@ -6,9 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { X, User2, Upload, FileText, Trash2, Download } from 'lucide-react';
-import { TaskStatus, type Checklist, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
+import { Customer, TaskStatus, type Checklist, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 import { api } from '@/lib/api';
 import { BASE_URL } from '@/lib/api';
+import { getStoredCustomer } from '@/lib/auth';
 interface TaskSidebarProps {
   task: ChecklistItem;
   checklistData: Checklist;
@@ -52,7 +53,13 @@ export function TaskSidebar({
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [customerData, setCustomerData] = useState<Customer | null>(null);
+  useEffect(() => {
+    const customer = getStoredCustomer();
+    setCustomerData(customer);
+  }, []);
 
+  const isAdmin = customerData?.role === 'ADMIN';
   useEffect(() => {
     // Load users when sidebar opens
     fetchUsers();
@@ -170,32 +177,52 @@ export function TaskSidebar({
 
   const renderFieldInput = (column: ColumnSchema) => {
     const value = task.column_data[column.name] || '';
+    // Determine if the field is editable: if not provided, then it is editable.
+    const isEditable = !column.editable || (column.editable === 'ADMIN' && isAdmin);
 
     switch (column.type) {
-      case 'user':
+      case 'user': {
         const user: User = task.column_data[column.name] || {};
-        return (
-          <button
-            onClick={() => onAssign(task.id)}
-            className="mt-1 w-full flex items-center gap-2 px-3 py-2 border rounded-lg text-left"
-          >
-            {user ? (
-              <>
+        if (isEditable) {
+          return (
+            <button
+              onClick={() => onAssign(task.id)}
+              className="mt-1 w-full flex items-center gap-2 px-3 py-2 border rounded-lg text-left"
+            >
+              {user && user.id ? (
+                <>
+                  <img
+                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name)}&background=random`}
+                    alt="Avatar"
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <span>{user.first_name}</span>
+                </>
+              ) : (
+                <>
+                  <User2 className="w-5 h-5" />
+                  <span>Assign</span>
+                </>
+              )}
+            </button>
+          );
+        } else {
+          return (
+            <div className="mt-1 w-full flex items-center gap-2 px-3 py-2 border rounded-lg text-left">
+              {user && user.avatar ? (
                 <img
-                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name)}&background=random`}
+                  src={user.avatar}
                   alt="Avatar"
                   className="w-6 h-6 rounded-full"
                 />
-                <span>{user?.first_name}</span>
-              </>
-            ) : (
-              <>
+              ) : (
                 <User2 className="w-5 h-5" />
-                <span>Assign</span>
-              </>
-            )}
-          </button>
-        );
+              )}
+              {user && user.first_name ? user.first_name : "Assign"}
+            </div>
+          );
+        }
+      }
       case 'single_select':
       case 'multi_select':
         return (
@@ -204,6 +231,7 @@ export function TaskSidebar({
             onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
             className="mt-1 w-full px-3 py-2 rounded-lg border"
             multiple={column.type === 'multi_select'}
+            disabled={!isEditable}
           >
             <option value="">Select...</option>
             {column.options?.map((option) => (
@@ -220,6 +248,7 @@ export function TaskSidebar({
             value={value}
             onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
             className="mt-1"
+            disabled={!isEditable}
           />
         );
       case 'number':
@@ -229,6 +258,7 @@ export function TaskSidebar({
             value={value}
             onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
             className="mt-1"
+            disabled={!isEditable}
           />
         );
       default:
@@ -238,6 +268,7 @@ export function TaskSidebar({
             onChange={(e) => onCustomFieldChange(task.id, column.name, e.target.value)}
             className="mt-1"
             rows={3}
+            readOnly={!isEditable}
           />
         );
     }
@@ -249,11 +280,7 @@ export function TaskSidebar({
     <div className="!mt-0 fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col">
       {/* Fixed Header */}
       <div className="flex justify-end items-center p-1 border-b">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-        >
+        <Button variant="ghost" size="icon" onClick={onClose}>
           <X size={16} />
         </Button>
       </div>
@@ -274,21 +301,14 @@ export function TaskSidebar({
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Supporting Documents</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowUploadModal(true)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowUploadModal(true)}>
                 <Upload className="w-4 h-4 mr-2" />
                 Upload
               </Button>
             </div>
             <div className="space-y-2">
               {task.documents?.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between p-2 bg-muted rounded-lg"
-                >
+                <div key={doc.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />
                     <div>
@@ -322,7 +342,9 @@ export function TaskSidebar({
                       alt={comment.user.first_name + ' ' + comment.user.last_name}
                       className="w-6 h-6 rounded-full"
                     />
-                    <span className="font-medium">{comment.user.first_name + ' ' + comment.user.last_name}</span>
+                    <span className="font-medium">
+                      {comment.user.first_name + ' ' + comment.user.last_name}
+                    </span>
                     <span className="text-sm text-gray-500">
                       {new Date(comment.created_at).toLocaleDateString()}
                     </span>
@@ -373,11 +395,7 @@ export function TaskSidebar({
           </div>
 
           <div className="pt-4 border-t">
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
+            <Button variant="destructive" className="w-full" onClick={() => setShowDeleteConfirm(true)}>
               <Trash2 className="w-4 h-4 mr-2" />
               Delete Task
             </Button>
@@ -391,11 +409,7 @@ export function TaskSidebar({
           <div className="bg-white rounded-lg p-6 w-[500px]">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Upload Documents</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowUploadModal(false)}
-              >
+              <Button variant="ghost" size="icon" onClick={() => setShowUploadModal(false)}>
                 <X size={20} />
               </Button>
             </div>
@@ -413,10 +427,7 @@ export function TaskSidebar({
                   multiple
                   onChange={(e) => setSelectedFiles(e.target.files)}
                 />
-                <Button
-                  variant="outline"
-                  onClick={() => document.getElementById('file-upload')?.click()}
-                >
+                <Button variant="outline" onClick={() => document.getElementById('file-upload')?.click()}>
                   Browse Files
                 </Button>
               </div>
@@ -435,10 +446,7 @@ export function TaskSidebar({
               )}
 
               <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowUploadModal(false)}
-                >
+                <Button variant="outline" onClick={() => setShowUploadModal(false)}>
                   Cancel
                 </Button>
                 <Button onClick={() => handleFileUpload(selectedFiles)}>Upload</Button>
@@ -457,16 +465,10 @@ export function TaskSidebar({
               Are you sure you want to delete this task? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteConfirm(false)}
-              >
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-              >
+              <Button variant="destructive" onClick={handleDelete}>
                 Delete
               </Button>
             </div>

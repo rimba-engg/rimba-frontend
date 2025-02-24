@@ -63,6 +63,7 @@ export interface ColumnSchema {
   name: string;
   type: 'text' | 'single_select' | 'multi_select' | 'number' | 'date' | 'user';
   options?: Array<string>;
+  editable?: string;
 }
 
 export interface ChecklistItem {
