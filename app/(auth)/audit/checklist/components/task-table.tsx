@@ -119,7 +119,8 @@ export function TaskTable({
   const renderFieldValue = (checklist_item: ChecklistItem, column: ColumnSchema) => {
     // Determine if field is editable based on schema definition and logged in user's role.
     // If column.editable is not set, the field is editable.
-    const isEditable = !column.editable || (column.editable === 'ADMIN' && customerData?.role === 'ADMIN');
+    // const isEditable = !column.editable || (column.editable === 'ADMIN' && customerData?.role === 'ADMIN');
+    const isEditable = false;
 
     switch (column.type) {
       case 'user': {
@@ -155,16 +156,23 @@ export function TaskTable({
         } else {
           return (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {user && user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt="Avatar"
-                  className="w-6 h-6 rounded-full"
-                />
+              {user && user.id ? (
+                <>
+                  <img
+                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      user.first_name + ' ' + user.last_name
+                    )}&background=random`}
+                    alt="Avatar"
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <span>{user.first_name}</span>
+                </>
               ) : (
-                <User2 className="w-5 h-5" />
+                <>
+                  <User2 className="w-5 h-5" />
+                  <span>Assign</span>
+                </>
               )}
-              {user && user.first_name ? user.first_name : "Assign"}
             </div>
           );
         }

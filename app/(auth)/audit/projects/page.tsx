@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Grid } from 'lucide-react';
-import { ChecklistTable } from './components/projects-table';
+import { AllChecklistTable } from './components/projects-table';
 import { DeleteModal } from './components/modals/delete-modal';
 import { ProjectFormModal } from './components/modals/project-form-modal';
 import { AddColumnModal } from './components/modals/add-column-modal';
 import { api } from '@/lib/api';
 import { type ColumnSchema, type Checklist } from '@/lib/types';
+import { AllChecklistSidebar } from './components/checklist-sidebar';
 
 interface ChecklistResponse {
   data: {
@@ -43,6 +44,8 @@ export default function ProjectsPage() {
   const [showEditModal, setShowEditModal] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
+  const [showAllChecklistSidebar, setShowAllChecklistSidebar] = useState(false);
+  const [selectedChecklist, setSelectedChecklist] = useState<Checklist | null>(null);
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +129,21 @@ export default function ProjectsPage() {
     router.push(`/audit/checklist?id=${checklistId}`);
   };
 
+  const handleFieldChange = (field: keyof Checklist, value: string) => {
+    // TODO: call api to update checklist
+    if (selectedChecklist) {
+      setSelectedChecklist({ ...selectedChecklist, [field]: value });
+    }
+  };
+
+  const handleEditClick = (id: string) => {
+    const checklist = checklists.find(c => c.id === id);
+    if (checklist) {
+      setSelectedChecklist(checklist);
+      setShowAllChecklistSidebar(true);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const response = await api.post<DeleteChecklistResponse>('/audit/v2/checklist/delete/', {
@@ -183,10 +201,10 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          <ChecklistTable
+          <AllChecklistTable
             projects={checklists}
             columns={columns}
-            onEdit={(id) => setShowEditModal(id)}
+            onEdit={handleEditClick}
             onDelete={(id) => setShowDeleteConfirm(id)}
             onChecklistClick={handleChecklistClick}
           />
@@ -219,6 +237,15 @@ export default function ProjectsPage() {
         onClose={() => setShowAddColumnModal(false)}
         onSubmit={handleAddColumn}
       />
+
+      {showAllChecklistSidebar && selectedChecklist && (
+        <AllChecklistSidebar
+          checklist={selectedChecklist}
+          columns={columns}
+          onClose={() => setShowAllChecklistSidebar(false)}
+          onFieldChange={handleFieldChange}
+        />
+      )}
     </div>
   );
 }

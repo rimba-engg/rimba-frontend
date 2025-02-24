@@ -48,8 +48,6 @@ export function TaskSidebar({
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
   const [showUserSuggestions, setShowUserSuggestions] = useState(false);
@@ -470,14 +468,11 @@ export function TaskSidebar({
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />
                     <div>
-                      <a
-                        href={doc.preview_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <span
                         className="text-sm font-medium hover:underline"
                       >
                         {doc.name}
-                      </a>
+                      </span>
                       <p className="text-xs text-muted-foreground">
                         {new Date(doc.uploaded_at).toLocaleDateString()}
                       </p>

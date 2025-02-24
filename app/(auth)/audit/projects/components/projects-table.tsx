@@ -2,7 +2,7 @@
 
 import { Edit2, Trash2, ChevronRight } from 'lucide-react';
 import { type Checklist, type ColumnSchema } from '@/lib/types';
-interface ChecklistTableProps {
+interface AllChecklistTableProps {
   projects: Checklist[];
   columns: ColumnSchema[];
   onEdit: (id: string) => void;
@@ -10,13 +10,13 @@ interface ChecklistTableProps {
   onChecklistClick: (id: string) => void;
 }
 
-export function ChecklistTable({
+export function AllChecklistTable({
   projects,
   columns,
   onEdit,
   onDelete,
   onChecklistClick,
-}: ChecklistTableProps) {
+}: AllChecklistTableProps) {
   return (
     <div className="overflow-x-auto">
       <div className="inline-block min-w-full align-middle">
@@ -70,7 +70,7 @@ export function ChecklistTable({
                 {/* Render custom columns */}
                 {columns.slice(4).map((column) => (
                   <td key={column.name} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.schema?.find(f => f.name === column.name)?.name || '-'}
+                    {project.column_data?.[column.name] || '-'}
                   </td>
                 ))}
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
