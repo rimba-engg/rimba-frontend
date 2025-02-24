@@ -20,22 +20,22 @@ export function AllChecklistSidebar({
   onClose,
   onFieldChange,
 }: AllChecklistSidebarProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [columnData, setColumnData] = useState<Record<string, string>>(checklist.column_data || {});
 
-  console.log('checklist', checklist);
-  console.log('columns', columns);
-
-  // Dummy function to simulate backend update.
-  // In production, replace with an actual API call with proper error handling and logging.
   const updateChecklist = async () => {
+    setIsLoading(true);
+    
     try {
-      console.log('Updating checklist:', checklist);
-      
+      console.log('columns', columns);
+      console.log('Newer data:', columnData);
+      console.log('Older data:', checklist.column_data);
+
       for (const column of columns.slice(4)) {
         const olderValue = checklist.column_data?.[column.name];
-        const updatedValue = checklist[column.name as keyof Checklist];
+        const updatedValue = columnData[column.name as keyof Checklist];
 
-        if (olderValue !== updatedValue) {
+        if (updatedValue !== undefined && olderValue !== updatedValue) {
           console.log('Updating column:', column.name, 'from', olderValue, 'to', updatedValue);
           const response = await api.post('/audit/v2/checklist/metadata/update/', {
             checklist_id: checklist.id,
@@ -46,6 +46,9 @@ export function AllChecklistSidebar({
       }
     } catch (error) {
       console.error('Error updating checklist:', error);
+    } finally {
+      onClose();
+      setIsLoading(false);
     }
   };
 
@@ -54,21 +57,18 @@ export function AllChecklistSidebar({
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">{label}</label>
       <Input
-        value={(checklist.column_data?.[field] as string) || ''}
-        onChange={(e) => onFieldChange(field, e.target.value)}
-        disabled={!isEditing}
+        value={columnData[field] || ''}
+        onChange={(e) => setColumnData({ ...columnData, [field]: e.target.value })}
         className="w-full"
       />
     </div>
   );
 
-  console.log(checklist);
-
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col">
+    <div className={`fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col ${isLoading ? 'bg-gray-800 opacity-100' : ''}`}>
       {/* Sidebar Header */}
       <div className="flex justify-between items-center p-2 border-b">
-        <h3 className="text-lg font-semibold">Checklist: {checklist.name}</h3>
+        <h3 className="ms-2 text-lg font-semibold">{checklist.name}</h3>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X size={16} />
         </Button>
@@ -88,14 +88,9 @@ export function AllChecklistSidebar({
       {/* Sidebar Footer with Edit and Save Buttons */}
       <div className="p-6 border-t">
         <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>
-            {isEditing ? 'Cancel' : 'Edit'}
+          <Button onClick={updateChecklist}>
+            Save Changes
           </Button>
-          {isEditing && (
-            <Button onClick={updateChecklist}>
-              Save Changes
-            </Button>
-          )}
         </div>
       </div>
     </div>

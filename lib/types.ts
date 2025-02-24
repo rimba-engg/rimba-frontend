@@ -133,3 +133,13 @@ export interface Column {
   id: keyof Project | 'status';
   name: string;
 }
+
+export interface Notification {
+  id: string;
+  message: string;
+  created_at: string;
+  status: 'READ' | 'UNREAD';
+  type: 'success' | 'warning' | 'info';
+  checklist_id?: string;
+  reference_id?: string; // checklist_item_id
+}

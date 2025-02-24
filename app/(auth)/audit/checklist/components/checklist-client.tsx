@@ -27,11 +27,11 @@ const initialFormData: FormData = {
   description: '',
 };
 
-export default function ChecklistClient({ checklistData, refreshChecklist }: { checklistData: Checklist, refreshChecklist: () => void }) {
+export default function ChecklistClient({ checklistData, refreshChecklist, checklistItemId }: { checklistData: Checklist, refreshChecklist: () => void, checklistItemId: string | null }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
-  const [showTaskSidebar, setShowTaskSidebar] = useState<string | null>(null);
+  const [showTaskSidebar, setShowTaskSidebar] = useState<string | null>(checklistItemId || null);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(checklistData.checklist_items);

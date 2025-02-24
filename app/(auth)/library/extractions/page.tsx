@@ -212,20 +212,6 @@ export default function ExtractionsPage() {
         </Button>
       </div>
 
-      {/* Stat Cards */}
-      {extractionData && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <StatCard
-            title="Total Weight Oil Received"
-            value={`${extractionData.total_weight_oil_received.toLocaleString()} MT`}
-          />
-          <StatCard
-            title="Total Supplier Weight"
-            value={`${extractionData.total_supplier_weight.toLocaleString()} MT`}
-          />
-        </div>
-      )}
-
       {/* Filter & Search Section */}
       <div className="bg-card rounded-lg shadow">
         <div className="p-6">

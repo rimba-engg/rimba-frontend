@@ -13,6 +13,7 @@ interface ChecklistResponse {
 export default function ChecklistPage() {
   const searchParams = useSearchParams();
   const checklistId = searchParams.get('id');
+  const checklistItemId = searchParams.get('checklist_item_id');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checklistData, setChecklistData] = useState<Checklist | null>(null);
@@ -70,5 +71,5 @@ export default function ChecklistPage() {
     );
   }
 
-  return <ChecklistClient checklistData={checklistData} refreshChecklist={fetchChecklistDetails} />;
+  return <ChecklistClient checklistData={checklistData} refreshChecklist={fetchChecklistDetails} checklistItemId={checklistItemId} />;
 }

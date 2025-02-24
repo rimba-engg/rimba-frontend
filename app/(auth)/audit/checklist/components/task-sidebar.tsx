@@ -361,9 +361,10 @@ export function TaskSidebar({
         <div className="p-6 space-y-6">
 
           {/* User Assignment Dropdown */}
-          <div className="relative">
-            <Label>Assigned To</Label>
-            <select
+          {!(assignedUsers.length > 0) && (
+            <div className="relative">
+              <Label>Assigned To</Label>
+              <select
               value={users.find(u => u.id === task.assigned_user?.id)?.id || ''}
               onChange={(e) => {
                 handleUserAssignment(e.target.value);
@@ -384,6 +385,7 @@ export function TaskSidebar({
               </div>
             )}
           </div>
+          )}
 
           {/* Assigned Users List */}
           {assignedUsers.length > 0 && (

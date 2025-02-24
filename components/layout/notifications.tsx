@@ -9,18 +9,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
-
 import { BASE_URL } from '@/lib/api';
-
-interface Notification {
-  id: string;
-  message: string;
-  created_at: string;
-  status: 'READ' | 'UNREAD';
-  type: 'success' | 'warning' | 'info';
-  checklist_id?: string;
-  reference_id?: string; // checklist_item_id
-}
+import { Notification } from '@/lib/types';
 
 export function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -142,7 +132,7 @@ export function Notifications() {
                 onClick={() => {
                   markAsRead(notification.id);
                   if (notification.checklist_id && notification.reference_id) {
-                    router.push(`/audit/checklist?id=${notification.checklist_id}`);
+                    router.push(`/audit/checklist?id=${notification.checklist_id}&checklist_item_id=${notification.reference_id}`);
                   }
                 }}
               >
