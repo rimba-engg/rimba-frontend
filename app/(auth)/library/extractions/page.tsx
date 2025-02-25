@@ -168,9 +168,9 @@ export default function ExtractionsPage() {
     const result: Record<string, Record<string, number>> = {};
 
     filteredData.forEach(item => {
-      // Use toString() in case fields are not strings (or undefined)
-      const rowKey = item[pivotRowField] ? item[pivotRowField].toString() : 'Unknown';
-      const colKey = item[pivotColumnField] ? item[pivotColumnField].toString() : 'Unknown';
+      // Use optional chaining to safely call toString() if item[pivotRowField] is defined.
+      const rowKey = item[pivotRowField]?.toString() ?? 'Unknown';
+      const colKey = item[pivotColumnField]?.toString() ?? 'Unknown';
 
       if (!result[rowKey]) result[rowKey] = {};
 
