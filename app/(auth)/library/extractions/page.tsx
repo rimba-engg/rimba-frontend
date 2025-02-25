@@ -266,6 +266,81 @@ export default function ExtractionsPage() {
     }
   };
 
+  // ---- New: CSV Export Functionality ----
+
+  // Helper to escape CSV values
+  const escapeCSV = (value: any) => {
+    if (value == null) return '';
+    const str = value.toString();
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleDownloadCSV = () => {
+    let csvContent = '';
+    if (pivot) {
+      if (!customPivotData) {
+        alert("Please configure pivot table to export CSV.");
+        return;
+      }
+      const csvRows: string[][] = [];
+      // Header row: first cell shows pivotRowField (or fallback) then the pivotTableColumns
+      csvRows.push([pivotRowField || 'Row', ...pivotTableColumns]);
+      for (const [rowKey, rowObj] of Object.entries(customPivotData)) {
+        const row = [
+          rowKey,
+          ...pivotTableColumns.map(col =>
+            rowObj[col] !== undefined ? rowObj[col].toString() : '-'
+          ),
+        ];
+        csvRows.push(row);
+      }
+      csvContent = csvRows.map(row => row.map(cell => escapeCSV(cell)).join(",")).join("\n");
+    } else if (transpose) {
+      const csvRows: string[][] = [];
+      // Header: empty cell then each document's document_name or document_id
+      const headerRow = [''].concat(displayedDocs.map(doc => doc.document_name || doc.document_id));
+      csvRows.push(headerRow);
+      // Then each transposed row: first cell is the header and subsequent cells are the cell values
+      for (const header of displayedTransposedHeaders) {
+        const row = [header].concat(
+          displayedDocs.map(doc => {
+            const cell = doc[header as keyof ExtractionData];
+            return cell !== undefined ? cell.toString() : '-';
+          })
+        );
+        csvRows.push(row);
+      }
+      csvContent = csvRows.map(row => row.map(cell => escapeCSV(cell)).join(",")).join("\n");
+    } else {
+      // Normal view
+      const csvRows: string[][] = [];
+      csvRows.push(displayedHeaders);
+      for (const row of displayedRows) {
+        const rowArray = displayedHeaders.map(header => {
+          const cell = row[header as keyof typeof row];
+          return cell !== undefined ? cell.toString() : '-';
+        });
+        csvRows.push(rowArray);
+      }
+      csvContent = csvRows.map(row => row.map(cell => escapeCSV(cell)).join(",")).join("\n");
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'table_data.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  // ---- End CSV Export ----
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4">
       {/* Header */}
@@ -359,7 +434,13 @@ export default function ExtractionsPage() {
                 <Filter className="w-4 h-4 mr-2" />
                 Filter
               </Button>
+              
             </div>
+            <div className="flex">
+            <Button variant="outline" onClick={handleDownloadCSV}>
+              Download CSV
+            </Button>
+          </div>
             {/* Edit View Popover */}
             <Popover>
               <PopoverTrigger asChild>
@@ -521,8 +602,9 @@ export default function ExtractionsPage() {
               </PopoverContent>
             </Popover>
           </div>
+          
           {/* Search Input */}
-          <div className="relative w-full md:w-auto">
+          <div className="relative md:w-auto">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
@@ -534,7 +616,7 @@ export default function ExtractionsPage() {
           </div>
         </div>
       </div>
-
+      
       {/* Table Container */}
       <div className="relative max-w-[calc(100vw-2rem)] -mx-4">
         {loading && (
@@ -636,6 +718,7 @@ export default function ExtractionsPage() {
           )}
         </div>
       </div>
+
       <style jsx>{`
         .spinner {
           border: 4px solid rgba(0, 0, 0, 0.1);
