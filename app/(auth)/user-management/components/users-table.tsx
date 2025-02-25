@@ -3,6 +3,7 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { type UserData } from '../types';
+import { getStoredCustomer } from '@/lib/auth';
 
 interface UsersTableProps {
   users: UserData[];
@@ -11,6 +12,9 @@ interface UsersTableProps {
 }
 
 export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
+  const customer = getStoredCustomer();
+  const customerName = customer?.name;
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'ADMIN':
@@ -57,9 +61,22 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
                 </span>
               </td>
               <td className="py-3 px-4">
-                <span className="bg-muted px-2 py-1 rounded text-sm">
-                  {user.project || 'No Project'}
-                </span>
+                {user.role === 'ADMIN' && customerName === 'Brightmark' ? (
+                  <div className="flex flex-wrap gap-1">
+                    {['US GAIN', 'CHEVRON'].map((project, index) => (
+                      <span
+                        key={index}
+                        className="bg-muted px-2 py-1 rounded-full text-xs"
+                      >
+                        {project}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="bg-muted px-2 py-1 rounded text-sm">
+                    {user.project || 'No Project'}
+                  </span>
+                )}
               </td>
               <td className="py-3 px-4">
                 <div className="flex flex-wrap gap-1">

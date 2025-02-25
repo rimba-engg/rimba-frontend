@@ -1,6 +1,6 @@
 import { LoginResponse, SelectCustomerResponse } from './types';
 
-export const BASE_URL = 'https://app-qa.rimba.ai';
+export const BASE_URL = 'https://app-v1.rimba.ai';
 // export const BASE_URL = 'http://localhost:8000';
 
 class ApiClient {
