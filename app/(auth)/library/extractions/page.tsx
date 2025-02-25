@@ -66,6 +66,7 @@ export default function ExtractionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [extractionData, setExtractionData] = useState<ApiResponse['data'] | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [transpose, setTranspose] = useState(false);
 
   // Add useEffect hook to load data on mount
   useEffect(() => {
@@ -118,6 +119,7 @@ export default function ExtractionsPage() {
         value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
       )
     ) || [];
+  console.log(filteredData);
 
   // Get all unique headers for the selected document type
   const headers = useMemo(() => {
@@ -127,6 +129,16 @@ export default function ExtractionsPage() {
     );
     return Array.from(new Set(allKeys));
   }, [selectedDocType, extractionData]);
+
+  // For transposed view, compute the union of keys from only filtered data
+  // and exclude both "document_id" and "document_name" since the latter will be used for column headers.
+  const transposedHeaders = useMemo(() => {
+    if (!filteredData || filteredData.length === 0) return [];
+    const allKeys = filteredData.flatMap(item =>
+      Object.keys(item).filter(key => key !== 'document_id' && key !== 'document_name')
+    );
+    return Array.from(new Set(allKeys));
+  }, [filteredData]);
 
   // Render table body rows
   const renderTableBody = () => {
@@ -231,7 +243,7 @@ export default function ExtractionsPage() {
         <div className="p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
             {/* Filter Selections */}
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select month" />
@@ -278,6 +290,19 @@ export default function ExtractionsPage() {
                 <Filter className="w-4 h-4 mr-2" />
                 Filter
               </Button>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="transpose-toggle"
+                  checked={transpose}
+                  onChange={(e) => setTranspose(e.target.checked)}
+                  className="mr-2"
+                />
+                <label htmlFor="transpose-toggle" className="cursor-pointer">
+                  Transpose Table
+                </label>
+              </div>
             </div>
 
             {/* Search Input */}
@@ -304,25 +329,55 @@ export default function ExtractionsPage() {
               </div>
             )}
 
-            {/* Scrollable Table Section */}
+            {/* Conditional Rendering Based on Transpose Toggle */}
             <div className="overflow-x-auto px-4">
-              <Table>
-                <TableHeader className="bg-white">
-                  <TableRow>
-                    {headers.map(header => (
-                      <TableHead 
-                        key={header} 
-                        className="min-w-[200px] bg-white sticky top-0"
-                      >
-                        {header}
-                      </TableHead>
+              {transpose ? (
+                
+                <Table>
+                  trans view
+                  <TableHeader className="bg-white">
+                    <TableRow>
+                      <TableHead>&nbsp;</TableHead>
+                      {filteredData.map((doc, idx) => (
+                        <TableHead
+                          key={`${doc.document_id}-${idx}`}
+                          onClick={() => handleDocumentClick(doc.document_id)}
+                          className="min-w-[200px] cursor-pointer hover:bg-gray-50"
+                        >
+                          {doc['Document Name'] || doc.document_id}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transposedHeaders.map((header) => (
+                      <TableRow key={header}>
+                        <TableCell className="font-medium">{header}</TableCell>
+                        {filteredData.map((doc, idx) => (
+                          <TableCell key={idx} className="min-w-[200px]">
+                            {doc[header as keyof ExtractionData] || '-'}
+                          </TableCell>
+                        ))}
+                      </TableRow>
                     ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {renderTableBody()}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+              ) : (
+                <Table>
+                  <TableHeader className="bg-white">
+                    <TableRow>
+                      {headers.map(header => (
+                        <TableHead key={header} className="min-w-[200px] bg-white sticky top-0">
+                          {header}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {renderTableBody()}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </div>
         </div>
