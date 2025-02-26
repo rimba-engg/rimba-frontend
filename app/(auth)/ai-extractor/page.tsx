@@ -271,15 +271,36 @@ export default function AIExtractorPage() {
     }
   };
 
-  const handleSaveExtractionLogic = (docTypeId: string, updatedLogic: ExtractionLogic) => {
+  const handleSaveExtractionLogic = async (docTypeId: string, updatedLogic: ExtractionLogic) => {
     console.log('Saving extraction logic for docTypeId', docTypeId, updatedLogic);
-    setDocumentTypes(prev =>
-      prev.map(dt =>
-        dt.id === docTypeId
-          ? { ...dt, extraction_logic: updatedLogic }
-          : dt
-      )
-    );
+    try {
+      const response = await api.put<ApiResponse>(
+        '/v2/extractor/logic/list/',
+        {
+          extraction_logic_id: updatedLogic.id,
+          config: updatedLogic.config.map(({ name, question, undefined }) => ({
+            name,
+            question,
+            undefined: undefined || ''
+          }))
+        }
+      );
+
+      if (response.status === 'success') {
+        setDocumentTypes(prev =>
+          prev.map(dt =>
+            dt.id === docTypeId
+              ? { ...dt, extraction_logic: updatedLogic }
+              : dt
+          )
+        );
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error saving extraction logic:', error);
+      // You might want to add error handling/notification here
+    }
   };
 
   if (loading) {
