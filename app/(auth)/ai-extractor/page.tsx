@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import DocumentTypeModal from './DocumentTypeModal';
+import DocumentUploadModal from './DocumentUploadModal';
 
 interface ExtractionConfig {
   name: string;
@@ -247,6 +248,7 @@ export default function AIExtractorPage() {
   const [showExtractionModal, setShowExtractionModal] = useState<string | null>(null);
   const [showDocTypeModal, setShowDocTypeModal] = useState<string | null>(null);
   const [showCreateDocTypeModal, setShowCreateDocTypeModal] = useState(false);
+  const [showDocUploadModal, setShowDocUploadModal] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDocumentTypes();
@@ -447,6 +449,14 @@ export default function AIExtractorPage() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => setShowDocUploadModal(docType.id)}
+                    className="text-purple-600 hover:text-purple-800"
+                  >
+                    <Upload className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -507,6 +517,18 @@ export default function AIExtractorPage() {
           onClose={() => setShowCreateDocTypeModal(false)}
           docType={{ id: '', name: '', description: '', code: '', extraction_logic: null }}
           onSave={handleCreateDocumentType}
+        />
+      )}
+
+      {showDocUploadModal && (
+        <DocumentUploadModal
+          isOpen={true}
+          onClose={() => setShowDocUploadModal(null)}
+          docType={documentTypes.find(dt => dt.id === showDocUploadModal)!}
+          onUpload={(uploadedFile, docType) => {
+            console.log('Uploaded file:', uploadedFile, 'for document type:', docType);
+            // Optionally, you can add further logic here (like refreshing a document list)
+          }}
         />
       )}
     </div>
