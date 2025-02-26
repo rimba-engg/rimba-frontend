@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, X, FileText, Upload, Settings, ChevronRight, Trash2, Edit2, MoreVertical, Grid } from 'lucide-react';
+import {
+  Plus,
+  X,
+  FileText,
+  Upload,
+  Settings,
+  ChevronRight,
+  Trash2,
+  Edit2,
+  MoreVertical,
+  Grid,
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +38,7 @@ interface ExtractionConfig {
   undefined: string;
 }
 
-interface ExtractionLogic {
+export interface ExtractionLogic {
   id: string;
   name: string;
   batch_size: number;
@@ -36,7 +47,7 @@ interface ExtractionLogic {
   last_updated_by: string | null;
 }
 
-interface DocumentType {
+export interface DocumentType {
   id: string;
   name: string;
   description: string | null;
@@ -50,10 +61,189 @@ interface ApiResponse {
   data: DocumentType[];
 }
 
+function ExtractionLogicModal({
+  isOpen,
+  onClose,
+  docType,
+  onSave,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  docType: DocumentType;
+  onSave: (updatedLogic: ExtractionLogic) => void;
+}) {
+  const initialLogic = docType.extraction_logic!;
+  const [editedLogic, setEditedLogic] = useState<ExtractionLogic>(initialLogic);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleFieldChange = (
+    index: number,
+    key: 'name' | 'question',
+    value: string
+  ) => {
+    const newConfig = [...editedLogic.config];
+    newConfig[index] = { ...newConfig[index], [key]: value };
+    setEditedLogic({ ...editedLogic, config: newConfig });
+  };
+
+  const handleAddField = () => {
+    setEditedLogic({
+      ...editedLogic,
+      config: [
+        ...editedLogic.config,
+        { name: '', question: '', undefined: '' },
+      ],
+    });
+  };
+
+  const handleRemoveField = (index: number) => {
+    setEditedLogic({
+      ...editedLogic,
+      config: editedLogic.config.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Mock API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Saving extraction logic:', editedLogic);
+      onSave(editedLogic);
+      onClose();
+    } catch (error) {
+      console.error('Error saving extraction logic:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-[900px] max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold">Edit Extraction Logic</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </Button>
+        </div>
+
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="logic-name">Logic Name</Label>
+              <Input
+                id="logic-name"
+                value={editedLogic.name}
+                onChange={(e) =>
+                  setEditedLogic({ ...editedLogic, name: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="batch-size">Batch Size</Label>
+              <Input
+                type="number"
+                id="batch-size"
+                value={editedLogic.batch_size}
+                onChange={(e) =>
+                  setEditedLogic({
+                    ...editedLogic,
+                    batch_size: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <Label>Extraction Fields</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddField}
+                className="text-primary"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Field
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {editedLogic.config.map((field, index) => (
+                <div
+                  key={index}
+                  className="border rounded-lg p-4 space-y-4 bg-muted/10"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <Label>Field Name</Label>
+                        <Input
+                          value={field.name}
+                          onChange={(e) =>
+                            handleFieldChange(index, 'name', e.target.value)
+                          }
+                          placeholder="Enter field name"
+                        />
+                      </div>
+                      <div>
+                        <Label>Extraction Question</Label>
+                        <Textarea
+                          value={field.question}
+                          onChange={(e) =>
+                            handleFieldChange(index, 'question', e.target.value)
+                          }
+                          placeholder="Enter the question to extract this field"
+                          className="h-24"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveField(index)}
+                      className="text-red-600 hover:text-red-800 ml-4"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AIExtractorPage() {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showExtractionModal, setShowExtractionModal] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDocumentTypes();
@@ -63,7 +253,7 @@ export default function AIExtractorPage() {
     try {
       setLoading(true);
       const response = await api.get<ApiResponse>('/v2/extractor/logic/list/');
-      
+
       if (response.status === 'success') {
         setDocumentTypes(response.data);
         setError(null);
@@ -76,6 +266,16 @@ export default function AIExtractorPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveExtractionLogic = (docTypeId: string, updatedLogic: ExtractionLogic) => {
+    setDocumentTypes(prev =>
+      prev.map(dt =>
+        dt.id === docTypeId
+          ? { ...dt, extraction_logic: updatedLogic }
+          : dt
+      )
+    );
   };
 
   if (loading) {
@@ -100,12 +300,11 @@ export default function AIExtractorPage() {
         <div>
           <h1 className="text-3xl font-bold">AI Extractor</h1>
           <p className="text-muted-foreground mt-2">
-            Configure document types and extraction rules for automated data processing.
+            Configure document types and extraction rules for automated data
+            processing.
           </p>
         </div>
-        <Button
-          className="bg-primary hover:bg-primary/90"
-        >
+        <Button className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" />
           Add Document Type
         </Button>
@@ -134,13 +333,16 @@ export default function AIExtractorPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
+                  {docType.extraction_logic && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowExtractionModal(docType.id)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -152,31 +354,12 @@ export default function AIExtractorPage() {
               </div>
 
               {docType.extraction_logic ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div>
                     <span>Logic: {docType.extraction_logic.name}</span>
-                    <span>Batch Size: {docType.extraction_logic.batch_size}</span>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Extraction Fields</h4>
-                    <div className="space-y-1">
-                      {docType.extraction_logic.config.map((field, index) => (
-                        <div
-                          key={index}
-                          className="text-sm p-2 bg-muted rounded-lg"
-                        >
-                          <div className="font-medium">{field.name}</div>
-                          <div className="text-muted-foreground text-xs mt-1">
-                            {field.question}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-muted-foreground">
-                    Last updated: {new Date(docType.extraction_logic.last_updated_at).toLocaleString()}
+                    <span className="ml-2">
+                      Batch Size: {docType.extraction_logic.batch_size}
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -188,6 +371,17 @@ export default function AIExtractorPage() {
           </div>
         ))}
       </div>
+
+      {showExtractionModal && (
+        <ExtractionLogicModal
+          isOpen={true}
+          onClose={() => setShowExtractionModal(null)}
+          docType={documentTypes.find(dt => dt.id === showExtractionModal)!}
+          onSave={(updatedLogic) => {
+            handleSaveExtractionLogic(showExtractionModal, updatedLogic);
+          }}
+        />
+      )}
     </div>
   );
 }
