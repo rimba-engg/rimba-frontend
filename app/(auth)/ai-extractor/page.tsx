@@ -32,6 +32,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+import DocumentTypeModal from './DocumentTypeModal';
+
 interface ExtractionConfig {
   name: string;
   question: string;
@@ -244,6 +246,7 @@ export default function AIExtractorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showExtractionModal, setShowExtractionModal] = useState<string | null>(null);
+  const [showDocTypeModal, setShowDocTypeModal] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDocumentTypes();
@@ -269,6 +272,7 @@ export default function AIExtractorPage() {
   };
 
   const handleSaveExtractionLogic = (docTypeId: string, updatedLogic: ExtractionLogic) => {
+    console.log('Saving extraction logic for docTypeId', docTypeId, updatedLogic);
     setDocumentTypes(prev =>
       prev.map(dt =>
         dt.id === docTypeId
@@ -346,6 +350,14 @@ export default function AIExtractorPage() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => setShowDocTypeModal(docType.id)}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -380,6 +392,21 @@ export default function AIExtractorPage() {
           onSave={(updatedLogic) => {
             handleSaveExtractionLogic(showExtractionModal, updatedLogic);
           }}
+        />
+      )}
+
+      {showDocTypeModal && (
+        <DocumentTypeModal
+          isOpen={true}
+          onClose={() => setShowDocTypeModal(null)}
+          docType={documentTypes.find(dt => dt.id === showDocTypeModal)!}
+          onSave={(updatedDocType) =>
+            setDocumentTypes(prev =>
+              prev.map(dt =>
+                dt.id === showDocTypeModal ? updatedDocType : dt
+              )
+            )
+          }
         />
       )}
     </div>
