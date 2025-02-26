@@ -246,6 +246,7 @@ export default function AIExtractorPage() {
   const [error, setError] = useState<string | null>(null);
   const [showExtractionModal, setShowExtractionModal] = useState<string | null>(null);
   const [showDocTypeModal, setShowDocTypeModal] = useState<string | null>(null);
+  const [showCreateDocTypeModal, setShowCreateDocTypeModal] = useState(false);
 
   useEffect(() => {
     fetchDocumentTypes();
@@ -345,6 +346,28 @@ export default function AIExtractorPage() {
     }
   };
 
+  const handleCreateDocumentType = async (newDocType: DocumentType) => {
+    if (!newDocType.name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    try {
+      const response = await api.post<ApiResponse>('/v2/document-types/', {
+        name: newDocType.name,
+        description: newDocType.description || ''
+      });
+
+      if (response.status === 'success') {
+        await fetchDocumentTypes();
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error creating document type:', error);
+      setError('Failed to create document type');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -371,7 +394,10 @@ export default function AIExtractorPage() {
             processing.
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          onClick={() => setShowCreateDocTypeModal(true)}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Document Type
         </Button>
@@ -472,6 +498,15 @@ export default function AIExtractorPage() {
           onClose={() => setShowDocTypeModal(null)}
           docType={documentTypes.find(dt => dt.id === showDocTypeModal)!}
           onSave={handleSaveDocumentType}
+        />
+      )}
+
+      {showCreateDocTypeModal && (
+        <DocumentTypeModal
+          isOpen={true}
+          onClose={() => setShowCreateDocTypeModal(false)}
+          docType={{ id: '', name: '', description: '', code: '', extraction_logic: null }}
+          onSave={handleCreateDocumentType}
         />
       )}
     </div>

@@ -29,7 +29,11 @@ export default function DocumentTypeModal({
     }
   }, [isOpen, docType]);
 
+  // A computed flag to enfore that name is not empty.
+  const isNameValid = editedDocType.name.trim().length > 0;
+
   const handleSave = async () => {
+    if (!isNameValid) return;
     setIsSaving(true);
     try {
       // Simulate a delay or API call
@@ -74,6 +78,9 @@ export default function DocumentTypeModal({
               }
               placeholder="Enter document type name"
             />
+            {!isNameValid && (
+              <p className="text-destructive text-xs mt-1">Name is required</p>
+            )}
           </div>
           <div>
             <Label htmlFor="doc-type-description">Description</Label>
@@ -96,7 +103,7 @@ export default function DocumentTypeModal({
             </Button>
             <Button
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || !isNameValid}
               className="bg-primary hover:bg-primary/90"
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
