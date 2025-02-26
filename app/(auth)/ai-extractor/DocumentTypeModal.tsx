@@ -37,7 +37,7 @@ export default function DocumentTypeModal({
     setIsSaving(true);
     try {
       // Simulate a delay or API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    //   await new Promise((resolve) => setTimeout(resolve, 1000));
       console.log('Saving document type:', editedDocType);
       onSave(editedDocType);
       onClose();
