@@ -303,6 +303,26 @@ export default function AIExtractorPage() {
     }
   };
 
+  const handleCreateExtractionLogic = async (docType: DocumentType) => {
+    try {
+      const response = await api.post<ApiResponse>('/v2/extractor/logic/list/', {
+        name: `${docType.name} Logic`,
+        document_type: docType.id,
+        config: [],
+        batch_size: 1
+      });
+      
+      if (response.status === 'success') {
+        await fetchDocumentTypes(); // Refresh the list
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error creating extraction logic:', error);
+      setError('Failed to create extraction logic');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -396,8 +416,16 @@ export default function AIExtractorPage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-muted/50 rounded-lg p-4 text-center text-muted-foreground">
-                  No extraction logic configured
+                <div className="bg-muted/50 rounded-lg p-4 text-center">
+                  <p className="text-muted-foreground mb-2">No extraction logic configured</p>
+                  <Button 
+                    variant="outline" 
+                    className="text-primary hover:bg-primary/10"
+                    onClick={() => handleCreateExtractionLogic(docType)}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Extraction Logic
+                  </Button>
                 </div>
               )}
             </div>
