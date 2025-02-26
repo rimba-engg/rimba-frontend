@@ -138,18 +138,17 @@ function ExtractionLogicModal({
         </div>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <Label htmlFor="logic-name">Logic Name</Label>
               <Input
                 id="logic-name"
                 value={editedLogic.name}
-                onChange={(e) =>
-                  setEditedLogic({ ...editedLogic, name: e.target.value })
-                }
+                disabled
+                className="bg-muted"
               />
             </div>
-            <div>
+            <div className='hidden'>
               <Label htmlFor="batch-size">Batch Size</Label>
               <Input
                 type="number"
@@ -323,6 +322,29 @@ export default function AIExtractorPage() {
     }
   };
 
+  const handleSaveDocumentType = async (updatedDocType: DocumentType) => {
+    try {
+      const response = await api.put<ApiResponse>('/v2/document-types/', {
+        id: updatedDocType.id,
+        name: updatedDocType.name,
+        description: updatedDocType.description || ''
+      });
+
+      if (response.status === 'success') {
+        setDocumentTypes(prev =>
+          prev.map(dt =>
+            dt.id === updatedDocType.id ? updatedDocType : dt
+          )
+        );
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error saving document type:', error);
+      setError('Failed to save document type');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -449,13 +471,7 @@ export default function AIExtractorPage() {
           isOpen={true}
           onClose={() => setShowDocTypeModal(null)}
           docType={documentTypes.find(dt => dt.id === showDocTypeModal)!}
-          onSave={(updatedDocType) =>
-            setDocumentTypes(prev =>
-              prev.map(dt =>
-                dt.id === showDocTypeModal ? updatedDocType : dt
-              )
-            )
-          }
+          onSave={handleSaveDocumentType}
         />
       )}
     </div>
