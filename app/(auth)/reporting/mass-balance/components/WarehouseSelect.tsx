@@ -14,8 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { api } from '@/lib/api';
 
-interface Warehouse {
+export interface Warehouse {
   id: string;
   name: string;
 }
@@ -30,26 +31,28 @@ export const WarehouseSelect = ({ selectedWarehouses, onWarehousesChange }: Ware
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   useEffect(() => {
-    // Simulated API call - replace with your actual API endpoint
     const fetchWarehouses = async () => {
       try {
-        // const response = await fetch('your-api-endpoint');
-        // const data = await response.json();
-        // setWarehouses(data);
-        
-        // Simulated data
-        setWarehouses([
-          { id: "1", name: "FOV JOHOR BULKERS SDN. BHD., PASIR GUDANG" },
-          { id: "2", name: "Warehouse B" },
-          { id: "3", name: "Warehouse C" },
-        ]);
+        const response = await api.get<Warehouse[]>('/v2/warehouses/');
+        if ((response as any).status === 'success') {
+          const result = (response as any).data;
+          const Warehouses: Warehouse[] = result.map((warehouse: Warehouse) => ({
+            id: warehouse.id,
+            name: warehouse.name,
+          }));
+          setWarehouses(Warehouses);
+
+          // Set initial selected warehouses to all warehouse IDs
+          const allWarehouseIds = Warehouses.map(warehouse => warehouse.id);
+          onWarehousesChange(allWarehouseIds);
+        }
       } catch (error) {
         console.error('Failed to fetch warehouses:', error);
       }
     };
 
     fetchWarehouses();
-  }, []);
+  }, [onWarehousesChange]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -58,7 +61,7 @@ export const WarehouseSelect = ({ selectedWarehouses, onWarehousesChange }: Ware
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-48 justify-between"
         >
           {selectedWarehouses.length === 0
             ? "Select warehouses..."
