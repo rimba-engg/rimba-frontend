@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Scale, Download, Filter, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { type GasBalanceView } from './types';
 import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
 import {
   Select,
   SelectContent,
@@ -14,8 +15,27 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import {
+  Chart as ChartJS,
+  ChartOptions,
+  ChartData,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+// Register all community features
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+// Mark all grids as using legacy themes
+provideGlobalGridOptions({ theme: "legacy"});
+
+// Register necessary components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface ViewsResponse {
   views: GasBalanceView[];
@@ -24,7 +44,8 @@ interface ViewsResponse {
 interface MassBalanceResponse {
   view_aggregate: Record<string, any>;
   view_data: Array<Record<string, any>>;
-  chart_url: string;
+  chart_config: Record<string, any>;
+  chart_title: string;
 }
 
 const defaultColDef = {
@@ -41,6 +62,16 @@ const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string
   return undefined;
 };
 
+const options: ChartOptions<'bar'> = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top',
+    },
+  },
+};
+
 export default function RngMassBalancePage() {
   const [views, setViews] = useState<GasBalanceView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +82,8 @@ export default function RngMassBalancePage() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [viewAggregate, setViewAggregate] = useState<Record<string, any>>({});
-  const [chartUrl, setChartUrl] = useState<string>('');
+  const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
+  const [chartTitle, setChartTitle] = useState<string>('');
 
   useEffect(() => {
     fetchViews();
@@ -80,7 +112,7 @@ export default function RngMassBalancePage() {
           headerName: key,
           sortable: true,
           filter: key === 'Timestamp' ? 'agDateColumnFilter' : 'agNumberColumnFilter',
-          type: key === 'Timestamp' ? 'dateColumn' : 'numericColumn',
+          type: key === 'Timestamp' ? 'rightAligned' : 'numericColumn',
         }))
       );
     }
@@ -121,10 +153,12 @@ export default function RngMassBalancePage() {
       }
 
       const response = await api.post<MassBalanceResponse>('/reporting/v2/rng-mass-balance/', payload);
+      console.log(response);
 
       setRowData(response.view_data);
       setViewAggregate(response.view_aggregate);
-      setChartUrl(response.chart_url);
+      setChartConfig(response.chart_config as ChartData<"bar", (number | [number, number] | null)[], unknown>);
+      setChartTitle(response.chart_title);
     } catch (err) {
       setError('Failed to load mass balance data');
       console.error('Error fetching mass balance data:', err);
@@ -133,7 +167,7 @@ export default function RngMassBalancePage() {
     }
   };
 
-  if (loading && !rowData.length) {
+  if (loading && !rowData.length || chartConfig === null) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-muted-foreground">Loading data...</div>
@@ -145,12 +179,12 @@ export default function RngMassBalancePage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Gas Balance</h1>
+          <span className="font-regular">{chartTitle}</span>
         </div>
         <div className="flex gap-3">
           <Select
             value={selectedView?.id}
-            onValueChange={(value) => {
+            onValueChange={(value: string) => {
               const view = views.find((view) => view.id === value);
               if (view) {
                 setSelectedView(view);
@@ -193,7 +227,11 @@ export default function RngMassBalancePage() {
         </div>
       )}
 
-      <img src={chartUrl} alt="Methane Balance Chart" />
+      {chartConfig !== null && (
+        <div className="w-1/2 h-[300px]">
+          <Bar data={chartConfig} options={options} />
+        </div>
+      )}
 
       {/* AG Grid Table */}
       <div className="ag-theme-alpine w-full h-[600px]">
