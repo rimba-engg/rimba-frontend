@@ -1,7 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, X, FileText, Upload, Settings, ChevronRight, Trash2, Edit2, MoreVertical, Grid } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  Plus,
+  X,
+  FileText,
+  Upload,
+  Settings,
+  ChevronRight,
+  Trash2,
+  Edit2,
+  MoreVertical,
+  Grid,
+} from 'lucide-react';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,216 +32,359 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface DocumentType {
-  id: number;
+import DocumentTypeModal from './DocumentTypeModal';
+import DocumentUploadModal from './DocumentUploadModal';
+
+interface ExtractionConfig {
   name: string;
-  description: string;
-  sampleDocuments: File[];
-  fields: ExtractionField[];
-  settings: DocumentSettings;
+  question: string;
+  undefined: string;
 }
 
-interface DocumentSettings {
-  confidenceThreshold: number;
-  autoValidation: boolean;
-  notifyOnExtraction: boolean;
-  retryOnFailure: boolean;
-  maxRetries: number;
-}
-
-interface ExtractionField {
-  id: number;
+export interface ExtractionLogic {
+  id: string;
   name: string;
-  description: string;
-  type: 'text' | 'number' | 'select' | 'date' | 'boolean';
-  options?: string[];
-  validation?: string;
-  required: boolean;
-  defaultValue?: string;
+  batch_size: number;
+  config: ExtractionConfig[];
+  last_updated_at: string;
+  last_updated_by: string | null;
 }
 
-const defaultSettings: DocumentSettings = {
-  confidenceThreshold: 0.8,
-  autoValidation: true,
-  notifyOnExtraction: true,
-  retryOnFailure: true,
-  maxRetries: 3,
-};
+export interface DocumentType {
+  id: string;
+  name: string;
+  description: string | null;
+  code: string;
+  extraction_logic: ExtractionLogic | null;
+}
 
-const initialDocumentTypes: DocumentType[] = [
-  {
-    id: 1,
-    name: 'Invoice',
-    description: 'Standard supplier invoices for raw material purchases',
-    sampleDocuments: [],
-    settings: defaultSettings,
-    fields: [
-      { id: 1, name: 'invoiceNumber', description: 'Unique invoice identifier', type: 'text', required: true },
-      { id: 2, name: 'amount', description: 'Total invoice amount', type: 'number', required: true },
-      { id: 3, name: 'status', description: 'Payment status', type: 'select', options: ['Paid', 'Pending', 'Overdue'], required: true },
-    ],
-  },
-  {
-    id: 2,
-    name: 'Bill of Lading',
-    description: 'Transportation documents for shipment tracking',
-    sampleDocuments: [],
-    settings: defaultSettings,
-    fields: [
-      { id: 1, name: 'bolNumber', description: 'Bill of Lading number', type: 'text', required: true },
-      { id: 2, name: 'shipmentDate', description: 'Date of shipment', type: 'date', required: true },
-      { id: 3, name: 'quantity', description: 'Shipment quantity', type: 'number', required: true },
-    ],
-  },
-];
+interface ApiResponse {
+  status: string;
+  message: string;
+  data: DocumentType[];
+}
 
-export default function AIExtractorPage() {
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes);
-  const [showAddTypeModal, setShowAddTypeModal] = useState(false);
-  const [showFieldModal, setShowFieldModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState<number | null>(null);
-  const [selectedType, setSelectedType] = useState<DocumentType | null>(null);
-  const [selectedField, setSelectedField] = useState<ExtractionField | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState<number | null>(null);
-  const [showDeleteFieldModal, setShowDeleteFieldModal] = useState<{typeId: number; fieldId: number} | null>(null);
-  const [newDocumentType, setNewDocumentType] = useState<Omit<DocumentType, 'id' | 'fields' | 'sampleDocuments' | 'settings'>>({
-    name: '',
-    description: '',
-  });
-  const [newField, setNewField] = useState<Omit<ExtractionField, 'id'>>({
-    name: '',
-    description: '',
-    type: 'text',
-    options: [],
-    required: false,
-  });
+function ExtractionLogicModal({
+  isOpen,
+  onClose,
+  docType,
+  onSave,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  docType: DocumentType;
+  onSave: (updatedLogic: ExtractionLogic) => void;
+}) {
+  const initialLogic = docType.extraction_logic!;
+  const [editedLogic, setEditedLogic] = useState<ExtractionLogic>(initialLogic);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleAddDocumentType = () => {
-    const newType: DocumentType = {
-      id: Math.max(...documentTypes.map(d => d.id), 0) + 1,
-      ...newDocumentType,
-      fields: [],
-      sampleDocuments: [],
-      settings: defaultSettings,
-    };
-    setDocumentTypes(prev => [...prev, newType]);
-    setShowAddTypeModal(false);
-    setNewDocumentType({
-      name: '',
-      description: '',
-    });
-  };
-
-  const handleUpdateSettings = (typeId: number, settings: DocumentSettings) => {
-    setDocumentTypes(prev =>
-      prev.map(type =>
-        type.id === typeId
-          ? { ...type, settings }
-          : type
-      )
-    );
-    setShowSettingsModal(null);
+  const handleFieldChange = (
+    index: number,
+    key: 'name' | 'question',
+    value: string
+  ) => {
+    const newConfig = [...editedLogic.config];
+    newConfig[index] = { ...newConfig[index], [key]: value };
+    setEditedLogic({ ...editedLogic, config: newConfig });
   };
 
   const handleAddField = () => {
-    if (!selectedType) return;
-
-    const newFieldWithId: ExtractionField = {
-      id: Math.max(...selectedType.fields.map(f => f.id), 0) + 1,
-      ...newField,
-    };
-
-    setDocumentTypes(prev =>
-      prev.map(type =>
-        type.id === selectedType.id
-          ? { ...type, fields: [...type.fields, newFieldWithId] }
-          : type
-      )
-    );
-
-    setShowFieldModal(false);
-    setNewField({
-      name: '',
-      description: '',
-      type: 'text',
-      options: [],
-      required: false,
+    setEditedLogic({
+      ...editedLogic,
+      config: [
+        ...editedLogic.config,
+        { name: '', question: '', undefined: '' },
+      ],
     });
-    setSelectedField(null);
   };
 
-  const handleEditField = (typeId: number, field: ExtractionField) => {
-    const docType = documentTypes.find(t => t.id === typeId);
-    if (!docType) return;
-
-    setSelectedType(docType);
-    setSelectedField(field);
-    setNewField({
-      name: field.name,
-      description: field.description,
-      type: field.type,
-      options: field.options,
-      required: field.required,
-      validation: field.validation,
-      defaultValue: field.defaultValue,
+  const handleRemoveField = (index: number) => {
+    setEditedLogic({
+      ...editedLogic,
+      config: editedLogic.config.filter((_, i) => i !== index),
     });
-    setShowFieldModal(true);
   };
 
-  const handleUpdateField = () => {
-    if (!selectedType || !selectedField) return;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Mock API call
+      // await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Saving extraction logic:', editedLogic);
+      onSave(editedLogic);
+      onClose();
+    } catch (error) {
+      console.error('Error saving extraction logic:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    setDocumentTypes(prev =>
-      prev.map(type =>
-        type.id === selectedType.id
-          ? {
-              ...type,
-              fields: type.fields.map(field =>
-                field.id === selectedField.id
-                  ? { ...field, ...newField }
-                  : field
-              ),
-            }
-          : type
-      )
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-[900px] max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold">Editing Extraction Logic :  {docType.name}</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </Button>
+        </div>
+
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <Label htmlFor="logic-name">Logic Name</Label>
+              <Input
+                id="logic-name"
+                value={editedLogic.name}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className='hidden'>
+              <Label htmlFor="batch-size">Batch Size</Label>
+              <Input
+                type="number"
+                id="batch-size"
+                value={editedLogic.batch_size}
+                onChange={(e) =>
+                  setEditedLogic({
+                    ...editedLogic,
+                    batch_size: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <Label>Extraction Fields</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddField}
+                className="text-primary"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Field
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {editedLogic.config.map((field, index) => (
+                <div
+                  key={index}
+                  className="border rounded-lg p-4 space-y-4 bg-muted/10"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <Label>Field Name</Label>
+                        <Input
+                          value={field.name}
+                          onChange={(e) =>
+                            handleFieldChange(index, 'name', e.target.value)
+                          }
+                          placeholder="Enter field name"
+                        />
+                      </div>
+                      <div>
+                        <Label>Extraction Question</Label>
+                        <Textarea
+                          value={field.question}
+                          onChange={(e) =>
+                            handleFieldChange(index, 'question', e.target.value)
+                          }
+                          placeholder="Enter the question to extract this field"
+                          className="h-24"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveField(index)}
+                      className="text-red-600 hover:text-red-800 ml-4"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AIExtractorPage() {
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showExtractionModal, setShowExtractionModal] = useState<string | null>(null);
+  const [showDocTypeModal, setShowDocTypeModal] = useState<string | null>(null);
+  const [showCreateDocTypeModal, setShowCreateDocTypeModal] = useState(false);
+  const [showDocUploadModal, setShowDocUploadModal] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDocumentTypes();
+  }, []);
+
+  const fetchDocumentTypes = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get<ApiResponse>('/v2/extractor/logic/list/');
+
+      if (response.status === 'success') {
+        setDocumentTypes(response.data);
+        setError(null);
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (err) {
+      setError('Failed to load document types');
+      console.error('Error fetching document types:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveExtractionLogic = async (docTypeId: string, updatedLogic: ExtractionLogic) => {
+    console.log('Saving extraction logic for docTypeId', docTypeId, updatedLogic);
+    try {
+      const response = await api.put<ApiResponse>(
+        '/v2/extractor/logic/list/',
+        {
+          extraction_logic_id: updatedLogic.id,
+          config: updatedLogic.config.map(({ name, question, undefined }) => ({
+            name,
+            question,
+            undefined: undefined || ''
+          }))
+        }
+      );
+
+      if (response.status === 'success') {
+        setDocumentTypes(prev =>
+          prev.map(dt =>
+            dt.id === docTypeId
+              ? { ...dt, extraction_logic: updatedLogic }
+              : dt
+          )
+        );
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error saving extraction logic:', error);
+      // You might want to add error handling/notification here
+    }
+  };
+
+  const handleCreateExtractionLogic = async (docType: DocumentType) => {
+    try {
+      const response = await api.post<ApiResponse>('/v2/extractor/logic/list/', {
+        name: `${docType.name} Logic`,
+        document_type: docType.id,
+        config: [],
+        batch_size: 1
+      });
+      
+      if (response.status === 'success') {
+        await fetchDocumentTypes(); // Refresh the list
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error creating extraction logic:', error);
+      setError('Failed to create extraction logic');
+    }
+  };
+
+  const handleSaveDocumentType = async (updatedDocType: DocumentType) => {
+    try {
+      const response = await api.put<ApiResponse>('/v2/document-types/', {
+        id: updatedDocType.id,
+        name: updatedDocType.name,
+        description: updatedDocType.description || ''
+      });
+
+      if (response.status === 'success') {
+        setDocumentTypes(prev =>
+          prev.map(dt =>
+            dt.id === updatedDocType.id ? updatedDocType : dt
+          )
+        );
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error saving document type:', error);
+      setError('Failed to save document type');
+    }
+  };
+
+  const handleCreateDocumentType = async (newDocType: DocumentType) => {
+    if (!newDocType.name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    try {
+      const response = await api.post<ApiResponse>('/v2/document-types/', {
+        name: newDocType.name,
+        description: newDocType.description || ''
+      });
+
+      if (response.status === 'success') {
+        await fetchDocumentTypes();
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error creating document type:', error);
+      setError('Failed to create document type');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-muted-foreground">Loading document types...</div>
+      </div>
     );
+  }
 
-    setShowFieldModal(false);
-    setNewField({
-      name: '',
-      description: '',
-      type: 'text',
-      options: [],
-      required: false,
-    });
-    setSelectedField(null);
-  };
-
-  const handleDeleteField = (typeId: number, fieldId: number) => {
-    setDocumentTypes(prev =>
-      prev.map(type =>
-        type.id === typeId
-          ? { ...type, fields: type.fields.filter(f => f.id !== fieldId) }
-          : type
-      )
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-destructive">{error}</div>
+      </div>
     );
-    setShowDeleteFieldModal(null);
-  };
-
-  const handleFileUpload = (docTypeId: number, files: FileList) => {
-    setDocumentTypes(prev =>
-      prev.map(type =>
-        type.id === docTypeId
-          ? { ...type, sampleDocuments: [...type.sampleDocuments, ...Array.from(files)] }
-          : type
-      )
-    );
-  };
-
-  const handleDeleteType = (id: number) => {
-    setDocumentTypes(prev => prev.filter(type => type.id !== id));
-    setShowDeleteModal(null);
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -237,12 +392,13 @@ export default function AIExtractorPage() {
         <div>
           <h1 className="text-3xl font-bold">AI Extractor</h1>
           <p className="text-muted-foreground mt-2">
-            Configure document types and extraction rules for automated data processing.
+            Configure document types and extraction rules for automated data
+            processing.
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddTypeModal(true)}
+        <Button 
           className="bg-primary hover:bg-primary/90"
+          onClick={() => setShowCreateDocTypeModal(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Document Type
@@ -263,589 +419,117 @@ export default function AIExtractorPage() {
                     {docType.name}
                   </h3>
                   <p className="text-muted-foreground text-sm mt-1">
-                    {docType.description}
+                    {docType.description || 'No description available'}
                   </p>
+                  <div className="mt-2">
+                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                      {docType.code}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {docType.extraction_logic && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowExtractionModal(docType.id)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setShowSettingsModal(docType.id)}
-                    className="text-blue-600 hover:text-blue-800"
+                    onClick={() => setShowDocTypeModal(docType.id)}
+                    className="text-green-600 hover:text-green-800"
                   >
-                    <Settings className="w-4 h-4" />
+                    <Edit2 className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setShowDeleteModal(docType.id)}
+                    onClick={() => setShowDocUploadModal(docType.id)}
+                    className="text-purple-600 hover:text-purple-800"
+                  >
+                    <Upload className="w-4 h-4" />
+                  </Button>
+                  {/* <Button
+                    variant="ghost"
+                    size="icon"
                     className="text-red-600 hover:text-red-800"
                   >
                     <Trash2 className="w-4 h-4" />
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Sample Documents</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="file"
-                    multiple
-                    onChange={(e) => e.target.files && handleFileUpload(docType.id, e.target.files)}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                  />
-                  <Upload className="w-5 h-5 text-muted-foreground" />
-                </div>
-                {docType.sampleDocuments.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {docType.sampleDocuments.map((file, index) => (
-                      <div key={index} className="flex items-center gap-2 p-2 rounded bg-muted text-sm">
-                        <FileText className="w-4 h-4" />
-                        <span className="truncate">{file.name}</span>
-                      </div>
-                    ))}
+              {docType.extraction_logic ? (
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div>
+                    <span>Logic: {docType.extraction_logic.name}</span>
+                    <span className="ml-2">
+                      Batch Size: {docType.extraction_logic.batch_size}
+                    </span>
                   </div>
-                )}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Extraction Fields</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedType(docType);
-                      setSelectedField(null);
-                      setNewField({
-                        name: '',
-                        description: '',
-                        type: 'text',
-                        options: [],
-                        required: false,
-                      });
-                      setShowFieldModal(true);
-                    }}
+                </div>
+              ) : (
+                <div className="bg-muted/50 rounded-lg p-4 text-center">
+                  <p className="text-muted-foreground mb-2">No extraction logic configured</p>
+                  <Button 
+                    variant="outline" 
+                    className="text-primary hover:bg-primary/10"
+                    onClick={() => handleCreateExtractionLogic(docType)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Field
+                    Add Extraction Logic
                   </Button>
                 </div>
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-muted/50">
-                          <th className="px-4 py-2 text-left font-medium text-sm">Field Name</th>
-                          <th className="px-4 py-2 text-left font-medium text-sm">Type</th>
-                          <th className="px-4 py-2 text-left font-medium text-sm">Required</th>
-                          <th className="px-4 py-2 text-left font-medium text-sm">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {docType.fields.map((field, index) => (
-                          <tr key={field.id} className={index % 2 === 0 ? 'bg-white' : 'bg-muted/30'}>
-                            <td className="px-4 py-2 text-sm">{field.name}</td>
-                            <td className="px-4 py-2 text-sm">
-                              <span className="px-2 py-1 rounded-full text-xs bg-primary/10">
-                                {field.type}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-sm">
-                              {field.required ? (
-                                <span className="text-green-600">Yes</span>
-                              ) : (
-                                <span className="text-gray-400">No</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditField(docType.id, field)}
-                                  className="h-8 w-8"
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setShowDeleteFieldModal({ typeId: docType.id, fieldId: field.id })}
-                                  className="h-8 w-8 text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Add Document Type Modal */}
-      {showAddTypeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 w-[500px]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Add Document Type</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowAddTypeModal(false)}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={newDocumentType.name}
-                  onChange={(e) => setNewDocumentType(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., Invoice, Purchase Order"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newDocumentType.description}
-                  onChange={(e) => setNewDocumentType(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe the document type and its purpose"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddTypeModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleAddDocumentType}>
-                  Add Document Type
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {showExtractionModal && (
+        <ExtractionLogicModal
+          isOpen={true}
+          onClose={() => setShowExtractionModal(null)}
+          docType={documentTypes.find(dt => dt.id === showExtractionModal)!}
+          onSave={(updatedLogic) => {
+            handleSaveExtractionLogic(showExtractionModal, updatedLogic);
+          }}
+        />
       )}
 
-      {/* Document Settings Modal */}
-      {showSettingsModal !== null && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 w-[500px]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Document Type Settings</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSettingsModal(null)}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-
-            {documentTypes.find(t => t.id === showSettingsModal)?.settings && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Document Type Name</Label>
-                  <Input
-                    value={documentTypes.find(t => t.id === showSettingsModal)?.name}
-                    onChange={(e) => {
-                      setDocumentTypes(prev =>
-                        prev.map(type =>
-                          type.id === showSettingsModal
-                            ? { ...type, name: e.target.value }
-                            : type
-                        )
-                      );
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    value={documentTypes.find(t => t.id === showSettingsModal)?.description}
-                    onChange={(e) => {
-                      setDocumentTypes(prev =>
-                        prev.map(type =>
-                          type.id === showSettingsModal
-                            ? { ...type, description: e.target.value }
-                            : type
-                        )
-                      );
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confidenceThreshold">Confidence Threshold</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={documentTypes.find(t => t.id === showSettingsModal)?.settings.confidenceThreshold}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
-                        setDocumentTypes(prev =>
-                          prev.map(type =>
-                            type.id === showSettingsModal
-                              ? {
-                                  ...type,
-                                  settings: {
-                                    ...type.settings,
-                                    confidenceThreshold: value,
-                                  },
-                                }
-                              : type
-                          )
-                        );
-                      }}
-                      className="flex-1"
-                    />
-                    <span className="w-12 text-sm">
-                      {(documentTypes.find(t => t.id === showSettingsModal)?.settings.confidenceThreshold || 0) * 100}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="autoValidation">Auto Validation</Label>
-                    <input
-                      type="checkbox"
-                      checked={documentTypes.find(t => t.id === showSettingsModal)?.settings.autoValidation}
-                      onChange={(e) => {
-                        setDocumentTypes(prev =>
-                          prev.map(type =>
-                            type.id === showSettingsModal
-                              ? {
-                                  ...type,
-                                  settings: {
-                                    ...type.settings,
-                                    autoValidation: e.target.checked,
-                                  },
-                                }
-                              : type
-                          )
-                        );
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="notifyOnExtraction">Notify on Extraction</Label>
-                    <input
-                      type="checkbox"
-                      checked={documentTypes.find(t => t.id === showSettingsModal)?.settings.notifyOnExtraction}
-                      onChange={(e) => {
-                        setDocumentTypes(prev =>
-                          prev.map(type =>
-                            type.id === showSettingsModal
-                              ? {
-                                  ...type,
-                                  settings: {
-                                    ...type.settings,
-                                    notifyOnExtraction: e.target.checked,
-                                  },
-                                }
-                              : type
-                          )
-                        );
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="retryOnFailure">Retry on Failure</Label>
-                    <input
-                      type="checkbox"
-                      checked={documentTypes.find(t => t.id === showSettingsModal)?.settings.retryOnFailure}
-                      onChange={(e) => {
-                        setDocumentTypes(prev =>
-                          prev.map(type =>
-                            type.id === showSettingsModal
-                              ? {
-                                  ...type,
-                                  settings: {
-                                    ...type.settings,
-                                    retryOnFailure: e.target.checked,
-                                  },
-                                }
-                              : type
-                          )
-                        );
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                  </div>
-
-                  {documentTypes.find(t => t.id === showSettingsModal)?.settings.retryOnFailure && (
-                    <div className="space-y-2">
-                      <Label htmlFor="maxRetries">Max Retries</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={documentTypes.find(t => t.id === showSettingsModal)?.settings.maxRetries}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          setDocumentTypes(prev =>
-                            prev.map(type =>
-                              type.id === showSettingsModal
-                                ? {
-                                    ...type,
-                                    settings: {
-                                      ...type.settings,
-                                      maxRetries: value,
-                                    },
-                                  }
-                                : type
-                            )
-                          );
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-3 mt-6">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowSettingsModal(null)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const settings = documentTypes.find(t => t.id === showSettingsModal)?.settings;
-                      if (settings) {
-                        handleUpdateSettings(showSettingsModal, settings);
-                      }
-                    }}
-                  >
-                    Save Settings
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      {showDocTypeModal && (
+        <DocumentTypeModal
+          isOpen={true}
+          onClose={() => setShowDocTypeModal(null)}
+          docType={documentTypes.find(dt => dt.id === showDocTypeModal)!}
+          onSave={handleSaveDocumentType}
+        />
       )}
 
-      {/* Add/Edit Field Modal */}
-      {showFieldModal && selectedType && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 w-[500px]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">
-                {selectedField ? 'Edit Extraction Field' : 'Add Extraction Field'}
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowFieldModal(false);
-                  setSelectedField(null);
-                  setNewField({
-                    name: '',
-                    description: '',
-                    type: 'text',
-                    options: [],
-                    required: false,
-                  });
-                }}
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fieldName">Field Name</Label>
-                <Input
-                  id="fieldName"
-                  value={newField.name}
-                  onChange={(e) => setNewField(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., invoiceNumber, amount"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="fieldDescription">Description</Label>
-                <Textarea
-                  id="fieldDescription"
-                  value={newField.description}
-                  onChange={(e) => setNewField(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe what this field represents"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="fieldType">Field Type</Label>
-                <Select
-                  value={newField.type}
-                  onValueChange={(value: 'text' | 'number' | 'select' | 'date' | 'boolean') => {
-                    setNewField(prev => ({
-                      ...prev,
-                      type: value,
-                      options: value === 'select' ? [] : undefined,
-                    }));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select field type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="number">Number</SelectItem>
-                    <SelectItem value="select">Select</SelectItem>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="boolean">Boolean</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {newField.type === 'select' && (
-                <div className="space-y-2">
-                  <Label htmlFor="options">Options (comma-separated)</Label>
-                  <Input
-                    id="options"
-                    value={newField.options?.join(', ') || ''}
-                    onChange={(e) => setNewField(prev => ({
-                      ...prev,
-                      options: e.target.value.split(',').map(o => o.trim()).filter(Boolean),
-                    }))}
-                    placeholder="Option 1, Option 2, Option 3"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="validation">Validation Rule</Label>
-                <Input
-                  id="validation"
-                  value={newField.validation || ''}
-                  onChange={(e) => setNewField(prev => ({ ...prev, validation: e.target.value }))}
-                  placeholder="e.g., ^[A-Z]{2}\d{6}$ for format validation"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="defaultValue">Default Value</Label>
-                <Input
-                  id="defaultValue"
-                  value={newField.defaultValue || ''}
-                  onChange={(e) => setNewField(prev => ({ ...prev, defaultValue: e.target.value }))}
-                  placeholder="Enter default value"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="required"
-                  checked={newField.required}
-                  onChange={(e) => setNewField(prev => ({ ...prev, required: e.target.checked }))}
-                  className="rounded border-gray-300"
-                />
-                <Label htmlFor="required">Required Field</Label>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowFieldModal(false);
-                    setSelectedField(null);
-                    setNewField({
-                      name: '',
-                      description: '',
-                      type: 'text',
-                      options: [],
-                      required: false,
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={selectedField ? handleUpdateField : handleAddField}>
-                  {selectedField ? 'Save Changes' : 'Add Field'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {showCreateDocTypeModal && (
+        <DocumentTypeModal
+          isOpen={true}
+          onClose={() => setShowCreateDocTypeModal(false)}
+          docType={{ id: '', name: '', description: '', code: '', extraction_logic: null }}
+          onSave={handleCreateDocumentType}
+        />
       )}
 
-      {/* Delete Document Type Modal */}
-      {showDeleteModal !== null && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 w-[400px]">
-            <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
-            <p className="text-muted-foreground mb-6">
-              Are you sure you want to delete this document type? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteModal(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDeleteType(showDeleteModal)}
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Field Modal */}
-      {showDeleteFieldModal !== null && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 w-[400px]">
-            <h3 className="text-lg font-semibold mb-4">Confirm Field Deletion</h3>
-            <p className="text-muted-foreground mb-6">
-              Are you sure you want to delete this extraction field? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowDeleteFieldModal(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDeleteField(showDeleteFieldModal.typeId, showDeleteFieldModal.fieldId)}
-              >
-                Delete Field
-              </Button>
-            </div>
-          </div>
-        </div>
+      {showDocUploadModal && (
+        <DocumentUploadModal
+          isOpen={true}
+          onClose={() => setShowDocUploadModal(null)}
+          docType={documentTypes.find(dt => dt.id === showDocUploadModal)!}
+          onUpload={(uploadedFile, docType) => {
+            console.log('Uploaded file:', uploadedFile, 'for document type:', docType);
+            // Optionally, you can add further logic here (like refreshing a document list)
+          }}
+        />
       )}
     </div>
   );
