@@ -58,6 +58,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean): (MenuItem | Men
       label: 'Reporting',
       items: [
         { icon: Scale, label: 'Gas Balance', href: '/reporting/rng-mass-balance' },
+        { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
       ],
     },
   ] : [

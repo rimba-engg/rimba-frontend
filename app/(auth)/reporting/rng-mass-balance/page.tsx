@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { type GasBalanceView } from './types';
 import { AgGridReact } from 'ag-grid-react';
@@ -85,6 +85,9 @@ export default function RngMassBalancePage() {
   const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
   const [chartTitle, setChartTitle] = useState<string>('');
 
+  // Initialize grid ref for accessing the grid API
+  const gridRef = useRef<AgGridReact>(null);
+
   useEffect(() => {
     fetchViews();
   }, []);
@@ -167,6 +170,13 @@ export default function RngMassBalancePage() {
     }
   };
 
+  // Function to handle CSV export
+  const handleDownloadCsv = () => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.exportDataAsCsv();
+    }
+  };
+
   if (loading && !rowData.length || chartConfig === null) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -177,49 +187,10 @@ export default function RngMassBalancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <span className="font-regular">{chartTitle}</span>
+      <div>
+        <div className="mb-4">
+          <span>{chartTitle}</span>
         </div>
-        <div className="flex gap-3">
-          <Select
-            value={selectedView?.id}
-            onValueChange={(value: string) => {
-              const view = views.find((view) => view.id === value);
-              if (view) {
-                setSelectedView(view);
-              }
-            }}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select view" />
-            </SelectTrigger>
-            <SelectContent>
-              {views.map((view) => (
-                <SelectItem key={view.id} value={view.id}>
-                  {view.view_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="flex items-center gap-2">
-            <Input
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-auto"
-            />
-            <span className="text-muted-foreground">to</span>
-            <Input
-              type="datetime-local"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-auto"
-            />
-          </div>
-        </div>
-      </div>
 
       {error && (
         <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg">
@@ -227,15 +198,72 @@ export default function RngMassBalancePage() {
         </div>
       )}
 
-      {chartConfig !== null && (
-        <div className="w-1/2 h-[300px]">
-          <Bar data={chartConfig} options={options} />
+        <div className="flex gap-6">
+          {chartConfig !== null && (
+            <div className="w-3/4 h-[300px]">
+              <Bar data={chartConfig} options={options} />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4 w-1/4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">View Name</label>
+              <Select
+                value={selectedView?.id}
+                onValueChange={(value: string) => {
+                  const view = views.find((view) => view.id === value);
+                  if (view) {
+                    setSelectedView(view);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select view" />
+                </SelectTrigger>
+                <SelectContent>
+                  {views.map((view) => (
+                    <SelectItem key={view.id} value={view.id}>
+                      {view.view_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Start Date</label>
+              <Input
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">End Date</label>
+              <Input
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <button
+              onClick={handleDownloadCsv}
+              className="button-primary px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
+            >
+              Download CSV
+            </button>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* AG Grid Table */}
       <div className="ag-theme-alpine w-full h-[600px]">
         <AgGridReact
+          ref={gridRef}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
