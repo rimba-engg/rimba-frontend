@@ -62,6 +62,9 @@ export default function DocumentsPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -162,6 +165,37 @@ export default function DocumentsPage() {
       alert('Failed to export data');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('documents', files[i]);
+      }
+      formData.append('current_month', (selectedMonth + 1).toString());
+
+      const response = await fetch(`${BASE_URL}/v2/document/upload/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      console.log(data);
+      alert('Upload successful');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload document');
+    } finally {
+      setIsUploading(false);
+      setShowUploadModal(false);
     }
   };
 
@@ -319,13 +353,18 @@ export default function DocumentsPage() {
               <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
                 <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
                 <p className="text-muted-foreground mb-2">
-                  Drag and drop your files here, or click to browse
+                  {selectedFiles.length > 0 ? selectedFiles.map(file => file.name).join(', ') : 'Drag and drop your files here, or click to browse'}
                 </p>
                 <input
                   type="file"
                   className="hidden"
                   id="file-upload"
                   multiple
+                  onChange={(e) => {
+                    const files = e.target.files ? Array.from(e.target.files) : [];
+                    setSelectedFiles(files);
+                    setFiles(files);
+                  }}
                 />
                 <Button
                   variant="outline"
@@ -341,12 +380,27 @@ export default function DocumentsPage() {
                 >
                   Cancel
                 </Button>
-                <Button>Upload</Button>
+                <Button onClick={handleUpload} disabled={isUploading}>
+                  {isUploading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="spinner"></div>
+                      Uploading...
+                    </div>
+                  ) : (
+                    'Upload'
+                  )}
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {selectedFiles.map((file, index) => (
+        <div key={index}>
+          <p>{file.name}</p>
+        </div>
+      ))}
 
       <style jsx>{`
         .spinner {
