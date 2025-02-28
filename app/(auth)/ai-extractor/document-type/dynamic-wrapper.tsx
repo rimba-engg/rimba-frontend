@@ -64,6 +64,10 @@ export default function DocumentTypeDetailClient() {
   // selectedRunExtractionLogic: extraction config version selected in the run extraction card (separate from the management card)
   const [selectedRunExtractionLogic, setSelectedRunExtractionLogic] = useState<any>(null);
 
+  // New states for extraction API response and loading state
+  const [extractionResponse, setExtractionResponse] = useState<any>(null);
+  const [extractionLoading, setExtractionLoading] = useState<boolean>(false);
+
   useEffect(() => {
     if (id) {
       fetchDocumentType(id as string);
@@ -88,7 +92,6 @@ export default function DocumentTypeDetailClient() {
       console.error('Error fetching document type:', err);
     } finally {
       setLoading(false);
-
     }
   };
 
@@ -137,12 +140,54 @@ export default function DocumentTypeDetailClient() {
   };
 
   // New function to handle running extraction from the "Run Extraction" card
-  const handleExecuteExtraction = () => {
+  const handleExecuteExtraction = async () => {
     if (!selectedDocumentForExtraction || !selectedRunExtractionLogic) return;
-    alert(
-      `Running extraction using ${selectedRunExtractionLogic.name} (version V${selectedRunExtractionLogic.version}) on document ${selectedDocumentForExtraction.name}`
-    );
-    // Here you could call an API to actually perform extraction.
+    setExtractionLoading(true);
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Mock API response
+      const mockResponse = {
+        "status": "success",
+        "extracted_columns": [
+          "Page No.",
+          "Date",
+          "Recipient / Notify",
+          "Supplier / Shipper",
+          "Bill of Lading",
+          "Vessel",
+          "BL Quantity",
+          "Product & Scheme",
+          "Place of Dispatch",
+          "Place of Delivery",
+          "Stowage",
+          "Recipient Address"
+        ],
+        "extracted_table_body": [
+          {
+            "Page No.": "1",
+            "Date": "12/09/2024",
+            "Recipient / Notify": "BIO-OILS HUELVA SLU,",
+            "Supplier / Shipper": "APICAL (M) SDN BHD",
+            "Bill of Lading": "LD/TJL/HUE-102",
+            "Vessel": "MT. SOLAR RUO YUN V28",
+            "BL Quantity": "539.223 MT",
+            "Product & Scheme": "CRUDE OIL, INS CERTIFIED, PALM OIL MILL EFFLUENT OIL IN BULK",
+            "Place of Dispatch": "TANJUNG LANGSAT, MALAYSIA",
+            "Place of Delivery": "HUELVA PORT, SPAIN",
+            "Stowage": "4P & 4S",
+            "Recipient Address": "BIO-OILS HUELVA SLU,"
+          }
+        ]
+      };
+
+      setExtractionResponse(mockResponse);
+    } catch (error) {
+      console.error("Error running extraction:", error);
+    } finally {
+      setExtractionLoading(false);
+    }
   };
 
   if (loading) {
@@ -246,10 +291,39 @@ export default function DocumentTypeDetailClient() {
           </div>
           <Button
             onClick={handleExecuteExtraction}
-            disabled={!selectedDocumentForExtraction || !selectedRunExtractionLogic}
+            disabled={!selectedDocumentForExtraction || !selectedRunExtractionLogic || extractionLoading}
           >
             Run Extraction
           </Button>
+
+          {/* Display extraction results */}
+          <div className="mt-4">
+            {extractionLoading && <div>Running extraction...</div>}
+            {extractionResponse && extractionResponse.status === 'success' && (
+              <Table className="mt-4 min-w-full">
+                <TableHeader className="bg-gray-100">
+                  <TableRow>
+                    {extractionResponse.extracted_columns.map((col: string, idx: number) => (
+                      <TableHead key={idx} className="p-2 text-left">
+                        {col}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {extractionResponse.extracted_table_body.map((row: any, rowIndex: number) => (
+                    <TableRow key={rowIndex} className="border-t">
+                      {extractionResponse.extracted_columns.map((col: string, colIndex: number) => (
+                        <TableCell key={colIndex} className="p-2">
+                          {row[col]}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -322,8 +396,6 @@ export default function DocumentTypeDetailClient() {
               </TableBody>
             </Table>
           )}
-
-
         </CardContent>
       </Card>
 
@@ -375,8 +447,6 @@ export default function DocumentTypeDetailClient() {
           )}
         </CardContent>
       </Card>
-
-      
     </div>
   );
 } 
