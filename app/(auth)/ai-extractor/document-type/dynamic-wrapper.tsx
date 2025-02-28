@@ -476,12 +476,29 @@ export default function DocumentTypeDetailClient() {
 
       {/* Extraction Config Management Section */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center gap-10">
           <CardTitle className="text-lg font-semibold">
             Extraction Config Management
           </CardTitle>
+          {documentType.extraction_logics && (
+            // Compute the active extraction config
+            (() => {
+              const activeConfig = documentType.extraction_logics.find(
+                (logic: any) => logic.is_active
+              );
+              return activeConfig ? (
+                <div className="mb-4">
+                  <span className="mr-2 font-semibold">Active Config:</span>
+                  <Badge variant="default" className='text-lg'>
+                    {activeConfig.name} - V{activeConfig.version}
+                  </Badge>
+                </div>
+              ) : null;
+            })()
+          )}
         </CardHeader>
         <CardContent>
+
           <div className="flex items-center justify-between mb-4">
             <Label htmlFor="extraction-config" className="mb-2 block">
               Select Extraction Config
