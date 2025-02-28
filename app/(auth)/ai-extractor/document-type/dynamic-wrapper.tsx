@@ -8,7 +8,9 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardContent
+  CardContent,
+  CardDescription,
+  CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +32,7 @@ import {
 } from '@/components/ui/table';
 import { Edit } from 'lucide-react';
 import DocumentTypeModal from '../components/DocumentTypeModal';
+import { Badge } from '@/components/ui/badge';
 
 interface SampleDocument {
   id: string;
@@ -488,24 +491,32 @@ export default function DocumentTypeDetailClient() {
 
           {/* Show detailed information of the selected extraction config */}
           {selectedLogic && (
-            <div className="p-4  border flex gap-8 border-gray-200 rounded">
-              <p>
-                <strong>Name:</strong> {selectedLogic.name}
-              </p>
-              <p>
-                <strong>Version:</strong> V{selectedLogic.version}
-              </p>
-              <p>
-                <strong>Last Updated:</strong> {selectedLogic.last_updated_at}
-              </p>
-              <Button
-              onClick={handleActivateLogic}
-              disabled={activationLoading}
-              className="mt-2"
-            >
-              {activationLoading ? "Activating..." : "Activate Logic"}
-            </Button>
-            </div>
+            <Card className="shadow-md flex mt-4">
+              <CardHeader>
+                <CardTitle>{selectedLogic.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 py-0 justify-center">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-muted-foreground">Version:</span>
+                  <Badge variant="secondary">V{selectedLogic.version}</Badge>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-muted-foreground">Last Updated:</span>
+                  <span className="text-sm">
+                    {new Date(selectedLogic.last_updated_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  onClick={handleActivateLogic}
+                  disabled={activationLoading}
+                  className="mt-2"
+                >
+                  {activationLoading ? "Activating..." : "Activate Logic"}
+                </Button>
+              </CardFooter>
+            </Card>
           )}
 
           {/* Table display of extraction config fields */}
