@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 
 import DocumentTypeModal from './components/DocumentTypeModal';
 import DocumentUploadModal from './components/DocumentUploadModal';
@@ -213,14 +214,18 @@ export default function AIExtractorPage() {
                 </a>
               </TableCell>
               <TableCell className="py-2">
-                {docType.extraction_logics && docType.extraction_logics.length > 0 ? (
-                  docType.extraction_logics.map((logic) => (
-                    <div key={logic.id}>
-                      {logic.name} (Version: {logic.version}, Active: {logic.is_active ? 'Yes' : 'No'})
-                    </div>
-                  ))
+                {docType.extraction_logics &&
+                docType.extraction_logics.filter((logic) => logic.is_active).length > 0 ? (
+                  docType.extraction_logics
+                    .filter((logic) => logic.is_active)
+                    .map((logic) => (
+                      <div key={logic.id} className="flex flex-wrap gap-2">
+                        <Badge variant="default">{logic.name}</Badge>
+                        <Badge variant="outline">v{logic.version}</Badge>
+                      </div>
+                    ))
                 ) : (
-                  'No logic configured'
+                  <Badge variant="destructive">No active logic</Badge>
                 )}
               </TableCell>
               <TableCell className="py-2">
