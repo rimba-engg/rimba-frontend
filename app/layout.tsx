@@ -32,7 +32,7 @@ export default function RootLayout({
                     e.async = true;
                     e.src = q + c._hjSettings.hjid + u;
                     r.appendChild(e);
-                })(window, document, 'https://static.hj.contentsquare.net/c/csq-', '.js', 5321422);
+                })(window, document, 'https://static.hj.contentsquare.net/c/csq-', '.js', 5321437);
               `,
             }}
           />
