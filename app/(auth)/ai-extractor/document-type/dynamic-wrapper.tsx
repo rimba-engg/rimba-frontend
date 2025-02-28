@@ -2,7 +2,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { DocumentType, ExtractionConfig } from '../types';
+import { DocumentType, ExtractionConfig, ExtractionLogic } from '../types';
 import { ApiResponse } from '../types';
 import {
   Card,
@@ -250,35 +250,47 @@ export default function DocumentTypeDetailClient() {
     setNewExtractionConfigs(updatedRows);
   };
 
-  const handleSaveNewExtractionVersion = () => {
+  const handleSaveNewExtractionVersion = async () => {
     if (!documentType) return;
     if (!newExtractionLogicName.trim() || newExtractionConfigs.length === 0) {
       alert("Please provide a name and at least one config row");
       return;
     }
-    // Determine a new version number (using the highest version + 1)
-    const currentVersions = documentType.extraction_logics.map((logic) => logic.version);
-    const newVersion = currentVersions.length > 0 ? Math.max(...currentVersions) + 1 : 1;
-    const newExtractionLogic = {
-      id: `logic-${Date.now()}`, // simple generated ID
-      name: newExtractionLogicName,
-      batch_size: 1, // default batch size
-      config: newExtractionConfigs,
-      last_updated_at: new Date().toISOString(),
-      last_updated_by: null,
-      is_active: true,
-      version: newVersion,
-    };
-    setDocumentType({
-      ...documentType,
-      extraction_logics: [...documentType.extraction_logics, newExtractionLogic],
-    });
-    // Optionally, set the newly created config as the selected one:
-    setSelectedLogic(newExtractionLogic);
-    // Reset creation form state
-    setNewExtractionLogicName('');
-    setNewExtractionConfigs([]);
-    setCreatingNewVersion(false);
+
+    try {
+      const payload = {
+        name: newExtractionLogicName,
+        document_type: documentType.id,
+        config: newExtractionConfigs,
+        batch_size: 1, // default batch size
+      };
+
+      const response = await api.post<{
+        status: string;
+        message: string;
+        data: ExtractionLogic;
+      }>('/v2/extractor/logic/list/', payload);
+
+      if (response.status !== 'success') {
+        alert(response.message);
+        return;
+      }
+
+      const newExtractionLogic = response.data;
+      setDocumentType({
+        ...documentType,
+        extraction_logics: [...documentType.extraction_logics, newExtractionLogic],
+      });
+      // Optionally, set the newly created logic as the selected one:
+      setSelectedLogic(newExtractionLogic);
+      // Reset creation form state
+      setNewExtractionLogicName('');
+      setNewExtractionConfigs([]);
+      setCreatingNewVersion(false);
+    } catch (error: any) {
+      console.error("Error creating extraction config: ", error);
+      alert("Failed to create new extraction config version.");
+    }
   };
 
   // New function to simulate activating the selected extraction config
