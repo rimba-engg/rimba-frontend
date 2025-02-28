@@ -54,6 +54,16 @@ export default function DocumentTypeDetailClient() {
   // and a "config" array holding extraction fields with a name and question.
   const [selectedLogic, setSelectedLogic] = useState<any>(null);
 
+  // New states for the "Run Extraction" card
+  // availableDocuments: list coming from a mocked extraction documents API
+  const [availableDocuments, setAvailableDocuments] = useState<SampleDocument[]>([]);
+  // extractionSearchQuery: text search functionality for documents
+  const [extractionSearchQuery, setExtractionSearchQuery] = useState('');
+  // selectedDocumentForExtraction: document selected to run extraction on
+  const [selectedDocumentForExtraction, setSelectedDocumentForExtraction] = useState<SampleDocument | null>(null);
+  // selectedRunExtractionLogic: extraction config version selected in the run extraction card (separate from the management card)
+  const [selectedRunExtractionLogic, setSelectedRunExtractionLogic] = useState<any>(null);
+
   useEffect(() => {
     if (id) {
       fetchDocumentType(id as string);
@@ -90,6 +100,16 @@ export default function DocumentTypeDetailClient() {
     ]);
   }, []);
 
+  // Simulate fetching available documents from a mocked API for running extraction.
+  useEffect(() => {
+    setAvailableDocuments([
+      { id: 'doc-1', name: 'Invoice 1001', uploadedAt: '2023-09-01' },
+      { id: 'doc-2', name: 'Invoice 1002', uploadedAt: '2023-09-02' },
+      { id: 'doc-3', name: 'Invoice 1003', uploadedAt: '2023-09-03' },
+      { id: 'doc-4', name: 'Receipt 2001', uploadedAt: '2023-09-04' },
+    ]);
+  }, []);
+
   const handleAddSampleDocument = () => {
     if (newSampleName.trim() === '') return;
     const newDoc: SampleDocument = {
@@ -114,6 +134,15 @@ export default function DocumentTypeDetailClient() {
   const handleCreateNewVersion = () => {
     alert('Creating a new extraction config version...');
     // Add your modal or creation logic here.
+  };
+
+  // New function to handle running extraction from the "Run Extraction" card
+  const handleExecuteExtraction = () => {
+    if (!selectedDocumentForExtraction || !selectedRunExtractionLogic) return;
+    alert(
+      `Running extraction using ${selectedRunExtractionLogic.name} (version V${selectedRunExtractionLogic.version}) on document ${selectedDocumentForExtraction.name}`
+    );
+    // Here you could call an API to actually perform extraction.
   };
 
   if (loading) {
@@ -143,6 +172,84 @@ export default function DocumentTypeDetailClient() {
               {documentType.description}
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Run Extraction Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Run Extraction</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Combined document select and search in a single component */}
+          <div className="mb-4">
+            <Label htmlFor="extraction-document-select" className="block mb-2">
+              Select Document
+            </Label>
+            <Select
+              value={selectedDocumentForExtraction ? selectedDocumentForExtraction.id : ""}
+              onValueChange={(value) => {
+                const foundDoc = availableDocuments.find(doc => doc.id === value);
+                setSelectedDocumentForExtraction(foundDoc || null);
+              }}
+            >
+              <SelectTrigger id="extraction-document-select" className="w-full">
+                <SelectValue placeholder="Search & select a document" />
+              </SelectTrigger>
+              <SelectContent>
+                {/* Search input embedded in the dropdown */}
+                <div className="p-2">
+                  <Input
+                    autoFocus
+                    placeholder="Type to search..."
+                    value={extractionSearchQuery}
+                    onChange={(e) => setExtractionSearchQuery(e.target.value)}
+                  />
+                </div>
+                {availableDocuments
+                  .filter(doc =>
+                    doc.name.toLowerCase().includes(extractionSearchQuery.toLowerCase())
+                  )
+                  .map(doc => (
+                    <SelectItem key={doc.id} value={doc.id}>
+                      {doc.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Select an extraction config version */}
+          <div className="mb-4">
+            <Label htmlFor="extraction-config-run" className="block mb-2">
+              Select Extraction Config Version
+            </Label>
+            <Select
+              value={selectedRunExtractionLogic ? selectedRunExtractionLogic.id : ""}
+              onValueChange={(value) => {
+                const foundLogic = documentType.extraction_logics.find(
+                  (logic: any) => logic.id === value
+                );
+                setSelectedRunExtractionLogic(foundLogic || null);
+              }}
+            >
+              <SelectTrigger id="extraction-config-run" className="w-full">
+                <SelectValue placeholder="-- Select a Config Version --" />
+              </SelectTrigger>
+              <SelectContent>
+                {documentType.extraction_logics.map((logic: any) => (
+                  <SelectItem key={logic.id} value={logic.id}>
+                    {logic.name} - V{logic.version}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={handleExecuteExtraction}
+            disabled={!selectedDocumentForExtraction || !selectedRunExtractionLogic}
+          >
+            Run Extraction
+          </Button>
         </CardContent>
       </Card>
 
