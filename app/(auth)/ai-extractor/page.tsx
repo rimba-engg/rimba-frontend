@@ -212,7 +212,7 @@ export default function AIExtractorPage() {
                 </a>
               </td>
               <td className="py-2">
-                {docType.extraction_logics.length > 0 ? (
+                {docType.extraction_logics && docType.extraction_logics.length > 0 ? (
                   docType.extraction_logics.map((logic) => (
                     <div key={logic.id}>
                       {logic.name} (Version: {logic.version}, Active: {logic.is_active ? 'Yes' : 'No'})
