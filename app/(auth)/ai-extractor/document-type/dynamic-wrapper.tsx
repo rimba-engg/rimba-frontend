@@ -33,6 +33,7 @@ import {
 import { Edit } from 'lucide-react';
 import DocumentTypeModal from '../components/DocumentTypeModal';
 import { Badge } from '@/components/ui/badge';
+import DocumentUploadModal from '../components/DocumentUploadModal';
 
 interface SampleDocument {
   id: string;
@@ -99,6 +100,9 @@ export default function DocumentTypeDetailClient() {
   // Add the new activation state at the top of your component
   const [activationLoading, setActivationLoading] = useState(false);
 
+  // New state to control DocumentUploadModal visibility
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchDocumentType(id as string);
@@ -127,13 +131,13 @@ export default function DocumentTypeDetailClient() {
     }
   };
 
-  useEffect(() => {
-    // Simulate fetching sample documents from an AI service
-    setSampleDocuments([
-      { id: 'sdoc-1', name: 'Sample Invoice 1', uploadedAt: '2023-09-20' },
-      { id: 'sdoc-2', name: 'Sample Invoice 2', uploadedAt: '2023-09-25' }
-    ]);
-  }, []);
+  // useEffect(() => {
+  //   // Simulate fetching sample documents from an AI service
+  //   setSampleDocuments([
+  //     { id: 'sdoc-1', name: 'Sample Invoice 1', uploadedAt: '2023-09-20' },
+  //     { id: 'sdoc-2', name: 'Sample Invoice 2', uploadedAt: '2023-09-25' }
+  //   ]);
+  // }, []);
 
   // New effect to fetch available documents via the API using the document type id (from the query params)
   useEffect(() => {
@@ -142,7 +146,7 @@ export default function DocumentTypeDetailClient() {
     }
   }, [id]);
 
-  // The new fetch function that calls the API and sets the availableDocuments state
+  // The updated fetchAvailableDocuments function (in the DocumentTypeDetailClient component)
   const fetchAvailableDocuments = async (documentTypeId: string) => {
     try {
       const response = await api.get<{
@@ -152,13 +156,23 @@ export default function DocumentTypeDetailClient() {
       }>(`/v2/documents/?document_type=${documentTypeId}`);
     
       if (response.status === "success") {
+        // Map fetched documents for the availableDocuments state
         const docs: SampleDocument[] = response.data.documents.map((doc) => ({
           id: doc._id,
           name: doc.name,
-          // Format the last_updated_at as needed. Here we use toLocaleDateString.
           uploadedAt: new Date(doc.last_updated_at).toLocaleDateString(),
         }));
         setAvailableDocuments(docs);
+
+        // Filter sample documents based on the "is_sample" property
+        const sampleDocs: SampleDocument[] = response.data.documents
+          .filter((doc) => doc.is_sample)
+          .map((doc) => ({
+            id: doc._id,
+            name: doc.name,
+            uploadedAt: new Date(doc.last_updated_at).toLocaleDateString(),
+          }));
+        setSampleDocuments(sampleDocs);
       } else {
         console.error("Failed to fetch documents:", response.message);
       }
@@ -290,6 +304,18 @@ export default function DocumentTypeDetailClient() {
     } finally {
       setActivationLoading(false);
     }
+  };
+
+  // New function to handle the successful upload from the modal
+  const handleDocumentUpload = (uploadedFiles: File[], docType: DocumentType) => {
+    // Create a new sample document entry for each uploaded file.
+    const newDocs = uploadedFiles.map((file) => ({
+      id: `sdoc-${Date.now()}-${file.name}`, // using a generated id
+      name: file.name,
+      uploadedAt: new Date().toISOString().split("T")[0] // simple date formatting
+    }));
+
+    setSampleDocuments((prev) => [...prev, ...newDocs]);
   };
 
   if (loading) {
@@ -573,7 +599,7 @@ export default function DocumentTypeDetailClient() {
               onChange={(e) => setSampleDocSearchQuery(e.target.value)}
               placeholder="Search sample documents"
             />
-            <Button onClick={handleAddSampleDocument}>Add Document</Button>
+            <Button onClick={() => setShowUploadModal(true)}>Add Document</Button>
           </div>
 
           {/* Filter the sample documents based on the search query */}
@@ -626,6 +652,16 @@ export default function DocumentTypeDetailClient() {
             // Update the document type state with the new values
             setDocumentType(updatedDocType);
           }}
+        />
+      )}
+
+      {/* Render the DocumentUploadModal for sample document uploads */}
+      {showUploadModal && (
+        <DocumentUploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          docType={documentType}
+          onUpload={handleDocumentUpload}
         />
       )}
     </div>
