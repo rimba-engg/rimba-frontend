@@ -2,7 +2,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { DocumentType } from '../types';
+import { DocumentType, ExtractionConfig } from '../types';
 import { ApiResponse } from '../types';
 import {
   Card,
@@ -69,6 +69,11 @@ export default function DocumentTypeDetailClient() {
 
   // State to control the edit modal visibility
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // New states for creating a new extraction config version
+  const [creatingNewVersion, setCreatingNewVersion] = useState(false);
+  const [newExtractionLogicName, setNewExtractionLogicName] = useState('');
+  const [newExtractionConfigs, setNewExtractionConfigs] = useState<ExtractionConfig[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -189,6 +194,54 @@ export default function DocumentTypeDetailClient() {
     } finally {
       setExtractionLoading(false);
     }
+  };
+
+  // New functions for managing new extraction config version creation
+  const handleAddNewConfigRow = () => {
+    // Note that we include the extra "undefined" property as defined in the ExtractionConfig type.
+    setNewExtractionConfigs([...newExtractionConfigs, { name: '', question: '', "undefined": '' }]);
+  };
+
+  const handleNewConfigRowChange = (index: number, key: "name" | "question", value: string) => {
+    const updatedRows = [...newExtractionConfigs];
+    updatedRows[index] = { ...updatedRows[index], [key]: value };
+    setNewExtractionConfigs(updatedRows);
+  };
+
+  const handleRemoveConfigRow = (index: number) => {
+    const updatedRows = newExtractionConfigs.filter((_, idx) => idx !== index);
+    setNewExtractionConfigs(updatedRows);
+  };
+
+  const handleSaveNewExtractionVersion = () => {
+    if (!documentType) return;
+    if (!newExtractionLogicName.trim() || newExtractionConfigs.length === 0) {
+      alert("Please provide a name and at least one config row");
+      return;
+    }
+    // Determine a new version number (using the highest version + 1)
+    const currentVersions = documentType.extraction_logics.map((logic) => logic.version);
+    const newVersion = currentVersions.length > 0 ? Math.max(...currentVersions) + 1 : 1;
+    const newExtractionLogic = {
+      id: `logic-${Date.now()}`, // simple generated ID
+      name: newExtractionLogicName,
+      batch_size: 1, // default batch size
+      config: newExtractionConfigs,
+      last_updated_at: new Date().toISOString(),
+      last_updated_by: null,
+      is_active: true,
+      version: newVersion,
+    };
+    setDocumentType({
+      ...documentType,
+      extraction_logics: [...documentType.extraction_logics, newExtractionLogic],
+    });
+    // Optionally, set the newly created config as the selected one:
+    setSelectedLogic(newExtractionLogic);
+    // Reset creation form state
+    setNewExtractionLogicName('');
+    setNewExtractionConfigs([]);
+    setCreatingNewVersion(false);
   };
 
   if (loading) {
@@ -339,32 +392,71 @@ export default function DocumentTypeDetailClient() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Dropdown for selecting an extraction config */}
-          <div className="mb-4">
+          <div className="flex items-center justify-between mb-4">
             <Label htmlFor="extraction-config" className="mb-2 block">
               Select Extraction Config
             </Label>
-            <Select
-              value={selectedLogic ? selectedLogic.id : ""}
-              onValueChange={(value) => {
-                const foundLogic = documentType.extraction_logics.find(
-                  (logic) => logic.id === value
-                );
-                setSelectedLogic(foundLogic || null);
-              }}
-            >
-              <SelectTrigger id="extraction-config" className="w-full">
-                <SelectValue placeholder="-- Select a Config --" />
-              </SelectTrigger>
-              <SelectContent>
-                {documentType.extraction_logics.map((logic) => (
-                  <SelectItem key={logic.id} value={logic.id}>
-                    {logic.name} - V{logic.version}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Button onClick={() => setCreatingNewVersion((prev) => !prev)}>
+              {creatingNewVersion ? "Cancel" : "Create New Version"}
+            </Button>
           </div>
+
+          {creatingNewVersion && (
+            <div className="p-4 mb-4 border rounded">
+              <div className="mb-4">
+                <Label htmlFor="new-version-name" className="block mb-1">New Extraction Config Name</Label>
+                <Input 
+                  id="new-version-name" 
+                  value={newExtractionLogicName} 
+                  onChange={(e) => setNewExtractionLogicName(e.target.value)} 
+                  placeholder="Enter new extraction config name" 
+                />
+              </div>
+              <div className="mb-4">
+                <Button onClick={handleAddNewConfigRow}>Add Config Row</Button>
+              </div>
+              {newExtractionConfigs.map((config, idx) => (
+                <div key={idx} className="flex items-center gap-2 mb-2">
+                  <Input 
+                    placeholder="Field Name" 
+                    value={config.name} 
+                    onChange={(e) => handleNewConfigRowChange(idx, 'name', e.target.value)}
+                  />
+                  <Input 
+                    placeholder="Extraction Question" 
+                    value={config.question} 
+                    onChange={(e) => handleNewConfigRowChange(idx, 'question', e.target.value)}
+                  />
+                  <Button variant="destructive" size="sm" onClick={() => handleRemoveConfigRow(idx)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button onClick={handleSaveNewExtractionVersion}>Save New Version</Button>
+            </div>
+          )}
+
+          {/* Dropdown for selecting an extraction config */}
+          <Select
+            value={selectedLogic ? selectedLogic.id : ""}
+            onValueChange={(value) => {
+              const foundLogic = documentType.extraction_logics.find(
+                (logic) => logic.id === value
+              );
+              setSelectedLogic(foundLogic || null);
+            }}
+          >
+            <SelectTrigger id="extraction-config" className="w-full">
+              <SelectValue placeholder="-- Select a Config --" />
+            </SelectTrigger>
+            <SelectContent>
+              {documentType.extraction_logics.map((logic) => (
+                <SelectItem key={logic.id} value={logic.id}>
+                  {logic.name} - V{logic.version}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {/* Show detailed content of the selected extraction config */}
           {selectedLogic && (
@@ -381,7 +473,7 @@ export default function DocumentTypeDetailClient() {
             </div>
           )}
 
-          {/* New Table: Display extraction config fields (name and extraction question) */}
+          {/* New Table: Display extraction config fields */}
           {selectedLogic && selectedLogic.config && selectedLogic.config.length > 0 && (
             <Table className="mt-4 border">
               <TableHeader className="bg-gray-100">
