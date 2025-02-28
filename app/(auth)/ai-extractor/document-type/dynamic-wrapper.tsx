@@ -75,6 +75,9 @@ export default function DocumentTypeDetailClient() {
   const [newExtractionLogicName, setNewExtractionLogicName] = useState('');
   const [newExtractionConfigs, setNewExtractionConfigs] = useState<ExtractionConfig[]>([]);
 
+  // Add the new activation state at the top of your component
+  const [activationLoading, setActivationLoading] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchDocumentType(id as string);
@@ -242,6 +245,31 @@ export default function DocumentTypeDetailClient() {
     setNewExtractionLogicName('');
     setNewExtractionConfigs([]);
     setCreatingNewVersion(false);
+  };
+
+  // New function to simulate activating the selected extraction config
+  const handleActivateLogic = async () => {
+    if (!selectedLogic) return;
+    if (!documentType) return;
+    setActivationLoading(true);
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Mock API success: alert the user that the logic has been activated
+      alert(`Activated ${selectedLogic.name} version V${selectedLogic.version}`);
+
+      // Optionally update the documentType state to mark the selected logic as active,
+      // and ensure other logics are marked as not active.
+      const updatedExtractionLogics = documentType.extraction_logics.map((logic) =>
+        logic.id === selectedLogic.id ? { ...logic, is_active: true } : { ...logic, is_active: false }
+      );
+      setDocumentType({ ...documentType, extraction_logics: updatedExtractionLogics });
+    } catch (error) {
+      console.error("Error activating logic:", error);
+    } finally {
+      setActivationLoading(false);
+    }
   };
 
   if (loading) {
@@ -458,9 +486,9 @@ export default function DocumentTypeDetailClient() {
             </SelectContent>
           </Select>
 
-          {/* Show detailed content of the selected extraction config */}
+          {/* Show detailed information of the selected extraction config */}
           {selectedLogic && (
-            <div className="p-4 mb-4 border flex gap-8 border-gray-200 rounded">
+            <div className="p-4  border flex gap-8 border-gray-200 rounded">
               <p>
                 <strong>Name:</strong> {selectedLogic.name}
               </p>
@@ -470,10 +498,17 @@ export default function DocumentTypeDetailClient() {
               <p>
                 <strong>Last Updated:</strong> {selectedLogic.last_updated_at}
               </p>
+              <Button
+              onClick={handleActivateLogic}
+              disabled={activationLoading}
+              className="mt-2"
+            >
+              {activationLoading ? "Activating..." : "Activate Logic"}
+            </Button>
             </div>
           )}
 
-          {/* New Table: Display extraction config fields */}
+          {/* Table display of extraction config fields */}
           {selectedLogic && selectedLogic.config && selectedLogic.config.length > 0 && (
             <Table className="mt-4 border">
               <TableHeader className="bg-gray-100">
