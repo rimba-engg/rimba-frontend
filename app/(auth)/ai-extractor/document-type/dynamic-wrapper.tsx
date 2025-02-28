@@ -60,8 +60,6 @@ interface DocumentRecord {
 }
 
 export default function DocumentTypeDetailClient() {
-//   const router = useRouter();
-//   const { id } = router.query;
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
 
@@ -106,6 +104,7 @@ export default function DocumentTypeDetailClient() {
   useEffect(() => {
     if (id) {
       fetchDocumentType(id as string);
+      fetchAvailableDocuments(id);
     }
   }, [id]);
 
@@ -130,21 +129,6 @@ export default function DocumentTypeDetailClient() {
       setLoading(false);
     }
   };
-
-  // useEffect(() => {
-  //   // Simulate fetching sample documents from an AI service
-  //   setSampleDocuments([
-  //     { id: 'sdoc-1', name: 'Sample Invoice 1', uploadedAt: '2023-09-20' },
-  //     { id: 'sdoc-2', name: 'Sample Invoice 2', uploadedAt: '2023-09-25' }
-  //   ]);
-  // }, []);
-
-  // New effect to fetch available documents via the API using the document type id (from the query params)
-  useEffect(() => {
-    if (id) {
-      fetchAvailableDocuments(id);
-    }
-  }, [id]);
 
   // The updated fetchAvailableDocuments function (in the DocumentTypeDetailClient component)
   const fetchAvailableDocuments = async (documentTypeId: string) => {
@@ -276,13 +260,15 @@ export default function DocumentTypeDetailClient() {
         return;
       }
 
-      const newExtractionLogic = response.data;
-      setDocumentType({
-        ...documentType,
-        extraction_logics: [...documentType.extraction_logics, newExtractionLogic],
-      });
+      //
+      fetchDocumentType(id as string);
+      // const newExtractionLogic = response.data;
+      // setDocumentType({
+      //   ...documentType,
+      //   extraction_logics: [...documentType.extraction_logics, newExtractionLogic],
+      // });
       // Optionally, set the newly created logic as the selected one:
-      setSelectedLogic(newExtractionLogic);
+      // setSelectedLogic(newExtractionLogic);
       // Reset creation form state
       setNewExtractionLogicName('');
       setNewExtractionConfigs([]);
@@ -293,26 +279,39 @@ export default function DocumentTypeDetailClient() {
     }
   };
 
-  // New function to simulate activating the selected extraction config
+  // Updated function to activate the selected extraction config via an API call
   const handleActivateLogic = async () => {
     if (!selectedLogic) return;
     if (!documentType) return;
     setActivationLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Mock API success: alert the user that the logic has been activated
-      alert(`Activated ${selectedLogic.name} version V${selectedLogic.version}`);
-
-      // Optionally update the documentType state to mark the selected logic as active,
-      // and ensure other logics are marked as not active.
-      const updatedExtractionLogics = documentType.extraction_logics.map((logic) =>
-        logic.id === selectedLogic.id ? { ...logic, is_active: true } : { ...logic, is_active: false }
+      // Make the PATCH API call with the required payload
+      const response = await api.patch<{
+        status: string;
+        message: string;
+        data: any;
+      }>(
+        `/v2/extractor/logic/list/`,
+        { extraction_logic_id: selectedLogic.id }
       );
-      setDocumentType({ ...documentType, extraction_logics: updatedExtractionLogics });
+
+      if (response.status === 'success') {
+        // Alert that the logic has been activated successfully
+        alert(`Activated ${selectedLogic.name} version V${selectedLogic.version}`);
+        fetchDocumentType(id as string);
+
+
+        // // Update the documentType state: mark the activated logic as active and others inactive
+        // const updatedExtractionLogics = documentType.extraction_logics.map((logic) =>
+        //   logic.id === selectedLogic.id ? { ...logic, is_active: true } : { ...logic, is_active: false }
+        // );
+        // setDocumentType({ ...documentType, extraction_logics: updatedExtractionLogics });
+      } else {
+        alert(`Failed to activate logic: ${response.message}`);
+      }
     } catch (error) {
       console.error("Error activating logic:", error);
+      alert("Error activating logic.");
     } finally {
       setActivationLoading(false);
     }
@@ -426,7 +425,12 @@ export default function DocumentTypeDetailClient() {
               <SelectContent>
                 {documentType.extraction_logics.map((logic: any) => (
                   <SelectItem key={logic.id} value={logic.id}>
-                    {logic.name} - V{logic.version}
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <span>{logic.name} - V{logic.version}</span>
+                      {logic.is_active && (
+                        <Badge variant="default">Active</Badge>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -538,7 +542,12 @@ export default function DocumentTypeDetailClient() {
             <SelectContent>
               {documentType.extraction_logics.map((logic) => (
                 <SelectItem key={logic.id} value={logic.id}>
-                  {logic.name} - V{logic.version}
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <span>{logic.name} - V{logic.version}</span>
+                    {logic.is_active && (
+                      <Badge variant="default">Active</Badge>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -547,8 +556,11 @@ export default function DocumentTypeDetailClient() {
           {/* Show detailed information of the selected extraction config */}
           {selectedLogic && (
             <Card className="shadow-md flex mt-4">
-              <CardHeader>
+              <CardHeader className="flex items-center space-x-2">
                 <CardTitle>{selectedLogic.name}</CardTitle>
+                {selectedLogic.is_active && (
+                  <Badge variant="default">Active</Badge>
+                )}
               </CardHeader>
               <CardContent className="flex flex-col gap-2 py-0 justify-center">
                 <div className="flex items-center space-x-2">
