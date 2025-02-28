@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import type { DocumentType } from './page'; // Adjust the import path as needed
+import { DocumentType } from '../types'; // Adjust the import path as needed
 import { BASE_URL } from '@/lib/api';
 
 interface DocumentUploadModalProps {
