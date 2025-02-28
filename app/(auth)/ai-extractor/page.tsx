@@ -36,6 +36,7 @@ import DocumentTypeModal from './components/DocumentTypeModal';
 import DocumentUploadModal from './components/DocumentUploadModal';
 import { DocumentType, ExtractionLogic, ExtractionConfig, ApiResponse } from './types';
 import { ExtractionLogicModal } from './components/ExtractionLogicModal';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 
 export default function AIExtractorPage() {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
@@ -195,23 +196,23 @@ export default function AIExtractorPage() {
         </Button>
       </div>
 
-      <table className="min-w-full bg-white">
-        <thead>
-          <tr>
-            <th className="py-2">Document Type Name</th>
-            <th className="py-2">Extraction Logics</th>
-            <th className="py-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table className="min-w-full bg-white">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="py-2">Document Type Name</TableHead>
+            <TableHead className="py-2">Extraction Logics</TableHead>
+            <TableHead className="py-2">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {documentTypes.map((docType) => (
-            <tr key={docType.id} className="hover:bg-gray-100">
-              <td className="py-2">
+            <TableRow key={docType.id} className="hover:bg-gray-100">
+              <TableCell className="py-2">
                 <a href={`/ai-extractor/document-type?id=${docType.id}`} className="text-blue-600 hover:underline">
                   {docType.name}
                 </a>
-              </td>
-              <td className="py-2">
+              </TableCell>
+              <TableCell className="py-2">
                 {docType.extraction_logics && docType.extraction_logics.length > 0 ? (
                   docType.extraction_logics.map((logic) => (
                     <div key={logic.id}>
@@ -221,8 +222,8 @@ export default function AIExtractorPage() {
                 ) : (
                   'No logic configured'
                 )}
-              </td>
-              <td className="py-2">
+              </TableCell>
+              <TableCell className="py-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -239,11 +240,11 @@ export default function AIExtractorPage() {
                 >
                   <Upload className="w-4 h-4" />
                 </Button>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       {showExtractionModal && (
         <ExtractionLogicModal

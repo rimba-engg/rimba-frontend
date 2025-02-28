@@ -40,6 +40,24 @@ interface SampleDocument {
   uploadedAt: string;
 }
 
+// New interface for the API response document
+interface DocumentRecord {
+  _id: string;
+  customer: string;
+  name: string;
+  document_type: string;
+  last_updated_at: string;
+  metadata: Record<string, any>;
+  status: string;
+  is_deleted: boolean;
+  for_year: number;
+  for_month: number;
+  review_reasons: any[];
+  version: number;
+  version_history: any[];
+  is_sample: boolean;
+}
+
 export default function DocumentTypeDetailClient() {
 //   const router = useRouter();
 //   const { id } = router.query;
@@ -117,15 +135,37 @@ export default function DocumentTypeDetailClient() {
     ]);
   }, []);
 
-  // Simulate fetching available documents from a mocked API for running extraction.
+  // New effect to fetch available documents via the API using the document type id (from the query params)
   useEffect(() => {
-    setAvailableDocuments([
-      { id: 'doc-1', name: 'Invoice 1001', uploadedAt: '2023-09-01' },
-      { id: 'doc-2', name: 'Invoice 1002', uploadedAt: '2023-09-02' },
-      { id: 'doc-3', name: 'Invoice 1003', uploadedAt: '2023-09-03' },
-      { id: 'doc-4', name: 'Receipt 2001', uploadedAt: '2023-09-04' },
-    ]);
-  }, []);
+    if (id) {
+      fetchAvailableDocuments(id);
+    }
+  }, [id]);
+
+  // The new fetch function that calls the API and sets the availableDocuments state
+  const fetchAvailableDocuments = async (documentTypeId: string) => {
+    try {
+      const response = await api.get<{
+        message: string;
+        status: string;
+        data: { documents: DocumentRecord[] };
+      }>(`/v2/documents/?document_type=${documentTypeId}`);
+    
+      if (response.status === "success") {
+        const docs: SampleDocument[] = response.data.documents.map((doc) => ({
+          id: doc._id,
+          name: doc.name,
+          // Format the last_updated_at as needed. Here we use toLocaleDateString.
+          uploadedAt: new Date(doc.last_updated_at).toLocaleDateString(),
+        }));
+        setAvailableDocuments(docs);
+      } else {
+        console.error("Failed to fetch documents:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching available documents:", error);
+    }
+  };
 
   const handleAddSampleDocument = () => {
     if (newSampleName.trim() === '') return;
@@ -142,11 +182,6 @@ export default function DocumentTypeDetailClient() {
     setSampleDocuments((prev) => prev.filter((doc) => doc.id !== id));
   };
 
-  // Extraction config actions
-  const handleRunExtraction = (version: number) => {
-    alert(`Running extraction using version V${version}`);
-  };
-
   const handleCreateNewVersion = () => {
     alert('Creating a new extraction config version...');
   };
@@ -156,45 +191,27 @@ export default function DocumentTypeDetailClient() {
     if (!selectedDocumentForExtraction || !selectedRunExtractionLogic) return;
     setExtractionLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await api.post<{
+        message: string;
+        status: string;
+        data: {
+          extracted_columns: string[];
+          extracted_table_body: any[];
+        };
+      }>(
+        '/v2/extractor/extract/',
+        {
+          extraction_logic_id: selectedRunExtractionLogic.id,
+          document_id: selectedDocumentForExtraction.id,
+        }
+      );
 
-      // Mock API response
-      const mockResponse = {
-        "status": "success",
-        "extracted_columns": [
-          "Page No.",
-          "Date",
-          "Recipient / Notify",
-          "Supplier / Shipper",
-          "Bill of Lading",
-          "Vessel",
-          "BL Quantity",
-          "Product & Scheme",
-          "Place of Dispatch",
-          "Place of Delivery",
-          "Stowage",
-          "Recipient Address"
-        ],
-        "extracted_table_body": [
-          {
-            "Page No.": "1",
-            "Date": "12/09/2024",
-            "Recipient / Notify": "BIO-OILS HUELVA SLU,",
-            "Supplier / Shipper": "APICAL (M) SDN BHD",
-            "Bill of Lading": "LD/TJL/HUE-102",
-            "Vessel": "MT. SOLAR RUO YUN V28",
-            "BL Quantity": "539.223 MT",
-            "Product & Scheme": "CRUDE OIL, INS CERTIFIED, PALM OIL MILL EFFLUENT OIL IN BULK",
-            "Place of Dispatch": "TANJUNG LANGSAT, MALAYSIA",
-            "Place of Delivery": "HUELVA PORT, SPAIN",
-            "Stowage": "4P & 4S",
-            "Recipient Address": "BIO-OILS HUELVA SLU,"
-          }
-        ]
-      };
-
-      setExtractionResponse(mockResponse);
+      if (response.status === 'success') {
+        setExtractionResponse(response.data);
+        console.log(response.data);
+      } else {
+        throw new Error(response.message);
+      }
     } catch (error) {
       console.error("Error running extraction:", error);
     } finally {
@@ -387,7 +404,7 @@ export default function DocumentTypeDetailClient() {
           {/* Display extraction results */}
           <div className="mt-4">
             {extractionLoading && <div>Running extraction...</div>}
-            {extractionResponse && extractionResponse.status === 'success' && (
+            {extractionResponse && (
               <Table className="mt-4 min-w-full">
                 <TableHeader className="bg-gray-100">
                   <TableRow>
