@@ -11,6 +11,8 @@ export interface ExtractionLogic {
     config: ExtractionConfig[];
     last_updated_at: string;
     last_updated_by: string | null;
+    is_active: boolean;
+    version: number;
 }
 
 export interface DocumentType {
@@ -18,7 +20,7 @@ export interface DocumentType {
     name: string;
     description: string | null;
     code: string;
-    extraction_logic: ExtractionLogic | null;
+    extraction_logics: ExtractionLogic[];
 }
 
 export interface ApiResponse {

@@ -195,81 +195,55 @@ export default function AIExtractorPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {documentTypes.map((docType) => (
-          <div key={docType.id} className="bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-6 space-y-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    {docType.name}
-                  </h3>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    {docType.description || 'No description available'}
-                  </p>
-                  <div className="mt-2">
-                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                      {docType.code}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {docType.extraction_logic && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowExtractionModal(docType.id)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowDocTypeModal(docType.id)}
-                    className="text-green-600 hover:text-green-800"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowDocUploadModal(docType.id)}
-                    className="text-purple-600 hover:text-purple-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {docType.extraction_logic ? (
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div>
-                    <span>Logic: {docType.extraction_logic.name}</span>
-                    <span className="ml-2">
-                      Batch Size: {docType.extraction_logic.batch_size}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-muted/50 rounded-lg p-4 text-center">
-                  <p className="text-muted-foreground mb-2">No extraction logic configured</p>
-                  <Button
-                    variant="outline"
-                    className="text-primary hover:bg-primary/10"
-                    onClick={() => handleCreateExtractionLogic(docType)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Extraction Logic
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      <table className="min-w-full bg-white">
+        <thead>
+          <tr>
+            <th className="py-2">Document Type Name</th>
+            <th className="py-2">Extraction Logics</th>
+            <th className="py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {documentTypes.map((docType) => (
+            <tr key={docType.id} className="hover:bg-gray-100">
+              <td className="py-2">
+                <a href={`/ai-extractor/document-type?id=${docType.id}`} className="text-blue-600 hover:underline">
+                  {docType.name}
+                </a>
+              </td>
+              <td className="py-2">
+                {docType.extraction_logics.length > 0 ? (
+                  docType.extraction_logics.map((logic) => (
+                    <div key={logic.id}>
+                      {logic.name} (Version: {logic.version}, Active: {logic.is_active ? 'Yes' : 'No'})
+                    </div>
+                  ))
+                ) : (
+                  'No logic configured'
+                )}
+              </td>
+              <td className="py-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDocTypeModal(docType.id)}
+                  className="text-green-600 hover:text-green-800"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDocUploadModal(docType.id)}
+                  className="text-purple-600 hover:text-purple-800"
+                >
+                  <Upload className="w-4 h-4" />
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       {showExtractionModal && (
         <ExtractionLogicModal
@@ -295,7 +269,7 @@ export default function AIExtractorPage() {
         <DocumentTypeModal
           isOpen={true}
           onClose={() => setShowCreateDocTypeModal(false)}
-          docType={{ id: '', name: '', description: '', code: '', extraction_logic: null }}
+          docType={{ id: '', name: '', description: '', code: '', extraction_logics: [] }}
           onSave={handleCreateDocumentType}
         />
       )}

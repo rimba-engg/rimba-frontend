@@ -28,7 +28,7 @@ export function ExtractionLogicModal({
     docType: DocumentType;
     onSave: (updatedLogic: ExtractionLogic) => void;
   }) {
-    const initialLogic = docType.extraction_logic!;
+    const initialLogic = docType.extraction_logics[0];
     const [editedLogic, setEditedLogic] = useState<ExtractionLogic>(initialLogic);
     const [isSaving, setIsSaving] = useState(false);
   
