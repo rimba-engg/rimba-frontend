@@ -28,6 +28,8 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import { Edit } from 'lucide-react';
+import DocumentTypeModal from '../components/DocumentTypeModal';
 
 interface SampleDocument {
   id: string;
@@ -49,30 +51,31 @@ export default function DocumentTypeDetailClient() {
   const [sampleDocuments, setSampleDocuments] = useState<SampleDocument[]>([]);
   const [newSampleName, setNewSampleName] = useState('');
 
+  // New state for filtering sample documents
+  const [sampleDocSearchQuery, setSampleDocSearchQuery] = useState("");
+
   // New state for dropdown-based extraction config selection
-  // Each extraction config (logic) has at least: id, name, version, last_updated_at, optionally content,
-  // and a "config" array holding extraction fields with a name and question.
   const [selectedLogic, setSelectedLogic] = useState<any>(null);
 
   // New states for the "Run Extraction" card
-  // availableDocuments: list coming from a mocked extraction documents API
   const [availableDocuments, setAvailableDocuments] = useState<SampleDocument[]>([]);
-  // extractionSearchQuery: text search functionality for documents
   const [extractionSearchQuery, setExtractionSearchQuery] = useState('');
-  // selectedDocumentForExtraction: document selected to run extraction on
   const [selectedDocumentForExtraction, setSelectedDocumentForExtraction] = useState<SampleDocument | null>(null);
-  // selectedRunExtractionLogic: extraction config version selected in the run extraction card (separate from the management card)
   const [selectedRunExtractionLogic, setSelectedRunExtractionLogic] = useState<any>(null);
 
   // New states for extraction API response and loading state
   const [extractionResponse, setExtractionResponse] = useState<any>(null);
   const [extractionLoading, setExtractionLoading] = useState<boolean>(false);
 
+  // State to control the edit modal visibility
+  const [showEditModal, setShowEditModal] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchDocumentType(id as string);
     }
   }, [id]);
+
   useEffect(() => {
     console.log(documentType);
   }, [documentType]);
@@ -131,12 +134,10 @@ export default function DocumentTypeDetailClient() {
   // Extraction config actions
   const handleRunExtraction = (version: number) => {
     alert(`Running extraction using version V${version}`);
-    // Replace this alert with your API call to run extraction.
   };
 
   const handleCreateNewVersion = () => {
     alert('Creating a new extraction config version...');
-    // Add your modal or creation logic here.
   };
 
   // New function to handle running extraction from the "Run Extraction" card
@@ -204,12 +205,15 @@ export default function DocumentTypeDetailClient() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Document Type Header Section */}
+      {/* Document Type Header Section with Edit Icon */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row  items-center">
           <CardTitle className="text-2xl font-bold">
             {documentType.name}
           </CardTitle>
+          <Button variant="ghost" onClick={() => setShowEditModal(true)}>
+            <Edit size={20} />
+          </Button>
         </CardHeader>
         <CardContent>
           {documentType.description && (
@@ -407,15 +411,20 @@ export default function DocumentTypeDetailClient() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Added Search Bar for Sample Documents */}
           <div className="flex space-x-2 mb-4">
             <Input
-              value={newSampleName}
-              onChange={(e) => setNewSampleName(e.target.value)}
-              placeholder="Enter sample document name"
+              value={sampleDocSearchQuery}
+              onChange={(e) => setSampleDocSearchQuery(e.target.value)}
+              placeholder="Search sample documents"
             />
             <Button onClick={handleAddSampleDocument}>Add Document</Button>
           </div>
-          {sampleDocuments.length > 0 ? (
+
+          {/* Filter the sample documents based on the search query */}
+          {sampleDocuments.filter((doc) =>
+            doc.name.toLowerCase().includes(sampleDocSearchQuery.toLowerCase())
+          ).length > 0 ? (
             <Table className="min-w-full">
               <TableHeader>
                 <TableRow>
@@ -425,28 +434,45 @@ export default function DocumentTypeDetailClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sampleDocuments.map((doc) => (
-                  <TableRow key={doc.id} className="border-t">
-                    <TableCell className="p-2">{doc.name}</TableCell>
-                    <TableCell className="p-2">{doc.uploadedAt}</TableCell>
-                    <TableCell className="p-2">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveSampleDocument(doc.id)}
-                      >
-                        Remove
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {sampleDocuments
+                  .filter((doc) =>
+                    doc.name.toLowerCase().includes(sampleDocSearchQuery.toLowerCase())
+                  )
+                  .map((doc) => (
+                    <TableRow key={doc.id} className="border-t">
+                      <TableCell className="p-2">{doc.name}</TableCell>
+                      <TableCell className="p-2">{doc.uploadedAt}</TableCell>
+                      <TableCell className="p-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleRemoveSampleDocument(doc.id)}
+                        >
+                          Remove
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           ) : (
-            <p>No sample documents available.</p>
+            <p>No sample documents found.</p>
           )}
         </CardContent>
       </Card>
+
+      {/* Render the DocumentTypeModal when editing */}
+      {showEditModal && (
+        <DocumentTypeModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          docType={documentType}
+          onSave={(updatedDocType: DocumentType) => {
+            // Update the document type state with the new values
+            setDocumentType(updatedDocType);
+          }}
+        />
+      )}
     </div>
   );
 } 
