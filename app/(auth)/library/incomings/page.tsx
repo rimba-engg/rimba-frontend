@@ -231,130 +231,100 @@ export default function IncomingContractsPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {/* Fixed contract number column */}
-                    <th 
-                      className="sticky left-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 z-10"
-                      onClick={() => handleSort('contract_number')}
-                    >
+                    <th className="sticky left-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 z-10 whitespace-nowrap"
+                      onClick={() => handleSort('contract_number')}>
                       <div className="flex items-center">
-                        Contract #
+                        Contract Number
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    
-                    {/* Other scrollable columns */}
-                    <th 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('for_month')}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('for_month')}>
                       <div className="flex items-center">
-                        Month
+                        Contract Month
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('product_name')}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('product_name')}>
                       <div className="flex items-center">
                         Product
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    >
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap">
                       <div className="flex items-center justify-center">
-                        Available
+                        Availability Status
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('received_quantity')}
-                    >
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('received_quantity')}>
                       <div className="flex items-center justify-end">
-                        Received QTY (MT)
+                        Received Quantity (Metric Tons)
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('expected_quantity')}
-                    >
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('expected_quantity')}>
                       <div className="flex items-center justify-end">
-                        Contract QTY (MT)
+                        Contract Quantity (Metric Tons)
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('available_quantity')}
-                    >
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('available_quantity')}>
                       <div className="flex items-center justify-end">
-                        Available QTY (MT)
+                        Available Quantity (Metric Tons)
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('start_date')}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('start_date')}>
                       <div className="flex items-center">
                         Start Date
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('end_date')}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('end_date')}>
                       <div className="flex items-center">
                         End Date
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('warehouses')}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('warehouses')}>
                       <div className="flex items-center">
                         Warehouse
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('seller')}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('seller')}>
                       <div className="flex items-center">
                         Seller
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
-                    <th 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                      onClick={() => handleSort('buyer')}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+                      onClick={() => handleSort('buyer')}>
                       <div className="flex items-center">
                         Buyer
                         <ArrowUpDown className="h-4 w-4 ml-1" />
                       </div>
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedContracts.map((contract) => (
-                    <tr 
-                      key={contract.id} 
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => handleRowClick(contract)}
-                    >
-                      {/* Fixed contract number column */}
+                    <tr key={contract.id} className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => handleRowClick(contract)}>
                       <td className="sticky left-0 bg-white px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 border-r z-10 hover:bg-gray-50">
                         {contract.contract_number}
                       </td>
-                      
-                      {/* Other scrollable columns */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatMonth(contract.start_date)}
                       </td>
@@ -391,6 +361,27 @@ export default function IncomingContractsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {contract.buyer}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm("Are you sure you want to delete this contract?")) {
+                              try {
+                                await api.post('/v2/incoming/contract/delete/', {
+                                  contract_id: contract.id
+                                });
+                                setContracts(prev => prev.filter(c => c.id !== contract.id));
+                              } catch (error) {
+                                console.error('Failed to delete contract:', error);
+                              }
+                            }
+                          }}
+                        >
+                          Delete
+                        </Button>
                       </td>
                     </tr>
                   ))}

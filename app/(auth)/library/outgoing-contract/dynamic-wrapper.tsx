@@ -62,7 +62,7 @@ const fetchContractData = async (id: string): Promise<{
         group_id: string;
       }[][];
     };
-  }>(`/v2/contract/outgoing/${id}/`);
+  }>(`/v2/contract/outgoing/detail/${id}/`);
 
   if (response.status !== 'success') {
     throw new Error(response.message || 'Failed to fetch contract data');
