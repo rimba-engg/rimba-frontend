@@ -41,7 +41,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean): (MenuItem | Men
   { icon: Rocket, label: 'Onboarding', href: '/onboarding' },
   { icon: ClipboardCheck, label: 'Audit Manager', href: '/audit/projects' },
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management' }] : []),
-  ...(isRNGCustomer ? [] : [{
+  {
     icon: Library,
     label: 'Library',
     items: [
@@ -50,7 +50,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean): (MenuItem | Men
       { icon: Download, label: 'Incoming', href: '/library/incomings' },
       { icon: Upload, label: 'Outgoing', href: '/library/outgoings' },
     ],
-  }]),
+  },
   ...(isRNGCustomer ? [
     // RNG Case
     {

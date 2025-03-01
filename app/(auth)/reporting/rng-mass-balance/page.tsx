@@ -27,6 +27,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { ToastContainer, toast } from 'react-toastify';
 
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -50,7 +51,7 @@ interface MassBalanceResponse {
 
 const defaultColDef = {
   flex: 1,
-  minWidth: 160,
+  minWidth: 200,
   resizable: true,
 };
 
@@ -71,6 +72,16 @@ const options: ChartOptions<'bar'> = {
     },
   },
 };
+
+function numberFormatter(params: any) {
+  if (params.value == null) {
+      return '';
+  }
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: params.colDef.field.includes('%') ? 1 : 0,
+    maximumFractionDigits: params.colDef.field.includes('%') ? 1 : 0
+  }).format(params.value);
+}
 
 export default function RngMassBalancePage() {
   const [views, setViews] = useState<GasBalanceView[]>([]);
@@ -116,6 +127,7 @@ export default function RngMassBalancePage() {
           sortable: true,
           filter: key === 'Timestamp' ? 'agDateColumnFilter' : 'agNumberColumnFilter',
           type: key === 'Timestamp' ? 'rightAligned' : 'numericColumn',
+          valueFormatter: key === 'Timestamp' ? undefined : numberFormatter,
         }))
       );
     }
@@ -149,10 +161,10 @@ export default function RngMassBalancePage() {
 
       // Only add dates to payload if they are set
       if (startDate) {
-        payload.start_datetime = new Date(startDate).toISOString();
+        payload.start_datetime = startDate;
       }
       if (endDate) {
-        payload.end_datetime = new Date(endDate).toISOString();
+        payload.end_datetime = endDate;
       }
 
       const response = await api.post<MassBalanceResponse>('/reporting/v2/rng-mass-balance/', payload);
@@ -165,8 +177,10 @@ export default function RngMassBalancePage() {
     } catch (err) {
       setError('Failed to load mass balance data');
       console.error('Error fetching mass balance data:', err);
+      toast.error('Failed to load mass balance data');
     } finally {
       setLoading(false);
+      toast.success('Mass balance data loaded successfully');
     }
   };
 
@@ -199,7 +213,7 @@ export default function RngMassBalancePage() {
       )}
 
         <div className="flex gap-6">
-          {chartConfig !== null && (
+          {chartConfig !== null && Object.keys(chartConfig).length > 0 && (
             <div className="w-3/4 h-[300px]">
               <Bar data={chartConfig} options={options} />
             </div>
@@ -231,7 +245,7 @@ export default function RngMassBalancePage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Start Date</label>
+              <label className="text-sm font-medium">Start Date (EST)</label>
               <Input
                 type="datetime-local"
                 value={startDate}
@@ -241,7 +255,7 @@ export default function RngMassBalancePage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">End Date</label>
+              <label className="text-sm font-medium">End Date (EST)</label>
               <Input
                 type="datetime-local"
                 value={endDate}
@@ -271,6 +285,7 @@ export default function RngMassBalancePage() {
           getRowStyle={getRowStyle} // Apply row styles
         />
       </div>
+      <ToastContainer />
     </div>
   );
 }
