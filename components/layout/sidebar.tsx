@@ -47,7 +47,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean): (MenuItem | Men
     items: [
       { icon: FileText, label: 'Documents', href: '/library/documents' },
       { icon: FileText, label: 'Extractions', href: '/library/extractions' },
-      { icon: Download, label: 'Incoming', href: '/library/incoming' },
+      { icon: Download, label: 'Incoming', href: '/library/incomings' },
       { icon: Upload, label: 'Outgoing', href: '/library/outgoings' },
     ],
   }]),
