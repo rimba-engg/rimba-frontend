@@ -13,7 +13,6 @@ import {
   FileCheck,
   Tag,
   RefreshCcw,
-  Calendar,
   DollarSign,
   Flag,
   Package,
@@ -35,8 +34,11 @@ import {
   Leaf,
   Briefcase,
   Settings,
-  Network,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Edit,
+  Save,
+  Loader2,
+  Network
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,8 +49,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api";
+import { api, BASE_URL } from "@/lib/api";
 import { useToast,toast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 
 // Define API response types
 interface AvailableProduct {
@@ -70,6 +75,7 @@ interface Contract {
   invoice_number: string;
   id: string;
   for_month: number;
+  for_year: number;
   product_name: string;
   certification_name: string;
   warehouses: string;
@@ -107,6 +113,7 @@ interface ContractDetailsResponse {
   _id: string;
   contract_number: string;
   for_month: number;
+  for_year: number;
   start_date: string;
   end_date: string;
   expected_quantity: number;
@@ -142,17 +149,20 @@ export default function ContractDetails() {
     const [hoveredRow, setHoveredRow] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("details");
     const [isEditing, setIsEditing] = useState(false);
+    const [updating, setUpdating] = useState(false);
+    const [downloadLoading, setDownloadLoading] = useState(false);
   
     // Fetch contract data
     useEffect(() => {
       const fetchContractDetails = async () => {
         setLoading(true);
         try {
-          const response = await api.get<ApiResponse>(`/v2/contract/incoming/${contract_id}`);
+          const response = await api.get<ApiResponse>(`/v2/contract/incoming/detail/${contract_id}`);
           const apiData = response.data;
           const mappedContract: Contract = {
             contract_number: apiData.contract_number,
             for_month: apiData.for_month,
+            for_year: apiData.for_year,
             start_date: apiData.start_date,
             end_date: apiData.end_date,
             expected_quantity: apiData.expected_quantity,
@@ -215,28 +225,126 @@ export default function ContractDetails() {
       });
     };
   
-    const handleUpdateContract = () => {
-      showToast({
-        title: "Contract Updated",
-        description: "Contract details have been updated successfully.",
-        variant: "default"
-      });
-    };
-    
-    const handleDelete = () => {
-      showToast({
-        title: "Delete Confirmation",
-        description: "Are you sure you want to delete this contract? This action cannot be undone.",
-        variant: "destructive"
-      });
-    };
+    const handleUpdateContract = async () => {
+      if (!isEditing) {
+        showToast({
+          title: "Edit Mode Required",
+          description: "Please enable edit mode first to make changes.",
+          variant: "default"
+        });
+        return;
+      }
   
-    const handleDownloadDocument = (docName: string) => {
-      showToast({
-        title: "Download Started",
-        description: `Downloading ${docName}...`,
-        variant: "default"
-      });
+      try {
+        setUpdating(true);
+        
+        // Format dates in MM/DD/YYYY format as required by the API
+        const formatDateForApi = (dateStr: string) => {
+          if (!dateStr) return "";
+          const date = new Date(dateStr);
+          return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+        };
+        
+        const updateData = {
+          contract_id: contract?.id,
+          product_id: contract?.chosen_product_id,
+          start_date: formatDateForApi(contract?.start_date || ""),
+          end_date: formatDateForApi(contract?.end_date || ""),
+          expected_quantity: contract?.expected_quantity,
+          buyer: contract?.buyer,
+          seller: contract?.seller,
+          place_of_loading: contract?.place_of_loading,
+          place_of_delivery: contract?.place_of_delivery,
+          origin: contract?.origin,
+          invoice_number: contract?.invoice_number,
+          notes: contract?.notes
+        };
+        
+        console.log("updateData", updateData);        
+        const response = await api.post('/v2/incoming/contract/update/', updateData);
+        
+        
+        if ((response as any).status === 'success') {
+          showToast({
+            title: "Contract Updated",
+            description: "Contract details have been updated successfully.",
+            variant: "default"
+          });
+          
+          // Turn off editing mode
+          setIsEditing(false);
+        } else {
+          const errorMessage = (response as any).message || "Failed to update contract. Please try again.";
+          showToast({
+            title: "Update Failed",
+            description: errorMessage,
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Failed to update contract:", error);
+        showToast({
+          title: "Error",
+          description: "An error occurred while updating the contract. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setUpdating(false);
+      }
+    };
+
+    const handleDownloadExtractions = async () => {
+      try {
+        setDownloadLoading(true);
+        const documentIds = documents.map(doc => doc.id);
+        
+        if (documentIds.length === 0) {
+          showToast({
+            title: "No Documents",
+            description: "There are no documents to download extractions from",
+            variant: "destructive"
+          });
+          setDownloadLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${BASE_URL}/v2/contracts/incoming/download-extractions/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          },
+          body: JSON.stringify({ document_ids: documentIds })
+        });
+
+        if (!response.ok) throw new Error('Failed to download extractions');
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+
+        // Get filename from Content-Disposition header
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const fileNameMatch = contentDisposition?.match(/filename="?(.+?)"?$/);
+        const fileName = fileNameMatch ? fileNameMatch[1] : `contract_extractions_${contract?.contract_number}.xlsx`;
+
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+      } catch (error) {
+        console.error('Download error:', error);
+        showToast({
+          title: "Download Failed",
+          description: "Failed to download contract extractions. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setDownloadLoading(false);
+      }
     };
   
     // Custom toast function (since toast is not available)
@@ -330,19 +438,22 @@ export default function ContractDetails() {
               <Button 
                 variant="outline" 
                 className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white shadow-sm transition-all"
-                onClick={() => handleDownloadDocument("Contract Extractions")}
+                onClick={handleDownloadExtractions}
+                disabled={downloadLoading}
               >
-                <Download className="h-4 w-4 mr-2" />
-                Download Extractions
+                {downloadLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Extractions
+                  </>
+                )}
               </Button>
-              <Button
-                variant="outline"
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-all"
-                onClick={handleUpdateContract}
-              >
-                <RefreshCcw className="h-4 w-4 mr-2" />
-                Update Contract
-              </Button>
+              
               <Button
                 variant="outline"
                 className="bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-600 shadow-sm transition-all"
@@ -351,14 +462,6 @@ export default function ContractDetails() {
                 <FileText className="h-4 w-4 mr-2" />
                 Notes
                 {notesExpanded ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
-              </Button>
-              <Button
-                variant="outline"
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-sm transition-all"
-                onClick={handleDelete}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
               </Button>
             </div>
           </div>
@@ -420,6 +523,42 @@ export default function ContractDetails() {
                         <FileCheck className="h-5 w-5 text-teal-600" />
                         Contract Details
                       </CardTitle>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`bg-gradient-to-r ${isEditing 
+                            ? "from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800" 
+                            : "from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700"} 
+                            text-white shadow-sm transition-all`}
+                          onClick={() => setIsEditing(!isEditing)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          {isEditing ? "Cancel" : "Edit"}
+                        </Button>
+                        
+                        {isEditing && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-sm transition-all"
+                            onClick={handleUpdateContract}
+                            disabled={updating}
+                          >
+                            {updating ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-1" />
+                                Save
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-6">
@@ -430,7 +569,13 @@ export default function ContractDetails() {
                             <Package className="h-4 w-4 mr-2 text-teal-600" />
                             Product Specification
                           </Label>
-                          <Select defaultValue={contract.chosen_product_id}>
+                          <Select 
+                            value={contract.chosen_product_id}
+                            onValueChange={(value) => setContract(prev => prev ? {
+                              ...prev,
+                              chosen_product_id: value
+                            } : null)}
+                          >
                             <SelectTrigger className="w-full relative group">
                               <div className="absolute inset-0 bg-gradient-to-r from-teal-50 to-blue-50 opacity-20 rounded-md group-hover:opacity-40 transition-opacity"></div>
                               <SelectValue placeholder="Select product" />
@@ -448,7 +593,7 @@ export default function ContractDetails() {
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <Label htmlFor="start_date" className="text-sm font-medium text-gray-700 flex items-center">
-                              <Calendar className="h-4 w-4 mr-2 text-teal-600" />
+                              <CalendarIcon className="h-4 w-4 mr-2 text-teal-600" />
                               Start Date
                             </Label>
                             <div className="relative group">
@@ -456,17 +601,44 @@ export default function ContractDetails() {
                               <Input 
                                 id="start_date" 
                                 type="text" 
-                                defaultValue={formatDate(contract.start_date)} 
+                                value={formatDate(contract.start_date)} 
+                                onChange={(e) => setContract(prev => prev ? {
+                                  ...prev,
+                                  start_date: e.target.value
+                                } : null)}
                                 className="pl-10 border-teal-100 focus:border-teal-300"
-                                 
+                                readOnly={!isEditing}
+                                style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
                               />
-                              <Calendar className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                              {isEditing && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="ghost" className="absolute left-1 top-1/2 transform -translate-y-1/2 p-0 h-8 w-8">
+                                      <CalendarIcon className="h-4 w-4 text-gray-500" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                      mode="single"
+                                      selected={new Date(contract.start_date)}
+                                      onSelect={(date) => setContract(prev => prev ? {
+                                        ...prev,
+                                        start_date: date ? date.toISOString() : prev.start_date
+                                      } : null)}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              )}
+                              {!isEditing && (
+                                <CalendarIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                              )}
                             </div>
                           </div>
                           
                           <div className="space-y-1.5">
                             <Label htmlFor="end_date" className="text-sm font-medium text-gray-700 flex items-center">
-                              <Calendar className="h-4 w-4 mr-2 text-teal-600" />
+                              <CalendarIcon className="h-4 w-4 mr-2 text-teal-600" />
                               End Date
                             </Label>
                             <div className="relative group">
@@ -474,12 +646,38 @@ export default function ContractDetails() {
                               <Input 
                                 id="end_date" 
                                 type="text" 
-                                defaultValue={formatDate(contract.end_date)} 
+                                value={formatDate(contract.end_date)} 
+                                onChange={(e) => setContract(prev => prev ? {
+                                  ...prev,
+                                  end_date: e.target.value
+                                } : null)}
                                 className="pl-10 border-teal-100 focus:border-teal-300"
                                 readOnly={!isEditing}
                                 style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
                               />
-                              <Calendar className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                              {isEditing && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="ghost" className="absolute left-1 top-1/2 transform -translate-y-1/2 p-0 h-8 w-8">
+                                      <CalendarIcon className="h-4 w-4 text-gray-500" />
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                      mode="single"
+                                      selected={new Date(contract.end_date)}
+                                      onSelect={(date) => setContract(prev => prev ? {
+                                        ...prev,
+                                        end_date: date ? date.toISOString() : prev.end_date
+                                      } : null)}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              )}
+                              {!isEditing && (
+                                <CalendarIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                              )}
                             </div>
                           </div>
                         </div>
@@ -494,7 +692,17 @@ export default function ContractDetails() {
                             <Input 
                               id="contract_qty" 
                               type="text" 
-                              defaultValue={contract.expected_quantity.toString()} 
+                              value={contract.expected_quantity.toString()} 
+                              onChange={(e) => {
+                                const inputValue = e.target.value;
+                                // Only allow numbers and decimal points
+                                if (/^[0-9]*\.?[0-9]*$/.test(inputValue) || inputValue === '') {
+                                  setContract(prev => prev ? {
+                                    ...prev,
+                                    expected_quantity: inputValue === '' ? 0 : parseFloat(inputValue) || 0
+                                  } : null);
+                                }
+                              }}
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
@@ -513,7 +721,11 @@ export default function ContractDetails() {
                             <Input 
                               id="place_of_loading" 
                               type="text" 
-                              defaultValue={contract.place_of_loading === "nan" ? "" : contract.place_of_loading} 
+                              value={contract.place_of_loading === "nan" ? "" : contract.place_of_loading} 
+                              onChange={(e) => setContract(prev => prev ? {
+                                ...prev,
+                                place_of_loading: e.target.value
+                              } : null)}
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
@@ -532,7 +744,11 @@ export default function ContractDetails() {
                             <Input 
                               id="place_of_delivery" 
                               type="text" 
-                              defaultValue={contract.place_of_delivery} 
+                              value={contract.place_of_delivery} 
+                              onChange={(e) => setContract(prev => prev ? {
+                                ...prev,
+                                place_of_delivery: e.target.value
+                              } : null)}
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
@@ -553,7 +769,11 @@ export default function ContractDetails() {
                             <Input 
                               id="seller" 
                               type="text" 
-                              defaultValue={contract.seller} 
+                              value={contract.seller} 
+                              onChange={(e) => setContract(prev => prev ? {
+                                ...prev,
+                                seller: e.target.value
+                              } : null)}
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
@@ -572,7 +792,11 @@ export default function ContractDetails() {
                             <Input 
                               id="buyer" 
                               type="text" 
-                              defaultValue={contract.buyer} 
+                              value={contract.buyer} 
+                              onChange={(e) => setContract(prev => prev ? {
+                                ...prev,
+                                buyer: e.target.value
+                              } : null)}
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
@@ -591,7 +815,11 @@ export default function ContractDetails() {
                             <Input 
                               id="origin" 
                               type="text" 
-                              defaultValue={contract.origin} 
+                              value={contract.origin} 
+                              onChange={(e) => setContract(prev => prev ? {
+                                ...prev,
+                                origin: e.target.value
+                              } : null)}
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
@@ -610,7 +838,11 @@ export default function ContractDetails() {
                             <Input 
                               id="invoice_number" 
                               type="text" 
-                              defaultValue={contract.invoice_number} 
+                              value={contract.invoice_number} 
+                              onChange={(e) => setContract(prev => prev ? {
+                                ...prev,
+                                invoice_number: e.target.value
+                              } : null)}
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
@@ -739,10 +971,10 @@ export default function ContractDetails() {
                       <Separator className="my-2" />
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600 flex items-center">
-                          <Calendar className="h-4 w-4 mr-1 text-purple-500" />
+                          <CalendarIcon className="h-4 w-4 mr-1 text-purple-500" />
                           Contract Year
                         </span>
-                        <span className="text-sm font-medium">{contract.for_month}</span>
+                        <span className="text-sm font-medium">{contract.for_year}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -802,9 +1034,21 @@ export default function ContractDetails() {
                         <div className="absolute bottom-16 right-1/3 transform translate-x-1/2">
                           <div className="bg-red-50 text-red-700 px-3 py-1 rounded-md border border-red-200 shadow-sm flex items-center group hover:shadow-md transition-all">
                             <Tag className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">
-                              {warehouseAllocations[0]?.outgoing_contract_info.map(info => info.contract_number).join(', ')}
-                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {warehouseAllocations[0]?.outgoing_contract_info.map((info, index) => (
+                                <span
+                                  key={info.id}
+                                  className="text-sm text-purple-600 hover:text-purple-800 hover:underline cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/library/outgoing-contract?id=${info.id}`);
+                                  }}
+                                >
+                                  {info.contract_number}
+                                  {index < warehouseAllocations[0]?.outgoing_contract_info.length - 1 ? ', ' : ''}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}
@@ -935,9 +1179,21 @@ export default function ContractDetails() {
                                     {allocation.outgoing_contract_info.length > 0 ? (
                                       <div className="flex items-center space-x-1">
                                         <ExternalLink className="h-3 w-3 text-purple-500" />
-                                        <span className="text-sm text-purple-600 hover:text-purple-800 hover:underline cursor-pointer">
-                                          {allocation.outgoing_contract_info.map(info => info.contract_number).join(', ')}
-                                        </span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {allocation.outgoing_contract_info.map((info, index) => (
+                                            <span
+                                              key={info.id}
+                                              className="text-sm text-purple-600 hover:text-purple-800 hover:underline cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                router.push(`/library/outgoing-contract?id=${info.id}`);
+                                              }}
+                                            >
+                                              {info.contract_number}
+                                              {index < allocation.outgoing_contract_info.length - 1 ? ', ' : ''}
+                                            </span>
+                                          ))}
+                                        </div>
                                       </div>
                                     ) : (
                                       <span className="text-sm text-gray-400">—</span>
@@ -986,12 +1242,6 @@ export default function ContractDetails() {
                     <FileText className="h-5 w-5 text-blue-600" />
                     Documents
                   </CardTitle>
-                  <Button variant="outline" size="sm" className="text-blue-600 border-blue-200 hover:bg-blue-50">
-                    <span className="flex items-center gap-1">
-                      <Download className="h-4 w-4" />
-                      Download All
-                    </span>
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -1018,12 +1268,6 @@ export default function ContractDetails() {
                               WB QTY (MT)
                             </div>
                           </th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <div className="flex items-center justify-center">
-                              <Download className="h-4 w-4 mr-2 text-teal-500" />
-                              Actions
-                            </div>
-                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -1044,7 +1288,13 @@ export default function ContractDetails() {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <FileText className="h-4 w-4 mr-2 text-blue-500" />
-                                  <span className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">
+                                  <span 
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      router.push(`/library/document?document_id=${doc.id}`);
+                                    }}
+                                  >
                                     {doc.name}
                                   </span>
                                 </div>
@@ -1056,16 +1306,6 @@ export default function ContractDetails() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-amber-700 font-medium">
                                 {doc.received_quantity ? doc.received_quantity.toFixed(3) : '—'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-center">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-teal-600 hover:text-teal-800 hover:bg-teal-50"
-                                  onClick={() => handleDownloadDocument(doc.name)}
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
                               </td>
                             </tr>
                           );
