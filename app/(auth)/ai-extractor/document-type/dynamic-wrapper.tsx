@@ -489,8 +489,11 @@ export default function DocumentTypeDetailClient() {
               return activeConfig ? (
                 <div className="mb-4">
                   <span className="mr-2 font-semibold">Active Config:</span>
-                  <Badge variant="default" className='text-lg'>
-                    {activeConfig.name} - V{activeConfig.version}
+                  <Badge variant="default" className='text-lg mr-4'>
+                    {activeConfig.name}
+                  </Badge>
+                  <Badge variant="secondary" className='text-lg'>
+                    V{activeConfig.version}
                   </Badge>
                 </div>
               ) : null;
