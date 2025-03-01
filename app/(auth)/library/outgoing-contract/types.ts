@@ -18,6 +18,7 @@ export interface ContractDetails {
 export interface Allocation {
     contractId: string;
     contractNumber: string;
+    month: string;
     warehouse: string;
     allocatedQuantity: number;
     ghg: number;
