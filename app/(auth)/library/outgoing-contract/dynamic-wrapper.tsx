@@ -113,7 +113,7 @@ const MONTHS = [
 
 const YEARS = ['2023', '2024', '2025'];
 
-export default function ContractClient() {
+export default function ContractClient() {  
   const router = useRouter();
   const searchParams = useSearchParams();
   const contractId = searchParams.get('id');
@@ -188,6 +188,39 @@ export default function ContractClient() {
     }
   };
 
+  const handleApproveAllocationFromCSV = async () => {
+    if (!uploadFile || !contract) return;
+    try {
+      // API call to approve allocation from CSV
+      console.log('approving allocations for contract', contract?.id);
+
+      const token = localStorage.getItem('access_token');
+      const myHeaders = new Headers();
+      myHeaders.append(
+        'Authorization', `Bearer ${token}`
+      );
+      // Create the form data and append each file.
+      const formData = new FormData();
+      formData.append("contract_id", contract?.id);
+      formData.append("csv_file", uploadFile);
+      // Set up the request options.
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: formData,
+        redirect: "follow" as RequestRedirect,
+      };
+      // Make the API call.
+      const response = await fetch(`${BASE_URL}/v2/contract/outgoing/allocate-from-csv/`, requestOptions);
+      const result = await response.json();
+      console.log("Upload result:", result);
+      loadContractData();
+
+    } catch (error) {
+      console.error('Error approving allocation from CSV:', error);
+    }
+  };
+
   const handlePreviewAllocation = async () => {
     try {
       const response = await api.post<{
@@ -225,6 +258,10 @@ export default function ContractClient() {
   };
 
   const handleApproveAllocation = async () => {
+    console.log('approving allocations for contract', uploadFile);
+    if (uploadFile) {
+      return handleApproveAllocationFromCSV();
+    }
     try {
       const response = await api.post<{
         status: string;
@@ -292,22 +329,34 @@ export default function ContractClient() {
   const handleUploadAllocations = async () => {
     if (!uploadFile || !contract) return;
     try {
+      console.log('uploading allocations for contract', contract.id);
+
+      const token = localStorage.getItem('access_token');
+      const myHeaders = new Headers();
+      myHeaders.append(
+        'Authorization', `Bearer ${token}`
+      );
+      // Create the form data and append each file.
       const formData = new FormData();
       formData.append("contract_id", contract.id);
       formData.append("csv_file", uploadFile);
+      // Set up the request options.
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: formData,
+        redirect: "follow" as RequestRedirect,
+      };
 
-      const response = await api.post<{
-        status: string;
-        message: string;
-        data: any[][]; // raw allocations grouped data from CSV
-      }>('/v2/contract/outgoing/preview-allocation-from-csv/', formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // Make the API call.
+      const response = await fetch(`${BASE_URL}/v2/contract/outgoing/preview-allocation-from-csv/`, requestOptions);
+      const result = await response.json();
+      console.log("Upload result:", result);
 
-      if (response.status === 'success') {
+      if (response.status == 200) {
         // Map raw allocation keys to the desired format
-        const formattedAllocations = response.data.map((group) =>
-          group.map((allocation) => ({
+        const formattedAllocations = result.data.map((group: any) =>
+          group.map((allocation: any) => ({
             contractId: allocation.contract_id,
             contractNumber: allocation.contract_number,
             warehouse: allocation.warehouse_name,
@@ -321,9 +370,9 @@ export default function ContractClient() {
         );
         setPreviewAllocations(formattedAllocations);
         // Optionally clear the file input after successful upload
-        setUploadFile(null);
+        // setUploadFile(null);
       } else {
-        console.error('Error previewing allocations from CSV:', response.message);
+        console.error('Error previewing allocations from CSV:', result.message);
       }
     } catch (error) {
       console.error('Error previewing allocations from CSV:', error);
@@ -548,10 +597,10 @@ export default function ContractClient() {
                 onSelect={toggleWarehouseSelection}
               />
                 <Button
-                  onClick={handleUploadAllocations}
+                  onClick={handlePreviewAllocation}
                   disabled={selectedWarehouses.length === 0}
                 >
-                  Preview Allocations from CSV
+                  Preview Allocations
                 </Button>
             </div>
 
