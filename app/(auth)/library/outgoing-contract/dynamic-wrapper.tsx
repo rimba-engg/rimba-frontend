@@ -137,6 +137,9 @@ export default function ContractClient() {
   });
   const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
 
+  // New state to indicate an API call is in progress
+  const [processing, setProcessing] = useState(false);
+
   useEffect(() => {
     if (contractId) {
       loadContractData();
@@ -168,40 +171,43 @@ export default function ContractClient() {
   };
 
   const handleUpdateContract = async () => {
+    setProcessing(true);
     try {
       // API call to update contract
       await new Promise(resolve => setTimeout(resolve, 1000));
       setShowUpdateModal(false);
-      loadContractData(); // Reload data
+      await loadContractData(); // Reload data
     } catch (error) {
       console.error('Error updating contract:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleDeleteContract = async () => {
+    setProcessing(true);
     try {
       // API call to delete contract
       await new Promise(resolve => setTimeout(resolve, 1000));
       router.push('/library/outgoing');
     } catch (error) {
       console.error('Error deleting contract:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleApproveAllocationFromCSV = async () => {
     if (!uploadFile || !contract) return;
     try {
-      // API call to approve allocation from CSV
       console.log('approving allocations for contract', contract?.id);
 
       const token = localStorage.getItem('access_token');
       const myHeaders = new Headers();
-      myHeaders.append(
-        'Authorization', `Bearer ${token}`
-      );
-      // Create the form data and append each file.
+      myHeaders.append('Authorization', `Bearer ${token}`);
+      // Create the form data and append the file.
       const formData = new FormData();
-      formData.append("contract_id", contract?.id);
+      formData.append("contract_id", contract.id);
       formData.append("csv_file", uploadFile);
       // Set up the request options.
       const requestOptions = {
@@ -222,6 +228,7 @@ export default function ContractClient() {
   };
 
   const handlePreviewAllocation = async () => {
+    setProcessing(true);
     try {
       const response = await api.post<{
         status: string;
@@ -254,37 +261,43 @@ export default function ContractClient() {
       }
     } catch (error) {
       console.error('Error previewing allocation:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleApproveAllocation = async () => {
-    console.log('approving allocations for contract', uploadFile);
-    if (uploadFile) {
-      return handleApproveAllocationFromCSV();
-    }
+    setProcessing(true);
     try {
-      const response = await api.post<{
-        status: string;
-        message: string;
-        data: any[][]; // raw allocations response
-      }>('/v2/contract/outgoing/allocate/', {
-        outgoing_contract: contract?.id,
-        warehouses: selectedWarehouses,
-      });
-
-      if (response.status === 'success') {
-        console.log(response.data);
-        // Map raw allocation keys to the desired format
-        loadContractData();
+      console.log('approving allocations for contract', uploadFile);
+      if (uploadFile) {
+        await handleApproveAllocationFromCSV();
       } else {
-        console.error('Error previewing allocation:', response.message);
+        const response = await api.post<{
+          status: string;
+          message: string;
+          data: any[][]; // raw allocations response
+        }>('/v2/contract/outgoing/allocate/', {
+          outgoing_contract: contract?.id,
+          warehouses: selectedWarehouses,
+        });
+
+        if (response.status === 'success') {
+          console.log(response.data);
+          loadContractData();
+        } else {
+          console.error('Error previewing allocation:', response.message);
+        }
       }
     } catch (error) {
       console.error('Error previewing allocation:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleUndoAllocation = async () => {
+    setProcessing(true);
     try {
       console.log('undoing allocation for contract', contract?.id);
       const response = await api.post<{
@@ -297,23 +310,27 @@ export default function ContractClient() {
 
       if (response.status === 'success') {
         console.log(response.data);
-        // Map raw allocation keys to the desired format
         loadContractData();
       } else {
         console.error('Error undoing allocation:', response.message);
       }
     } catch (error) {
       console.error('Error undoing allocation:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
   const handleGenerateTemplate = async (groupId: string, sdNumber: string, certNumber: string) => {
+    setProcessing(true);
     try {
       // API call to generate template
       await new Promise(resolve => setTimeout(resolve, 1000));
       // Handle file download
     } catch (error) {
       console.error('Error generating template:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -328,15 +345,14 @@ export default function ContractClient() {
 
   const handleUploadAllocations = async () => {
     if (!uploadFile || !contract) return;
+    setProcessing(true);
     try {
       console.log('uploading allocations for contract', contract.id);
 
       const token = localStorage.getItem('access_token');
       const myHeaders = new Headers();
-      myHeaders.append(
-        'Authorization', `Bearer ${token}`
-      );
-      // Create the form data and append each file.
+      myHeaders.append('Authorization', `Bearer ${token}`);
+      // Create the form data and append the file.
       const formData = new FormData();
       formData.append("contract_id", contract.id);
       formData.append("csv_file", uploadFile);
@@ -369,13 +385,13 @@ export default function ContractClient() {
           }))
         );
         setPreviewAllocations(formattedAllocations);
-        // Optionally clear the file input after successful upload
-        // setUploadFile(null);
       } else {
         console.error('Error previewing allocations from CSV:', result.message);
       }
     } catch (error) {
       console.error('Error previewing allocations from CSV:', error);
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -388,368 +404,393 @@ export default function ContractClient() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            className="rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-3xl font-bold">{contract.contractNumber}</h1>
-        </div>
-        
-        {!contract.isAllocated && (
-          <div className="flex gap-2">
+    <>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
             <Button
-              variant="destructive"
-              onClick={() => setShowDeleteConfirm(true)}
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="rounded-full"
+              disabled={processing}
             >
-              Delete Contract
+              <ArrowLeft className="w-5 h-5" />
             </Button>
-            <Button onClick={() => setShowUpdateModal(true)}>
-              Update Contract
-            </Button>
+            <h1 className="text-3xl font-bold">{contract.contractNumber}</h1>
           </div>
-        )}
-      </div>
-
-      <div className="bg-card rounded-lg shadow p-6">
-        <table className="w-full">
-          <tbody>
-            <tr className="border-b">
-              <th className="py-4 text-left">Month</th>
-              <td className="py-4">{`${contract.month} ${contract.year}`}</td>
-            </tr>
-            <tr className="border-b">
-              <th className="py-4 text-left">Buyer</th>
-              <td className="py-4">{contract.buyer}</td>
-            </tr>
-            <tr className="border-b">
-              <th className="py-4 text-left">Quantity</th>
-              <td className="py-4">{contract.quantity.toLocaleString()} MT</td>
-            </tr>
-            <tr className="border-b">
-              <th className="py-4 text-left">Product</th>
-              <td className="py-4">{contract.product}</td>
-            </tr>
-            <tr className="border-b">
-              <th className="py-4 text-left">Bill Of Lading</th>
-              <td className="py-4">
-                {contract.billOfLading && (
-                  <a
-                    href={contract.docLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    {contract.billOfLading}
-                  </a>
-                )}
-              </td>
-            </tr>
-            <tr className="border-b">
-              <th className="py-4 text-left">Port Of Loading</th>
-              <td className="py-4">{contract.portOfLoading}</td>
-            </tr>
-            <tr>
-              <th className="py-4 text-left">Port Of Discharge</th>
-              <td className="py-4">{contract.portOfDischarge}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <Label className="text-base font-semibold">Select Route:</Label>
-          <div className="flex gap-2 mt-2">
-            <Button
-              variant={route === 'Suez' ? 'default' : 'outline'}
-              onClick={() => setRoute('Suez')}
-            >
-              Suez
-            </Button>
-            <Button
-              variant={route === 'COGH' ? 'default' : 'outline'}
-              onClick={() => setRoute('COGH')}
-            >
-              COGH
-            </Button>
-          </div>
-        </div>
-
-        {contract.isAllocated ? (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">Incoming Allocated</h2>
-            
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted/50">
-                    <th className="px-4 py-3 text-left">Contract Number</th>
-                    <th className="px-4 py-3 text-left">Warehouse</th>
-                    <th className="px-4 py-3 text-left">Allocated Quantity (MT)</th>
-                    <th className="px-4 py-3 text-left">GHG (kgCO₂eq/dry-ton)</th>
-                    <th className="px-4 py-3 text-left">Outgoing SD</th>
-                  </tr>
-                </thead>
-                {allocations.map((group, groupIndex) => (
-                  <tbody
-                    key={groupIndex}
-                    className="border-t-4 border-primary"
-                  >
-                    {group.map((allocation, index) => (
-                      <tr key={allocation.contractId} className="border-b last:border-b-0">
-                        <td className="px-4 py-3">
-                          <a
-                            href={`/reporting/incoming/${allocation.contractId}`}
-                            className="text-primary hover:underline"
-                          >
-                            {allocation.contractNumber}
-                          </a>
-                        </td>
-                        <td className="px-4 py-3">{allocation.warehouse}</td>
-                        <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
-                        <td className="px-4 py-3">{allocation.ghg}</td>
-                        {index === 0 && (
-                          <td className="px-4 py-3" rowSpan={group.length}>
-                            {allocation.outgoingSD === 'Not generated' ? (
-                              <div className="space-y-2">
-                                <Input
-                                  placeholder="SD Number"
-                                  className="w-40"
-                                />
-                                <Input
-                                  placeholder="Certification Number"
-                                  className="w-40"
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleGenerateTemplate(
-                                    allocation.groupId,
-                                    'SD-123', // Replace with actual input values
-                                    'CERT-123'
-                                  )}
-                                >
-                                  Generate Template
-                                </Button>
-                              </div>
-                            ) : (
-                              <a
-                                href={allocation.outgoingSDUrl}
-                                className="text-primary hover:underline"
-                              >
-                                {allocation.outgoingSD}
-                              </a>
-                            )}
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                ))}
-              </table>
-            </div>
-
-            <Button
-              variant="destructive"
-              onClick={handleUndoAllocation}
-            >
-              Undo Allocation
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700">
-              This outgoing contract is not yet allocated.
-            </div>
-
-            <div className="space-y-4">
+          
+          {!contract.isAllocated && (
+            <div className="flex gap-2">
               <Button
-                variant="outline"
-                onClick={() => window.location.href = `${BASE_URL}/reporting/download-demo-csv/`}
+                variant="destructive"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={processing}
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download Demo CSV
+                Delete Contract
               </Button>
+              <Button
+                onClick={() => setShowUpdateModal(true)}
+                disabled={processing}
+              >
+                Update Contract
+              </Button>
+            </div>
+          )}
+        </div>
 
-              <div className="space-y-2">
-                <Label>Upload Allocations CSV</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="file"
-                    accept=".csv"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleUploadAllocations} disabled={!uploadFile}>
-                    Upload Allocations
-                  </Button>
-                </div>
+        <div className="bg-card rounded-lg shadow p-6">
+          <table className="w-full">
+            <tbody>
+              <tr className="border-b">
+                <th className="py-4 text-left">Month</th>
+                <td className="py-4">{`${contract.month} ${contract.year}`}</td>
+              </tr>
+              <tr className="border-b">
+                <th className="py-4 text-left">Buyer</th>
+                <td className="py-4">{contract.buyer}</td>
+              </tr>
+              <tr className="border-b">
+                <th className="py-4 text-left">Quantity</th>
+                <td className="py-4">{contract.quantity.toLocaleString()} MT</td>
+              </tr>
+              <tr className="border-b">
+                <th className="py-4 text-left">Product</th>
+                <td className="py-4">{contract.product}</td>
+              </tr>
+              <tr className="border-b">
+                <th className="py-4 text-left">Bill Of Lading</th>
+                <td className="py-4">
+                  {contract.billOfLading && (
+                    <a
+                      href={contract.docLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {contract.billOfLading}
+                    </a>
+                  )}
+                </td>
+              </tr>
+              <tr className="border-b">
+                <th className="py-4 text-left">Port Of Loading</th>
+                <td className="py-4">{contract.portOfLoading}</td>
+              </tr>
+              <tr>
+                <th className="py-4 text-left">Port Of Discharge</th>
+                <td className="py-4">{contract.portOfDischarge}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base font-semibold">Select Route:</Label>
+            <div className="flex gap-2 mt-2">
+              <Button
+                variant={route === 'Suez' ? 'default' : 'outline'}
+                onClick={() => setRoute('Suez')}
+                disabled={processing}
+              >
+                Suez
+              </Button>
+              <Button
+                variant={route === 'COGH' ? 'default' : 'outline'}
+                onClick={() => setRoute('COGH')}
+                disabled={processing}
+              >
+                COGH
+              </Button>
+            </div>
+          </div>
+
+          {contract.isAllocated ? (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold">Incoming Allocated</h2>
+              
+              <div className="rounded-lg border overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="px-4 py-3 text-left">Contract Number</th>
+                      <th className="px-4 py-3 text-left">Warehouse</th>
+                      <th className="px-4 py-3 text-left">Allocated Quantity (MT)</th>
+                      <th className="px-4 py-3 text-left">GHG (kgCO₂eq/dry-ton)</th>
+                      <th className="px-4 py-3 text-left">Outgoing SD</th>
+                    </tr>
+                  </thead>
+                  {allocations.map((group, groupIndex) => (
+                    <tbody
+                      key={groupIndex}
+                      className="border-t-4 border-primary"
+                    >
+                      {group.map((allocation, index) => (
+                        <tr key={allocation.contractId} className="border-b last:border-b-0">
+                          <td className="px-4 py-3">
+                            <a
+                              href={`/reporting/incoming/${allocation.contractId}`}
+                              className="text-primary hover:underline"
+                            >
+                              {allocation.contractNumber}
+                            </a>
+                          </td>
+                          <td className="px-4 py-3">{allocation.warehouse}</td>
+                          <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
+                          <td className="px-4 py-3">{allocation.ghg}</td>
+                          {index === 0 && (
+                            <td className="px-4 py-3" rowSpan={group.length}>
+                              {allocation.outgoingSD === 'Not generated' ? (
+                                <div className="space-y-2">
+                                  <Input
+                                    placeholder="SD Number"
+                                    className="w-40"
+                                  />
+                                  <Input
+                                    placeholder="Certification Number"
+                                    className="w-40"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleGenerateTemplate(
+                                      allocation.groupId,
+                                      'SD-123', // Replace with actual input values
+                                      'CERT-123'
+                                    )}
+                                    disabled={processing}
+                                  >
+                                    Generate Template
+                                  </Button>
+                                </div>
+                              ) : (
+                                <a
+                                  href={allocation.outgoingSDUrl}
+                                  className="text-primary hover:underline"
+                                >
+                                  {allocation.outgoingSD}
+                                </a>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  ))}
+                </table>
               </div>
-              <WarehouseDropdown 
-                warehouses={warehouses} 
-                selectedWarehouses={selectedWarehouses}
-                onSelect={toggleWarehouseSelection}
-              />
+
+              <Button
+                variant="destructive"
+                onClick={handleUndoAllocation}
+                disabled={processing}
+              >
+                Undo Allocation
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700">
+                This outgoing contract is not yet allocated.
+              </div>
+
+              <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.href = `${BASE_URL}/reporting/download-demo-csv/`}
+                  disabled={processing}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Demo CSV
+                </Button>
+
+                <div className="space-y-2">
+                  <Label>Upload Allocations CSV</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      className="flex-1"
+                      disabled={processing}
+                    />
+                    <Button onClick={handleUploadAllocations} disabled={!uploadFile || processing}>
+                      Upload Allocations
+                    </Button>
+                  </div>
+                </div>
+                <WarehouseDropdown 
+                  warehouses={warehouses} 
+                  selectedWarehouses={selectedWarehouses}
+                  onSelect={toggleWarehouseSelection}
+                />
                 <Button
                   onClick={handlePreviewAllocation}
-                  disabled={selectedWarehouses.length === 0}
+                  disabled={selectedWarehouses.length === 0 || processing}
                 >
                   Preview Allocations
                 </Button>
-            </div>
-
-            {previewAllocations.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold">Allocated Contracts</h2>
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-muted/50">
-                        <th className="px-4 py-3 text-left">Contract Number</th>
-                        <th className="px-4 py-3 text-left">Month</th>
-                        <th className="px-4 py-3 text-left">Allocated Amount (MT)</th>
-                        <th className="px-4 py-3 text-left">Warehouse</th>
-                        <th className="px-4 py-3 text-left">GHG (kgCO₂eq/dry-ton)</th>
-                      </tr>
-                    </thead>
-                    {previewAllocations.map((group, groupIndex) => (
-                      <tbody
-                        key={groupIndex}
-                        className="border-t-4 border-primary"
-                      >
-                        {group.map((allocation) => (
-                          <tr key={allocation.contractId} className="border-b last:border-b-0">
-                            <td className="px-4 py-3">
-                              <a
-                                href={`/reporting/incoming/${allocation.contractId}`}
-                                className="text-primary hover:underline"
-                              >
-                                {allocation.contractNumber}
-                              </a>
-                            </td>
-                            <td className="px-4 py-3">{allocation.month}</td>
-                            <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
-                            <td className="px-4 py-3">{allocation.warehouse}</td>
-                            <td className="px-4 py-3">{allocation.ghg}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    ))}
-                  </table>
-                </div>
-                <Button onClick={handleApproveAllocation}>
-                  Approve Allocation
-                </Button>
               </div>
-            )}
-          </div>
-        )}
+
+              {previewAllocations.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-semibold">Allocated Contracts</h2>
+                  <div className="rounded-lg border overflow-hidden">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="px-4 py-3 text-left">Contract Number</th>
+                          <th className="px-4 py-3 text-left">Month</th>
+                          <th className="px-4 py-3 text-left">Allocated Amount (MT)</th>
+                          <th className="px-4 py-3 text-left">Warehouse</th>
+                          <th className="px-4 py-3 text-left">GHG (kgCO₂eq/dry-ton)</th>
+                        </tr>
+                      </thead>
+                      {previewAllocations.map((group, groupIndex) => (
+                        <tbody
+                          key={groupIndex}
+                          className="border-t-4 border-primary"
+                        >
+                          {group.map((allocation) => (
+                            <tr key={allocation.contractId} className="border-b last:border-b-0">
+                              <td className="px-4 py-3">
+                                <a
+                                  href={`/reporting/incoming/${allocation.contractId}`}
+                                  className="text-primary hover:underline"
+                                >
+                                  {allocation.contractNumber}
+                                </a>
+                              </td>
+                              <td className="px-4 py-3">{allocation.month}</td>
+                              <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
+                              <td className="px-4 py-3">{allocation.warehouse}</td>
+                              <td className="px-4 py-3">{allocation.ghg}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      ))}
+                    </table>
+                  </div>
+                  <Button onClick={handleApproveAllocation} disabled={processing}>
+                    Approve Allocation
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Update Contract Modal */}
+        <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update Contract</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Month</Label>
+                <Select
+                  value={updateForm.month}
+                  onValueChange={(value) => setUpdateForm(prev => ({ ...prev, month: value }))}
+                  disabled={processing}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((month) => (
+                      <SelectItem key={month} value={month}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Year</Label>
+                <Select
+                  value={updateForm.year}
+                  onValueChange={(value) => setUpdateForm(prev => ({ ...prev, year: value }))}
+                  disabled={processing}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Quantity</Label>
+                <Input
+                  type="number"
+                  value={updateForm.quantity}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, quantity: parseFloat(e.target.value) }))}
+                  disabled={processing}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Port of Loading</Label>
+                <Input
+                  value={updateForm.portOfLoading}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, portOfLoading: e.target.value }))}
+                  disabled={processing}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Port of Discharge</Label>
+                <Input
+                  value={updateForm.portOfDischarge}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, portOfDischarge: e.target.value }))}
+                  disabled={processing}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowUpdateModal(false)} disabled={processing}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateContract} disabled={processing}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+            </DialogHeader>
+            <p>Are you sure you want to delete this contract? This action cannot be undone.</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={processing}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteContract} disabled={processing}>
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Update Contract Modal */}
-      <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Contract</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Month</Label>
-              <Select
-                value={updateForm.month}
-                onValueChange={(value) => setUpdateForm(prev => ({ ...prev, month: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((month) => (
-                    <SelectItem key={month} value={month}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Year</Label>
-              <Select
-                value={updateForm.year}
-                onValueChange={(value) => setUpdateForm(prev => ({ ...prev, year: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {YEARS.map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Quantity</Label>
-              <Input
-                type="number"
-                value={updateForm.quantity}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, quantity: parseFloat(e.target.value) }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Port of Loading</Label>
-              <Input
-                value={updateForm.portOfLoading}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, portOfLoading: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Port of Discharge</Label>
-              <Input
-                value={updateForm.portOfDischarge}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, portOfDischarge: e.target.value }))}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUpdateModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateContract}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-          </DialogHeader>
-          <p>Are you sure you want to delete this contract? This action cannot be undone.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteContract}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+      {/* Global processing overlay with the Loader */}
+      {processing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Loader text="Processing..." size="lg" />
+        </div>
+      )}
+    </>
   );
 }
