@@ -24,7 +24,8 @@ import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
 import { ContractDetails, Allocation, Warehouse } from './types';
 import { Loader } from '@/components/ui/loader';
-
+import WarehouseDropdown from '@/app/(auth)/library/outgoing-contract/WarehouseDropdown';
+import {BASE_URL} from '@/lib/api';
 
 // Replace the mock API functions with real API calls
 const fetchContractData = async (id: string): Promise<{
@@ -60,6 +61,7 @@ const fetchContractData = async (id: string): Promise<{
         outgoing_sd: string;
         outgoing_sd_url: string;
         group_id: string;
+        for_month: string;
       }[][];
     };
   }>(`/v2/contract/outgoing/detail/${id}/`);
@@ -97,6 +99,7 @@ const fetchContractData = async (id: string): Promise<{
         outgoingSD: allocation.outgoing_sd,
         outgoingSDUrl: allocation.outgoing_sd_url,
         groupId: allocation.group_id,
+        month: allocation.for_month,
       }))
     ) || [],
     warehouses: data.warehouses,
@@ -110,7 +113,7 @@ const MONTHS = [
 
 const YEARS = ['2023', '2024', '2025'];
 
-export default function ContractClient() {
+export default function ContractClient() {  
   const router = useRouter();
   const searchParams = useSearchParams();
   const contractId = searchParams.get('id');
@@ -132,6 +135,7 @@ export default function ContractClient() {
     portOfLoading: '',
     portOfDischarge: '',
   });
+  const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
 
   useEffect(() => {
     if (contractId) {
@@ -184,31 +188,120 @@ export default function ContractClient() {
     }
   };
 
+  const handleApproveAllocationFromCSV = async () => {
+    if (!uploadFile || !contract) return;
+    try {
+      // API call to approve allocation from CSV
+      console.log('approving allocations for contract', contract?.id);
+
+      const token = localStorage.getItem('access_token');
+      const myHeaders = new Headers();
+      myHeaders.append(
+        'Authorization', `Bearer ${token}`
+      );
+      // Create the form data and append each file.
+      const formData = new FormData();
+      formData.append("contract_id", contract?.id);
+      formData.append("csv_file", uploadFile);
+      // Set up the request options.
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: formData,
+        redirect: "follow" as RequestRedirect,
+      };
+      // Make the API call.
+      const response = await fetch(`${BASE_URL}/v2/contract/outgoing/allocate-from-csv/`, requestOptions);
+      const result = await response.json();
+      console.log("Upload result:", result);
+      loadContractData();
+
+    } catch (error) {
+      console.error('Error approving allocation from CSV:', error);
+    }
+  };
+
   const handlePreviewAllocation = async () => {
     try {
-      // API call to preview allocation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setPreviewAllocations(allocations); // Using mock data for preview
+      const response = await api.post<{
+        status: string;
+        message: string;
+        data: any[][]; // raw allocations response
+      }>('/v2/contract/outgoing/preview-allocation/', {
+        outgoing_contract: contract?.id,
+        warehouses: selectedWarehouses,
+      });
+
+      if (response.status === 'success') {
+        console.log(response.data);
+        // Map raw allocation keys to the desired format
+        const formattedAllocations = response.data.map((group) =>
+          group.map((allocation) => ({
+            contractId: allocation.contract_id,
+            contractNumber: allocation.contract_number,
+            warehouse: allocation.warehouse_name,
+            allocatedQuantity: allocation.allocated_amount,
+            ghg: allocation.ghg,
+            outgoingSD: allocation.outgoing_sd,
+            outgoingSDUrl: allocation.outgoing_sd_url,
+            groupId: allocation.group_id,
+            month: allocation.for_month,
+          }))
+        );
+        setPreviewAllocations(formattedAllocations);
+      } else {
+        console.error('Error previewing allocation:', response.message);
+      }
     } catch (error) {
       console.error('Error previewing allocation:', error);
     }
   };
 
   const handleApproveAllocation = async () => {
+    console.log('approving allocations for contract', uploadFile);
+    if (uploadFile) {
+      return handleApproveAllocationFromCSV();
+    }
     try {
-      // API call to approve allocation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      loadContractData(); // Reload data
+      const response = await api.post<{
+        status: string;
+        message: string;
+        data: any[][]; // raw allocations response
+      }>('/v2/contract/outgoing/allocate/', {
+        outgoing_contract: contract?.id,
+        warehouses: selectedWarehouses,
+      });
+
+      if (response.status === 'success') {
+        console.log(response.data);
+        // Map raw allocation keys to the desired format
+        loadContractData();
+      } else {
+        console.error('Error previewing allocation:', response.message);
+      }
     } catch (error) {
-      console.error('Error approving allocation:', error);
+      console.error('Error previewing allocation:', error);
     }
   };
 
   const handleUndoAllocation = async () => {
     try {
-      // API call to undo allocation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      loadContractData(); // Reload data
+      console.log('undoing allocation for contract', contract?.id);
+      const response = await api.post<{
+        status: string;
+        message: string;
+        data: any[][]; // raw allocations response
+      }>('/v2/contract/outgoing/undo-allocation/', {
+        contract_id: contract?.id
+      });
+
+      if (response.status === 'success') {
+        console.log(response.data);
+        // Map raw allocation keys to the desired format
+        loadContractData();
+      } else {
+        console.error('Error undoing allocation:', response.message);
+      }
     } catch (error) {
       console.error('Error undoing allocation:', error);
     }
@@ -221,6 +314,68 @@ export default function ContractClient() {
       // Handle file download
     } catch (error) {
       console.error('Error generating template:', error);
+    }
+  };
+
+  const toggleWarehouseSelection = (warehouseId: string) => {
+    setSelectedWarehouses(prev => {
+      if (prev.includes(warehouseId)) {
+        return prev.filter(id => id !== warehouseId);
+      }
+      return [...prev, warehouseId];
+    });
+  };
+
+  const handleUploadAllocations = async () => {
+    if (!uploadFile || !contract) return;
+    try {
+      console.log('uploading allocations for contract', contract.id);
+
+      const token = localStorage.getItem('access_token');
+      const myHeaders = new Headers();
+      myHeaders.append(
+        'Authorization', `Bearer ${token}`
+      );
+      // Create the form data and append each file.
+      const formData = new FormData();
+      formData.append("contract_id", contract.id);
+      formData.append("csv_file", uploadFile);
+      // Set up the request options.
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: formData,
+        redirect: "follow" as RequestRedirect,
+      };
+
+      // Make the API call.
+      const response = await fetch(`${BASE_URL}/v2/contract/outgoing/preview-allocation-from-csv/`, requestOptions);
+      const result = await response.json();
+      console.log("Upload result:", result);
+
+      if (response.status == 200) {
+        // Map raw allocation keys to the desired format
+        const formattedAllocations = result.data.map((group: any) =>
+          group.map((allocation: any) => ({
+            contractId: allocation.contract_id,
+            contractNumber: allocation.contract_number,
+            warehouse: allocation.warehouse_name,
+            allocatedQuantity: allocation.allocated_amount,
+            ghg: allocation.ghg,
+            outgoingSD: allocation.outgoing_sd,
+            outgoingSDUrl: allocation.outgoing_sd_url,
+            groupId: allocation.group_id,
+            month: allocation.for_month,
+          }))
+        );
+        setPreviewAllocations(formattedAllocations);
+        // Optionally clear the file input after successful upload
+        // setUploadFile(null);
+      } else {
+        console.error('Error previewing allocations from CSV:', result.message);
+      }
+    } catch (error) {
+      console.error('Error previewing allocations from CSV:', error);
     }
   };
 
@@ -416,7 +571,7 @@ export default function ContractClient() {
             <div className="space-y-4">
               <Button
                 variant="outline"
-                onClick={() => window.location.href = '/reporting/download-demo-csv/'}
+                onClick={() => window.location.href = `${BASE_URL}/reporting/download-demo-csv/`}
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download Demo CSV
@@ -431,36 +586,22 @@ export default function ContractClient() {
                     onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                     className="flex-1"
                   />
-                  <Button disabled={!uploadFile}>
+                  <Button onClick={handleUploadAllocations} disabled={!uploadFile}>
                     Upload Allocations
                   </Button>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label className="font-semibold">Select Warehouses To Allocate From:</Label>
-                <Select
-                  value={selectedWarehouses.join(',')}
-                  onValueChange={(value) => setSelectedWarehouses(value.split(','))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select warehouses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.map((warehouse) => (
-                      <SelectItem key={warehouse.id} value={warehouse.id}>
-                        {warehouse.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <WarehouseDropdown 
+                warehouses={warehouses} 
+                selectedWarehouses={selectedWarehouses}
+                onSelect={toggleWarehouseSelection}
+              />
                 <Button
                   onClick={handlePreviewAllocation}
                   disabled={selectedWarehouses.length === 0}
                 >
-                  Preview Allocation
+                  Preview Allocations
                 </Button>
-              </div>
             </div>
 
             {previewAllocations.length > 0 && (
@@ -492,8 +633,8 @@ export default function ContractClient() {
                                 {allocation.contractNumber}
                               </a>
                             </td>
-                            <td className="px-4 py-3">{contract.month}</td>
-                            <td className="px-4 py-3">{allocation.allocatedQuantity.toLocaleString()}</td>
+                            <td className="px-4 py-3">{allocation.month}</td>
+                            <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
                             <td className="px-4 py-3">{allocation.warehouse}</td>
                             <td className="px-4 py-3">{allocation.ghg}</td>
                           </tr>
