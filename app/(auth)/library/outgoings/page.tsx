@@ -69,7 +69,7 @@ const fetchContracts = async (year: string): Promise<Contract[]> => {
       seller: contract.seller,
       quantity: Number(contract.quantity) || 0,
       blQuantity: Number(contract.bl_quantity) || 0,
-      billOfLading: contract.bill_of_loading,
+      billOfLading: contract.bill_of_lading,
       portOfLoading: contract.port_of_loading
     }));
   } catch (error) {
