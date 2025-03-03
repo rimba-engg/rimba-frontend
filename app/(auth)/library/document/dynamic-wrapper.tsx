@@ -13,6 +13,7 @@ import {
   Tag,
   Clock,
   Save,
+  Plus,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -281,6 +282,18 @@ export default function DocumentClient() {
         [key]: value,
       };
       return updated;
+    });
+  };
+
+  const handleDeleteRow = (rowIndex: number) => {
+    setEditedRows(prev => prev.filter((_, index) => index !== rowIndex));
+  };
+
+  const handleAddRow = () => {
+    setEditedRows(prev => {
+      // Create a new empty row with all keys initialized to empty string
+      const newRow = allKeys.reduce((acc, key) => ({ ...acc, [key]: '' }), {});
+      return [...prev, newRow];
     });
   };
 
@@ -605,23 +618,32 @@ const handleUpdateData = async () => {
                   {isEditing ? 'Cancel Edit' : 'Edit Data'}
                 </Button>
                 {isEditing && (
-                  <Button 
-                    onClick={handleUpdateData} 
-                    className="bg-primary hover:bg-primary/90"
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? (
-                      <div className="flex items-center">
-                        <div className="spinner mr-2"></div>
-                        Updating...
-                      </div>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        Update Data
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleAddRow}
+                      className="ml-2"
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Add Row
+                    </Button>
+                    <Button 
+                      onClick={handleUpdateData} 
+                      className="bg-primary hover:bg-primary/90"
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <div className="flex items-center">
+                          <div className="spinner mr-2"></div>
+                          Updating...
+                        </div>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Update Data
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -641,10 +663,10 @@ const handleUpdateData = async () => {
                         {key}
                       </th>
                     ))}
+                    {isEditing && <th className="py-2 px-3 text-left font-semibold">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {/* If this is the current version AND isEditing is true => use editedRows */}
                   {(selectedVersion === documentDetails.version && isEditing
                     ? editedRows
                     : selectedVersionData
@@ -671,6 +693,17 @@ const handleUpdateData = async () => {
                           </td>
                         );
                       })}
+                      {isEditing && (
+                        <td className="py-2 px-3 align-top">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteRow(rowIndex)}
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
