@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Search, Filter, Upload, ArrowUpDown } from 'lucide-react';
+import { FileText, Search, Filter, Upload, ArrowUpDown, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -84,8 +84,6 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
-
-
 export default function OutgoingPage() {
   const router = useRouter();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -100,7 +98,8 @@ export default function OutgoingPage() {
     seller: '',
     portOfLoading: ''
   });
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Extract fetchData so it can be used for both the initial load and when a contract is added.
   const fetchData = async () => {
@@ -171,6 +170,27 @@ export default function OutgoingPage() {
     router.push(`/library/outgoing-contract?id=${contractId}`);
   };
 
+  const handleDelete = async (contract: Contract) => {
+    if (!window.confirm(`Are you sure you want to delete this contract ${contract.contractNumber}?`)) return;
+    setDeletingId(contract.contractNumber);
+    try {
+      const res = await api.post<{ status: string; message: string; data: any }>(
+        '/v2/contract/outgoing/delete/',
+        { contract_number: contract.id }
+      );
+      if (res.status === "success") {
+        // Refresh contracts after successful deletion
+        fetchData();
+      } else {
+        alert("Deletion failed: " + res.message);
+      }
+    } catch (error) {
+      alert("Deletion failed: " + (error instanceof Error ? error.message : error));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -217,12 +237,11 @@ export default function OutgoingPage() {
                 <Filter className="w-4 h-4 mr-2" />
                 Filter
               </Button>
-
             </div>
           </div>
 
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border w-[85vw]">
+            <Table className=''>
               <TableHeader>
                 <TableRow>
                   <TableHead>
@@ -325,6 +344,7 @@ export default function OutgoingPage() {
                       <ArrowUpDown className="w-4 h-4" />
                     </Button>
                   </TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -354,6 +374,18 @@ export default function OutgoingPage() {
                     <TableCell>{contract.blQuantity.toLocaleString()}</TableCell>
                     <TableCell>{contract.billOfLading}</TableCell>
                     <TableCell>{contract.portOfLoading}</TableCell>
+                    <TableCell>
+                      {deletingId === contract.contractNumber ? (
+                        <Loader text="Deleting..." size="sm" />
+                      ) : (
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleDelete(contract)}
+                        >
+                          <Trash className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
