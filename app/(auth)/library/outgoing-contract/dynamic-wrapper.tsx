@@ -173,12 +173,22 @@ export default function ContractClient() {
   const handleUpdateContract = async () => {
     setProcessing(true);
     try {
-      // API call to update contract
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create a FormData payload matching the curl request payload.
+      var formData = {
+        month: updateForm.month,
+        year: updateForm.year,
+        quantity: updateForm.quantity.toString(),
+        port_of_loading: updateForm.portOfLoading,
+        port_of_discharge: updateForm.portOfDischarge,
+      }
+
+      // Call the new API helper method to send a PATCH with FormData.
+      await api.patch(`/v2/contract/outgoing/detail/${contract?.id}/`, formData);
+
       setShowUpdateModal(false);
-      await loadContractData(); // Reload data
+      await loadContractData(); // Reload updated data
     } catch (error) {
-      console.error('Error updating contract:', error);
+      console.error("Error updating contract:", error);
     } finally {
       setProcessing(false);
     }
@@ -707,25 +717,6 @@ export default function ContractClient() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Year</Label>
-                <Select
-                  value={updateForm.year}
-                  onValueChange={(value) => setUpdateForm(prev => ({ ...prev, year: value }))}
-                  disabled={processing}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {YEARS.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-2">
                 <Label>Quantity</Label>
