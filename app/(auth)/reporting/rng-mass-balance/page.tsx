@@ -28,6 +28,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
+import { Info } from 'lucide-react';
 
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -47,6 +48,7 @@ interface MassBalanceResponse {
   view_data: Array<Record<string, any>>;
   chart_config: Record<string, any>;
   chart_title: string;
+  tax_credit: Record<string, any>;
 }
 
 const defaultColDef = {
@@ -95,6 +97,7 @@ export default function RngMassBalancePage() {
   const [viewAggregate, setViewAggregate] = useState<Record<string, any>>({});
   const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
   const [chartTitle, setChartTitle] = useState<string>('');
+  const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
 
   // Initialize grid ref for accessing the grid API
   const gridRef = useRef<AgGridReact>(null);
@@ -174,6 +177,7 @@ export default function RngMassBalancePage() {
       setViewAggregate(response.view_aggregate);
       setChartConfig(response.chart_config as ChartData<"bar", (number | [number, number] | null)[], unknown>);
       setChartTitle(response.chart_title);
+      setTaxCredit(response.tax_credit);
     } catch (err) {
       setError('Failed to load mass balance data');
       console.error('Error fetching mass balance data:', err);
@@ -213,12 +217,6 @@ export default function RngMassBalancePage() {
       )}
 
         <div className="flex gap-6">
-          {chartConfig !== null && Object.keys(chartConfig).length > 0 && (
-            <div className="w-3/4 h-[300px]">
-              <Bar data={chartConfig} options={options} />
-            </div>
-          )}
-
           <div className="flex flex-col gap-4 w-1/4">
             <div className="space-y-2">
               <label className="text-sm font-medium">View Name</label>
@@ -251,6 +249,7 @@ export default function RngMassBalancePage() {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full"
+                max={endDate}
               />
             </div>
 
@@ -271,6 +270,44 @@ export default function RngMassBalancePage() {
               Download CSV
             </button>
           </div>
+
+          {chartConfig !== null && Object.keys(chartConfig).length > 0 && (
+            <div className="w-1/2 h-[300px]">
+              <Bar data={chartConfig} options={options} />
+            </div>
+          )}
+
+          {taxCredit !== null && Object.keys(taxCredit).length > 0 && (
+            <div className="w-1/4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-white rounded-lg shadow">
+                  <h3 className="font-semibold text-base">RINs</h3>
+                  <p className="text-xl">{taxCredit.RINs.toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-white rounded-lg shadow">
+                  <h3 className="font-semibold text-base">D-Code</h3>
+                  <p className="text-xl">{taxCredit['D-Code']}</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-white rounded-lg shadow">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-base">45Z Tax Credit</h3>
+                  <a href="https://crsreports.congress.gov/product/pdf/IF/IF12502" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700">
+                    <Info size={16} />
+                  </a>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    Prevailing Wage: ${taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}
+                  </div>
+                  <div>
+                    Non-Prevailing Wage: ${taxCredit['45Z Credit']['Non-Prevailing Wage'].toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
