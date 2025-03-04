@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
 import { YearSelector } from '@/components/selectors/year-selector';
 import { Loader } from '@/components/ui/loader';
+import AddContractModal from './components/AddContractModal';
 
 interface Contract {
   id: string;
@@ -194,10 +195,7 @@ export default function OutgoingPage() {
             Manage and track outgoing contract submissions and allocations.
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <Upload className="w-4 h-4 mr-2" />
-          New Contract
-        </Button>
+        <AddContractModal />
       </div>
 
       <div className="bg-card rounded-lg shadow">
