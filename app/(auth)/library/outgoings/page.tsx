@@ -102,28 +102,21 @@ export default function OutgoingPage() {
   });
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
 
+  // Extract fetchData so it can be used for both the initial load and when a contract is added.
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchContracts(selectedYear);
+      setContracts(data);
+    } catch (error) {
+      console.error('Failed to fetch contracts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const controller = new AbortController();
-    
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchContracts(selectedYear);
-        setContracts(data);
-      } catch (error) {
-        const err = error as Error;
-        if (err.name === 'AbortError') {
-          return;
-        }
-        console.error('Failed to fetch contracts:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
-
-    return () => controller.abort();
   }, [selectedYear]);
 
   const handleSort = (key: keyof Contract) => {
@@ -195,7 +188,7 @@ export default function OutgoingPage() {
             Manage and track outgoing contract submissions and allocations.
           </p>
         </div>
-        <AddContractModal />
+        <AddContractModal onContractAdded={fetchData} />
       </div>
 
       <div className="bg-card rounded-lg shadow">

@@ -20,10 +20,16 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { api } from '@/lib/api';
+import { Loader } from '@/components/ui/loader';
 
 export interface Product {
   id: string;
   name: string;
+}
+interface ApiResponse {
+  status: string;
+  message: string;
+  data: DocumentType[];
 }
 
 // New interface for Bill of Lading documents.
@@ -32,15 +38,18 @@ export interface BillOfLading {
   bill_of_lading: string;
 }
 
-const AddContractModal = () => {
+interface AddContractModalProps {
+  onContractAdded?: () => void;
+}
+
+const AddContractModal: React.FC<AddContractModalProps> = ({ onContractAdded }) => {
   const [contractNumber, setContractNumber] = useState('');
   const [product, setProduct] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
-
-  // New state to store Bill of Lading options
   const [billOfLadingOptions, setBillOfLadingOptions] = useState<BillOfLading[]>([]);
-  // State for the selected Bill Of Lading (storing the id).
   const [billOfLading, setBillOfLading] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
 
   const fetchProducts = async () => {
     try {
@@ -80,10 +89,34 @@ const AddContractModal = () => {
     fetchBillOfLading();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Handle form submission here. For example, post the data to your API.
-    console.log({ contractNumber, product, billOfLading });
+    setIsSubmitting(true);
+    setResultMessage(null);
+    try {
+      const response = await api.post<ApiResponse>('/v2/contract/outgoing/add/', {
+        contract_number: contractNumber,
+        product: product,
+        doc_id: billOfLading,
+      });
+      console.log(response);
+      if (response.status === 'success') {
+        setResultMessage('Contract added successfully!');
+        // Clear the form fields (if desired)
+        setContractNumber('');
+        setProduct('');
+        setBillOfLading('');
+        // Trigger the parent's fetch function to refresh the contract list
+        onContractAdded && onContractAdded();
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error) {
+      console.error('Error creating contract:', error);
+      setResultMessage('Error creating contract.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -99,67 +132,77 @@ const AddContractModal = () => {
         <DialogHeader>
           <DialogTitle>Add Outgoing Contract</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          {/* Contract Number Field */}
-          <div className="grid gap-2">
-            <Label htmlFor="contractNumber">Contract Number</Label>
-            <Input
-              id="contractNumber"
-              placeholder="Enter contract number"
-              value={contractNumber}
-              onChange={(e) => setContractNumber(e.target.value)}
-            />
+        {isSubmitting ? (
+          <div className="flex items-center justify-center min-h-[150px]">
+            <Loader text="Saving Contract..." size="lg" />
           </div>
-          
-          {/* Updated Product Dropdown */}
-          <div className="grid gap-2">
-            <Label htmlFor="product">Product</Label>
-            <Select value={product} onValueChange={setProduct}>
-              <SelectTrigger id="product" className="w-full">
-                <SelectValue placeholder="Select a product" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.length > 0 ? (
-                  products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no-products">No products available</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Bill Of Lading Dropdown */}
-          <div className="grid gap-2">
-            <Label htmlFor="billOfLading">Bill Of Lading</Label>
-            <Select value={billOfLading} onValueChange={setBillOfLading}>
-              <SelectTrigger id="billOfLading" className="w-full">
-                <SelectValue placeholder="Select a bill of lading" />
-              </SelectTrigger>
-              <SelectContent>
-                {billOfLadingOptions.length > 0 ? (
-                  billOfLadingOptions.map((bol) => (
-                    <SelectItem key={bol.id} value={bol.id}>
-                      {bol.bill_of_lading}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="no-bol">No Bill of Lading available</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button type="submit">Save Contract</Button>
-          </DialogFooter>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+            {/* Contract Number Field */}
+            <div className="grid gap-2">
+              <Label htmlFor="contractNumber">Contract Number</Label>
+              <Input
+                id="contractNumber"
+                placeholder="Enter contract number"
+                value={contractNumber}
+                onChange={(e) => setContractNumber(e.target.value)}
+              />
+            </div>
+            
+            {/* Updated Product Dropdown */}
+            <div className="grid gap-2">
+              <Label htmlFor="product">Product</Label>
+              <Select value={product} onValueChange={setProduct}>
+                <SelectTrigger id="product" className="w-full">
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.length > 0 ? (
+                    products.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-products">No products available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Bill Of Lading Dropdown */}
+            <div className="grid gap-2">
+              <Label htmlFor="billOfLading">Bill Of Lading</Label>
+              <Select value={billOfLading} onValueChange={setBillOfLading}>
+                <SelectTrigger id="billOfLading" className="w-full">
+                  <SelectValue placeholder="Select a bill of lading" />
+                </SelectTrigger>
+                <SelectContent>
+                  {billOfLadingOptions.length > 0 ? (
+                    billOfLadingOptions.map((bol) => (
+                      <SelectItem key={bol.id} value={bol.id}>
+                        {bol.bill_of_lading}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-bol">No Bill of Lading available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {resultMessage && (
+              <div className="text-sm text-center text-green-600">{resultMessage}</div>
+            )}
+
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button type="submit">Save Contract</Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
