@@ -21,6 +21,7 @@ export interface DocumentType {
     description: string | null;
     code: string;
     extraction_logics: ExtractionLogic[];
+    documents: number;
 }
 
 export interface ApiResponse {

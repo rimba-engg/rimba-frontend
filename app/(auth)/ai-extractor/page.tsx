@@ -202,6 +202,7 @@ export default function AIExtractorPage() {
           <TableRow>
             <TableHead className="py-2">Document Type Name</TableHead>
             <TableHead className="py-2">Extraction Logics</TableHead>
+            <TableHead className="py-2">Documents</TableHead>
             <TableHead className="py-2">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -227,6 +228,9 @@ export default function AIExtractorPage() {
                 ) : (
                   <Badge variant="destructive">No active logic</Badge>
                 )}
+              </TableCell>
+              <TableCell className="py-2">
+                {docType.documents}
               </TableCell>
               <TableCell className="py-2">
                 <Button
