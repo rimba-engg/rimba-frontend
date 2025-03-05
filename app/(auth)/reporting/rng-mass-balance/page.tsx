@@ -32,8 +32,6 @@ import { Info } from 'lucide-react';
 
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
-
-// Mark all grids as using legacy themes
 provideGlobalGridOptions({ theme: "legacy"});
 
 // Register necessary components

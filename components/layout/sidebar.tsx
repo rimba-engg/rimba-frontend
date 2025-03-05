@@ -20,6 +20,7 @@ import {
   Scale,
   Database,
   LineChart,
+  GitGraph,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -37,7 +38,7 @@ interface MenuGroup {
   items: MenuItem[];
 }
 
-const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean): (MenuItem | MenuGroup)[] => [
+const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Customer | null): (MenuItem | MenuGroup)[] => [
   { icon: Rocket, label: 'Onboarding', href: '/onboarding' },
   { icon: ClipboardCheck, label: 'Audit Manager', href: '/audit/projects' },
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management' }] : []),
@@ -70,6 +71,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean): (MenuItem | Men
       { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
       { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
       { icon: LineChart, label: 'Vertex', href: '/reporting/vertex' },
+      ...(customerData?.name === 'Demo SB-253' ? [{ icon: GitGraph, label: 'Scope 2 Emissions', href: '/reporting/emission-scope-2' }] : []),
     ],
   },
   ]),
@@ -91,7 +93,7 @@ export function Sidebar() {
 
   const isAdmin = customerData?.role === 'ADMIN';
   const isRNGCustomer = customerData?.is_rng_customer ?? false;
-  const menuItems = getMenuItems(isAdmin, isRNGCustomer);
+  const menuItems = getMenuItems(isAdmin, isRNGCustomer, customerData);
 
   const toggleGroup = (label: string) => {
     setExpandedGroup(current => current === label ? null : label);
