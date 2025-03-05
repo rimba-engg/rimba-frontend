@@ -141,6 +141,7 @@ export default function ContractDetails() {
     const [isEditing, setIsEditing] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [downloadLoading, setDownloadLoading] = useState(false);
+    const [suppliers, setSuppliers] = useState<{ name: string }[]>([]);
   
     // Fetch contract data
     useEffect(() => {
@@ -194,6 +195,25 @@ export default function ContractDetails() {
         fetchContractDetails();
       }
     }, [contract_id]);
+  
+    // Add useEffect to fetch suppliers
+    useEffect(() => {
+      const fetchSuppliers = async () => {
+        try {
+          const response = await api.get('/v2/suppliers/');
+          setSuppliers((response as any).data);
+        } catch (error) {
+          console.error("Failed to fetch suppliers:", error);
+          showToast({
+            title: "Error",
+            description: "Failed to load supplier list",
+            variant: "destructive"
+          });
+        }
+      };
+      
+      fetchSuppliers();
+    }, []);
   
     const handleBackClick = () => {
         router.push('/library/incomings');
@@ -846,13 +866,23 @@ export default function ContractDetails() {
                             <RefreshCcw className="h-4 w-4 mr-2 text-teal-600" />
                             Update Seller
                           </Label>
-                          <Select>
+                          <Select
+                            value={contract.seller}
+                            onValueChange={(value) => setContract(prev => prev ? {
+                              ...prev,
+                              seller: value
+                            } : null)}
+                          >
                             <SelectTrigger className="w-full relative group">
                               <div className="absolute inset-0 bg-gradient-to-r from-teal-50 to-blue-50 opacity-20 rounded-md group-hover:opacity-40 transition-opacity"></div>
                               <SelectValue placeholder="Select a seller" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="seller1">Select a seller</SelectItem>
+                              {suppliers.map((supplier, index) => (
+                                <SelectItem key={index} value={supplier.name}>
+                                  {supplier.name}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
