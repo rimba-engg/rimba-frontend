@@ -21,7 +21,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { MONTHS } from '@/lib/constants';
-import { YearMonthSelect } from '@/components/ui/year-month-select';
 
 interface Comment {
   id: number;
@@ -38,6 +37,7 @@ interface VersionHistoryEntry {
   extracted_data: Record<string, any>[];
 }
 
+
 interface DocumentDetails {
   id: string;
   name: string;
@@ -53,7 +53,9 @@ interface DocumentDetails {
   comments: Comment[];
   review_reasons: string[];
   extracted_data: Record<string, any>[];
-  version_history: VersionHistoryEntry[]; // older versions
+  version_history: VersionHistoryEntry[];
+  for_year: number;
+  for_month: number;
 }
 
 export default function DocumentClient() {
@@ -82,6 +84,8 @@ export default function DocumentClient() {
 
   const [isLoading, setIsLoading] = useState(true);  // Add loading state
 
+  const [selectedType, setSelectedType] = useState<string>(documentDetails?.type || "");
+
   useEffect(() => {
     const fetchDocumentDetails = async () => {
       console.log('fetching document details');
@@ -93,10 +97,14 @@ export default function DocumentClient() {
 
           if ((response as any).status === 'success') {
             const doc = (response as any).data.document;
+            console.log(doc.for_month);
+            console.log(doc.for_year);
             // Build DocumentDetails object
             const docDetails: DocumentDetails = {
               id: doc.id,
               name: doc.name,
+              for_year: parseInt(doc.for_year, 10),
+              for_month: doc.for_month - 1,
               type: doc.document_type,
               uploadDate: doc.last_updated_at,
               uploadedBy: doc.last_uploaded_by,
@@ -112,7 +120,10 @@ export default function DocumentClient() {
               version_history: doc.version_history ?? [],
             };
             setDocumentDetails(docDetails);
-            // For the doc's current version
+            setSelectedType(doc.document_type);
+            // Initialize selected year/month with document's values
+            setSelectedYear(doc.for_year?.toString() ?? null);
+            setSelectedMonth(doc.for_month ?? null);
             setEditedRows(docDetails.extracted_data);
           } else {
             console.error(
@@ -171,6 +182,8 @@ export default function DocumentClient() {
     setIsModalOpen(true);
     setSelectedVersion(documentDetails.version);
     setSelectedVersionData(documentDetails.extracted_data);
+    setSelectedYear(documentDetails.for_year.toString());
+    setSelectedMonth(documentDetails.for_month);
     setCompareCurrent(false);
     setIsEditing(false);
   };
@@ -312,6 +325,7 @@ const handleUpdateData = async () => {
     const payload = {
       document_id: documentId,
       extracted_data: editedRows,
+      document_type: selectedType,
       document_year: selectedYear,
       document_month: selectedMonth !== null ? MONTHS[selectedMonth] : null
     };
@@ -452,12 +466,7 @@ const handleUpdateData = async () => {
             <div className="flex justify-between items-start mb-6">
               <h2 className="text-lg font-semibold">Document Details</h2>
               <div className="flex gap-2">
-                <Button variant="outline" size="icon">
-                  <Share2 className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
+                {/* Removed Share2 and MoreVertical buttons */}
               </div>
             </div>
 
@@ -591,11 +600,47 @@ const handleUpdateData = async () => {
                 </select>
                 
                 {/* Add Year/Month selector */}
-                <div className="ml-4">
-                  <YearMonthSelect 
-                    onYearChange={setSelectedYear}
-                    onMonthChange={setSelectedMonth}
-                  />
+                <div className="ml-4 flex gap-2">
+                  {/* Document Type Dropdown */}
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="border rounded p-1 text-sm"
+                    disabled={!isEditing}
+                  >
+                    {[
+                      "Bill Of Lading",
+                      "Business Document",
+                      "Delivery Note",
+                      "SD INS",
+                      "SD ISCC",
+                      "SD ISCC Outgoing",
+                      "WB Ticket",
+                      "WeighBridge Ticket"
+                    ].map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedYear ?? documentDetails.for_year}
+                    onChange={(e) => setSelectedYear((e.target.value))}
+                    className="border rounded p-1 text-sm"
+                  >
+                    {Array.from({length: 11}, (_, i) => 2020 + i).map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={selectedMonth ?? documentDetails.for_month}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="border rounded p-1 text-sm"
+                  >
+                    {MONTHS.map((month, index) => (
+                      <option key={month} value={index}>{month}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -659,11 +704,14 @@ const handleUpdateData = async () => {
                 <thead>
                   <tr className="border-b border-gray-300">
                     {allKeys.map((key) => (
-                      <th key={key} className="py-2 px-3 text-left font-semibold">
+                      <th 
+                        key={key} 
+                        className="py-2 px-3 text-left font-semibold min-w-[150px] whitespace-nowrap"
+                      >
                         {key}
                       </th>
                     ))}
-                    {isEditing && <th className="py-2 px-3 text-left font-semibold">Actions</th>}
+                    {isEditing && <th className="py-2 px-3 text-left font-semibold min-w-[100px]">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -678,7 +726,10 @@ const handleUpdateData = async () => {
                       {allKeys.map((key) => {
                         const cellValue = row[key] !== undefined ? row[key] : '';
                         return (
-                          <td key={key} className="py-2 px-3 align-top">
+                          <td 
+                            key={key} 
+                            className="py-2 px-3 align-top min-w-[150px] whitespace-nowrap"
+                          >
                             {selectedVersion === documentDetails.version && isEditing ? (
                               <Input
                                 value={cellValue}

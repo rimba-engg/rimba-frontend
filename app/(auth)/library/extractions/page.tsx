@@ -229,43 +229,6 @@ export default function ExtractionsPage() {
     ));
   };
 
-  const handleExportData = async () => {
-    try {
-      setIsExporting(true);
-      console.log('Exporting data for:', selectedDocType, selectedMonth, selectedYear);
-      
-      const response = await fetch(`${BASE_URL}/v2/extractions/download/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
-        body: JSON.stringify({
-          month: Number(selectedMonth) + 1,
-          year: selectedYear,
-          document_type: selectedDocType
-        })
-      });
-
-      if (!response.ok) throw new Error('Export failed');
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${selectedDocType}_${MONTHS[Number(selectedMonth)]}_${selectedYear}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export error:', error);
-      alert('Failed to export data');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   // ---- New: CSV Export Functionality ----
 
   // Helper to escape CSV values
@@ -351,24 +314,6 @@ export default function ExtractionsPage() {
             View and manage extracted document data and results.
           </p>
         </div>
-        <Button 
-          onClick={handleExportData}
-          variant="outline" 
-          className="ml-auto h-8"
-          disabled={isExporting}
-        >
-          {isExporting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin text-green-500" />
-              Exporting...
-            </>
-          ) : (
-            <>
-              <Download className="w-4 h-4 mr-2" />
-              Export Data
-            </>
-          )}
-        </Button>
       </div>
 
       {/* Filter & Search Section */}
