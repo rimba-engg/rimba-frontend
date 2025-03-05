@@ -30,7 +30,19 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { Edit } from 'lucide-react';
+import { 
+  Edit, 
+  Trash, 
+  PlayCircle, 
+  Plus, 
+  CheckCircle, 
+  UploadCloud, 
+  Save, 
+  X,
+  FileText,
+  Settings,
+  Folder
+} from 'lucide-react';
 import DocumentTypeModal from '../components/DocumentTypeModal';
 import { Badge } from '@/components/ui/badge';
 import DocumentUploadModal from '../components/DocumentUploadModal';
@@ -345,7 +357,8 @@ export default function DocumentTypeDetailClient() {
     <div className="p-6 space-y-6">
       {/* Document Type Header Section with Edit Icon */}
       <Card>
-        <CardHeader className="flex-row  items-center">
+        <CardHeader className="flex-row items-center">
+          <FileText size={20} className="mr-2" />
           <CardTitle className="text-2xl font-bold">
             {documentType.name}
           </CardTitle>
@@ -364,7 +377,8 @@ export default function DocumentTypeDetailClient() {
 
       {/* Run Extraction Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center">
+          <PlayCircle size={20} className="mr-2" />
           <CardTitle className="text-lg font-semibold">Run Extraction</CardTitle>
         </CardHeader>
         <CardContent>
@@ -440,6 +454,7 @@ export default function DocumentTypeDetailClient() {
             onClick={handleExecuteExtraction}
             disabled={!selectedDocumentForExtraction || !selectedRunExtractionLogic || extractionLoading}
           >
+            <PlayCircle size={16} className="mr-1" />
             Run Extraction
           </Button>
 
@@ -476,7 +491,8 @@ export default function DocumentTypeDetailClient() {
 
       {/* Extraction Config Management Section */}
       <Card>
-        <CardHeader className="flex-row items-center gap-10">
+        <CardHeader className="flex-row items-center gap-2">
+          <Settings size={20} className="mr-2" />
           <CardTitle className="text-lg font-semibold">
             Extraction Config Management
           </CardTitle>
@@ -489,10 +505,10 @@ export default function DocumentTypeDetailClient() {
               return activeConfig ? (
                 <div className="mb-4">
                   <span className="mr-2 font-semibold">Active Config:</span>
-                  <Badge variant="default" className='text-lg mr-4'>
+                  <Badge variant="default" className="text-lg mr-4">
                     {activeConfig.name}
                   </Badge>
-                  <Badge variant="secondary" className='text-lg'>
+                  <Badge variant="secondary" className="text-lg">
                     V{activeConfig.version}
                   </Badge>
                 </div>
@@ -501,20 +517,28 @@ export default function DocumentTypeDetailClient() {
           )}
         </CardHeader>
         <CardContent>
-
           <div className="flex items-center justify-between mb-4">
             <Label htmlFor="extraction-config" className="mb-2 block">
               Select Extraction Config
             </Label>
             <Button onClick={() => setCreatingNewVersion((prev) => !prev)}>
-              {creatingNewVersion ? "Cancel" : "Create New Version"}
+              {creatingNewVersion ? (
+                <>
+                  <X size={16} className="mr-1" /> Cancel
+                </>
+              ) : (
+                <>
+                  <Plus size={16} className="mr-1" /> Create New Version
+                </>
+              )}
             </Button>
           </div>
-
           {creatingNewVersion && (
             <div className="p-4 mb-4 border rounded">
               <div className="mb-4">
-                <Label htmlFor="new-version-name" className="block mb-1">New Extraction Config Name</Label>
+                <Label htmlFor="new-version-name" className="block mb-1">
+                  New Extraction Config Name
+                </Label>
                 <Input 
                   id="new-version-name" 
                   value={newExtractionLogicName} 
@@ -523,7 +547,10 @@ export default function DocumentTypeDetailClient() {
                 />
               </div>
               <div className="mb-4">
-                <Button onClick={handleAddNewConfigRow}>Add Config Row</Button>
+                <Button onClick={handleAddNewConfigRow}>
+                  <Plus size={16} className="mr-1" />
+                  Add Config Row
+                </Button>
               </div>
               {newExtractionConfigs.map((config, idx) => (
                 <div key={idx} className="flex items-center gap-2 mb-2">
@@ -538,11 +565,15 @@ export default function DocumentTypeDetailClient() {
                     onChange={(e) => handleNewConfigRowChange(idx, 'question', e.target.value)}
                   />
                   <Button variant="destructive" size="sm" onClick={() => handleRemoveConfigRow(idx)}>
+                    <Trash size={16} className="mr-1" />
                     Remove
                   </Button>
                 </div>
               ))}
-              <Button onClick={handleSaveNewExtractionVersion}>Save New Version</Button>
+              <Button onClick={handleSaveNewExtractionVersion}>
+                <Save size={16} className="mr-1" />
+                Save New Version
+              </Button>
             </div>
           )}
 
@@ -600,7 +631,11 @@ export default function DocumentTypeDetailClient() {
                   disabled={activationLoading}
                   className="mt-2"
                 >
-                  {activationLoading ? "Activating..." : "Activate Logic"}
+                  {activationLoading ? "Activating..." : (
+                    <>
+                      <CheckCircle size={16} className="mr-1" />Activate Logic
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -630,7 +665,8 @@ export default function DocumentTypeDetailClient() {
 
       {/* Sample Documents Management Section */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center gap-2">
+          <Folder size={20} className="mr-2" />
           <CardTitle className="text-lg font-semibold">
             Sample Documents
           </CardTitle>
@@ -643,7 +679,10 @@ export default function DocumentTypeDetailClient() {
               onChange={(e) => setSampleDocSearchQuery(e.target.value)}
               placeholder="Search sample documents"
             />
-            <Button onClick={() => setShowUploadModal(true)}>Add Document</Button>
+            <Button onClick={() => setShowUploadModal(true)}>
+              <UploadCloud size={16} className="mr-1" />
+              Add Document
+            </Button>
           </div>
 
           {/* Filter the sample documents based on the search query */}
@@ -673,7 +712,7 @@ export default function DocumentTypeDetailClient() {
                           size="sm"
                           onClick={() => handleRemoveSampleDocument(doc.id)}
                         >
-                          Remove
+                          <Trash size={16} className="mr-1" /> Remove
                         </Button>
                       </TableCell>
                     </TableRow>
