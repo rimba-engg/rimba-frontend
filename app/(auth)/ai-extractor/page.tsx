@@ -279,7 +279,7 @@ export default function AIExtractorPage() {
         <DocumentTypeModal
           isOpen={true}
           onClose={() => setShowCreateDocTypeModal(false)}
-          docType={{ id: '', name: '', description: '', code: '', extraction_logics: [] }}
+          docType={{ id: '', name: '', description: '', code: '', extraction_logics: [], documents: 0 }}
           onSave={handleCreateDocumentType}
         />
       )}
