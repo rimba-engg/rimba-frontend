@@ -254,7 +254,11 @@ export default function MassBalancePage() {
               <span className="ml-2">Loading mass balance data...</span>
             </div>
           ) : (
-            <MassBalanceTable data={massBalanceData} />
+            <MassBalanceTable 
+              data={massBalanceData} 
+              selectedWarehouses={selectedWarehouses}
+              selectedProducts={selectedProduct}
+            />
           )}
         </div>
       </Card>

@@ -14,9 +14,11 @@ export interface MassBalanceData {
 
 interface MassBalanceTableProps {
   data: MassBalanceData[];
+  selectedWarehouses: string[];
+  selectedProducts: string[];
 }
 
-export const MassBalanceTable = ({ data }: MassBalanceTableProps) => {
+export const MassBalanceTable = ({ data, selectedWarehouses, selectedProducts }: MassBalanceTableProps) => {
   const router = useRouter();
   const formatNumber = (value: number) => value.toFixed(3);
 
@@ -33,14 +35,28 @@ export const MassBalanceTable = ({ data }: MassBalanceTableProps) => {
     return monthNumber ? parseInt(monthNumber) : 1;
   };
 
-  const handleIncomingClick = (month: string,year:number) => {
+  const handleIncomingClick = (month: string, year: number) => {
     const monthNumber = monthNameToNumber(month);
-    router.push(`/transactions?month=${monthNumber}&year=${year}&transaction_type=INCOMING`);
+    const params = new URLSearchParams({
+      month: monthNumber.toString(),
+      year: year.toString(),
+      transaction_type: 'INCOMING',
+      warehouses: selectedWarehouses.join(','),
+      product: selectedProducts.join(',')
+    });
+    router.push(`/transactions?${params}`);
   };
 
-  const handleOutgoingClick = (month: string,year:number) => {
+  const handleOutgoingClick = (month: string, year: number) => {
     const monthNumber = monthNameToNumber(month);
-    router.push(`/transactions?month=${monthNumber}&year=${year}&transaction_type=PARTIAL_OUTGOING`);
+    const params = new URLSearchParams({
+      month: monthNumber.toString(),
+      year: year.toString(),
+      transaction_type: 'PARTIAL_OUTGOING',
+      warehouses: selectedWarehouses.join(','),
+      product: selectedProducts.join(',')
+    });
+    router.push(`/transactions?${params}`);
   };
 
   return (
