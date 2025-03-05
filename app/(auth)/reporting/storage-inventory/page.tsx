@@ -85,7 +85,7 @@ export default function StorageInventoryPage() {
   }, [selectedMonth, selectedYear]);
 
   const containerClasses = cn(
-    "container mx-auto px-4 py-4 max-w-[1400px] space-y-4",
+    "container mx-auto px-4 py-4 w-[85vw] space-y-4",
     "transition-all duration-500 ease-out"
   );
 
@@ -206,13 +206,13 @@ export default function StorageInventoryPage() {
               Refresh
             </Button>
             
-            <Button 
+            {/* <Button 
               className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
               onClick={() => console.log("Export data")}
             >
               <Download className="h-4 w-4 mr-2" />
               Export
-            </Button>
+            </Button> */}
           </div>
         </div>
 
