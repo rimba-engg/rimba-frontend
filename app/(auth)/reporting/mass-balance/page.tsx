@@ -236,7 +236,7 @@ export default function MassBalancePage() {
         "motion-safe:animate-[fadeIn_0.5s_ease-out_0.2s]"
       )}>
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
+          {/* <div className="flex justify-between items-center mb-6">
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
               <Input
@@ -247,7 +247,7 @@ export default function MassBalancePage() {
                 className="pl-10"
               />
             </div>
-          </div>
+          </div> */}
           {loading ? (
             <div className="flex justify-center items-center">
               <div className="spinner"></div>
