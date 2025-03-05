@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { api } from '@/lib/api';
 import { months, years } from '@/lib/constants';
+import { useRouter } from 'next/navigation';
 
 // Define the types based on the mock data structure
 interface InventoryItem {
@@ -40,6 +41,7 @@ interface StorageInventoryResponse {
 }
 
 export default function StorageInventoryPage() {
+  const router = useRouter();
   const [selectedProduct, setSelectedProduct] = useState<string[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>("2");
   const [selectedYear, setSelectedYear] = useState("2025");
@@ -127,6 +129,28 @@ export default function StorageInventoryPage() {
   // Format number for display
   const formatNumber = (num: number) => {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const handleIncomingClick = (item: InventoryItem) => {
+    const params = new URLSearchParams({
+      month: item.month.toString(),
+      year: item.year.toString(),
+      transaction_type: 'INCOMING',
+      warehouses: item.storage_id,
+      product: item.product_id
+    });
+    router.push(`/transactions?${params}`);
+  };
+
+  const handleOutgoingClick = (item: InventoryItem) => {
+    const params = new URLSearchParams({
+      month: item.month.toString(),
+      year: item.year.toString(),
+      transaction_type: 'PARTIAL_OUTGOING',
+      warehouses: item.storage_id,
+      product: item.product_id
+    });
+    router.push(`/transactions?${params}`);
   };
 
   return (
@@ -304,15 +328,19 @@ export default function StorageInventoryPage() {
                                   {formatNumber(item.opening)}
                                 </td>
                                 <td className={cn(
-                                  "px-6 py-4 whitespace-nowrap text-sm text-right",
+                                  "px-6 py-4 whitespace-nowrap text-sm text-right cursor-pointer hover:underline",
                                   getValueColorClass(item.incoming)
-                                )}>
+                                )}
+                                onClick={() => handleIncomingClick(item)}
+                                >
                                   {formatNumber(item.incoming)}
                                 </td>
                                 <td className={cn(
-                                  "px-6 py-4 whitespace-nowrap text-sm text-right",
+                                  "px-6 py-4 whitespace-nowrap text-sm text-right cursor-pointer hover:underline",
                                   getValueColorClass(item.outgoing)
-                                )}>
+                                )}
+                                onClick={() => handleOutgoingClick(item)}
+                                >
                                   {formatNumber(item.outgoing)}
                                 </td>
                                 <td className={cn(
