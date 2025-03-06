@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Building, Calendar } from 'lucide-react';
+import { X, Building, Calendar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ interface ProjectFormModalProps {
   project: Checklist;
   onClose: () => void;
   onChange: (field: keyof Checklist, value: string) => void;
-  onSubmit: () => void;
+  onSubmit: () => Promise<void>;
 }
 
 export function ProjectFormModal({
@@ -29,6 +29,8 @@ export function ProjectFormModal({
   const [availableProjects, setAvailableProjects] = useState<
     { id: string; name: string }[]
   >([]);
+  // A state to track the loading status during submission.
+  const [loading, setLoading] = useState(false);
 
   // Fetch available projects when the modal is open and in "create" mode.
   useEffect(() => {
@@ -52,6 +54,18 @@ export function ProjectFormModal({
       loadProjects();
     }
   }, [isOpen, mode]);
+
+  // Wrapper function to handle async submission and manage the loading state.
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      await onSubmit();
+    } catch (error) {
+      console.error('Error during submission:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -128,10 +142,18 @@ export function ProjectFormModal({
             Cancel
           </Button>
           <Button
-            onClick={onSubmit}
-            className="bg-[#1B4D3E] hover:bg-[#163B30]"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-[#1B4D3E] hover:bg-[#163B30] flex items-center gap-2"
           >
-            {mode === 'create' ? 'Create' : 'Save Changes'}
+            {loading ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                <span>Submitting...</span>
+              </>
+            ) : (
+              mode === 'create' ? 'Create' : 'Save Changes'
+            )}
           </Button>
         </div>
       </div>

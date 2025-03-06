@@ -1,16 +1,17 @@
 'use client';
 
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { type FormData } from '@/lib/types';
 
 interface TaskFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void> | void;
   formData: FormData;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   mode: 'add' | 'edit';
@@ -24,7 +25,19 @@ export function TaskFormModal({
   onChange,
   mode,
 }: TaskFormModalProps) {
+  const [loading, setLoading] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await onSubmit(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="!mt-0 fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -42,7 +55,7 @@ export function TaskFormModal({
             <X size={20} />
           </Button>
         </div>
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -64,8 +77,12 @@ export function TaskFormModal({
             >
               Cancel
             </Button>
-            <Button type="submit">
-              {mode === 'add' ? 'Add Task' : 'Save Changes'}
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                mode === 'add' ? 'Add Task' : 'Save Changes'
+              )}
             </Button>
           </div>
         </form>

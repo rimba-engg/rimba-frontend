@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface DeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void> | void; // allow asynchronous actions
 }
 
 export function DeleteModal({
@@ -13,7 +15,18 @@ export function DeleteModal({
   onClose,
   onConfirm,
 }: DeleteModalProps) {
+  const [loading, setLoading] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -23,17 +36,15 @@ export function DeleteModal({
           Are you sure you want to delete this project? This action cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={onClose}
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-          >
-            Delete
+          <Button variant="destructive" onClick={handleConfirm} disabled={loading}>
+            {loading ? (
+              <Loader2 className="animate-spin h-5 w-5 text-white" />
+            ) : (
+              'Delete'
+            )}
           </Button>
         </div>
       </div>

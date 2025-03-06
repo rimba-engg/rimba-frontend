@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { type Checklist, type ColumnSchema } from '@/lib/types';
 import { api } from '@/lib/api';
 
@@ -129,8 +129,12 @@ export function AllChecklistSidebar({
       {/* Sidebar Footer with Edit and Save Buttons */}
       <div className="p-6 border-t">
         <div className="flex justify-end gap-3">
-          <Button onClick={updateChecklist}>
-            Save Changes
+          <Button onClick={updateChecklist} disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              "Save Changes"
+            )}
           </Button>
         </div>
       </div>

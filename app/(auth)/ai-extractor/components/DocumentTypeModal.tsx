@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,7 @@ interface DocumentTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
   docType: DocumentType;
-  onSave: (updatedDocType: DocumentType) => void;
+  onSave: (updatedDocType: DocumentType) => Promise<void>;
 }
 
 export default function DocumentTypeModal({
@@ -39,12 +39,12 @@ export default function DocumentTypeModal({
       // Simulate a delay or API call
     //   await new Promise((resolve) => setTimeout(resolve, 1000));
       console.log('Saving document type:', editedDocType);
-      onSave(editedDocType);
-      onClose();
+      await onSave(editedDocType);
     } catch (error) {
       console.error('Error saving document type:', error);
     } finally {
       setIsSaving(false);
+      onClose();
     }
   };
 
@@ -106,7 +106,11 @@ export default function DocumentTypeModal({
               disabled={isSaving || !isNameValid}
               className="bg-primary hover:bg-primary/90"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                'Save Changes'
+              )}
             </Button>
           </div>
         </div>

@@ -41,11 +41,28 @@ import {
   X,
   FileText,
   Settings,
-  Folder
+  Folder,
+  Loader2,
 } from 'lucide-react';
 import DocumentTypeModal from '../components/DocumentTypeModal';
 import { Badge } from '@/components/ui/badge';
 import DocumentUploadModal from '../components/DocumentUploadModal';
+
+// A reusable LoadingButton component. If the button is in a loading state,
+// it disables itself and shows the Loader2 spinner before rendering the children.
+interface LoadingButtonProps extends React.ComponentPropsWithoutRef<typeof Button> {
+  isLoading: boolean;
+  children: React.ReactNode;
+}
+
+function LoadingButton({ isLoading, children, ...props }: LoadingButtonProps) {
+  return (
+    <Button {...props} disabled={props.disabled || isLoading}>
+      {isLoading ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
+      {children}
+    </Button>
+  );
+}
 
 interface SampleDocument {
   id: string;
@@ -109,6 +126,9 @@ export default function DocumentTypeDetailClient() {
 
   // Add the new activation state at the top of your component
   const [activationLoading, setActivationLoading] = useState(false);
+
+  // New state for saving the new extraction version version
+  const [saveVersionLoading, setSaveVersionLoading] = useState(false);
 
   // New state to control DocumentUploadModal visibility
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -253,6 +273,7 @@ export default function DocumentTypeDetailClient() {
       return;
     }
 
+    setSaveVersionLoading(true);
     try {
       const payload = {
         name: newExtractionLogicName,
@@ -288,6 +309,8 @@ export default function DocumentTypeDetailClient() {
     } catch (error: any) {
       console.error("Error creating extraction config: ", error);
       alert("Failed to create new extraction config version.");
+    } finally {
+      setSaveVersionLoading(false);
     }
   };
 
@@ -362,9 +385,9 @@ export default function DocumentTypeDetailClient() {
           <CardTitle className="text-2xl font-bold">
             {documentType.name}
           </CardTitle>
-          <Button variant="ghost" onClick={() => setShowEditModal(true)}>
+          <LoadingButton isLoading={false} variant="ghost" onClick={() => setShowEditModal(true)}>
             <Edit size={20} />
-          </Button>
+          </LoadingButton>
         </CardHeader>
         <CardContent>
           {documentType.description && (
@@ -450,13 +473,14 @@ export default function DocumentTypeDetailClient() {
               </SelectContent>
             </Select>
           </div>
-          <Button
+          <LoadingButton 
+            isLoading={extractionLoading}
             onClick={handleExecuteExtraction}
             disabled={!selectedDocumentForExtraction || !selectedRunExtractionLogic || extractionLoading}
           >
             <PlayCircle size={16} className="mr-1" />
             Run Extraction
-          </Button>
+          </LoadingButton>
 
           {/* Display extraction results */}
           <div className="mt-4">
@@ -521,7 +545,7 @@ export default function DocumentTypeDetailClient() {
             <Label htmlFor="extraction-config" className="mb-2 block">
               Select Extraction Config
             </Label>
-            <Button onClick={() => setCreatingNewVersion((prev) => !prev)}>
+            <LoadingButton isLoading={false} onClick={() => setCreatingNewVersion((prev) => !prev)}>
               {creatingNewVersion ? (
                 <>
                   <X size={16} className="mr-1" /> Cancel
@@ -531,7 +555,7 @@ export default function DocumentTypeDetailClient() {
                   <Plus size={16} className="mr-1" /> Create New Version
                 </>
               )}
-            </Button>
+            </LoadingButton>
           </div>
           {creatingNewVersion && (
             <div className="p-4 mb-4 border rounded">
@@ -547,10 +571,10 @@ export default function DocumentTypeDetailClient() {
                 />
               </div>
               <div className="mb-4">
-                <Button onClick={handleAddNewConfigRow}>
+                <LoadingButton isLoading={false} onClick={handleAddNewConfigRow}>
                   <Plus size={16} className="mr-1" />
                   Add Config Row
-                </Button>
+                </LoadingButton>
               </div>
               {newExtractionConfigs.map((config, idx) => (
                 <div key={idx} className="flex items-center gap-2 mb-2">
@@ -564,16 +588,15 @@ export default function DocumentTypeDetailClient() {
                     value={config.question} 
                     onChange={(e) => handleNewConfigRowChange(idx, 'question', e.target.value)}
                   />
-                  <Button variant="destructive" size="sm" onClick={() => handleRemoveConfigRow(idx)}>
-                    <Trash size={16} className="mr-1" />
-                    Remove
-                  </Button>
+                  <LoadingButton isLoading={false} variant="destructive" size="sm" onClick={() => handleRemoveConfigRow(idx)}>
+                    <Trash size={16} className="mr-1" /> Remove
+                  </LoadingButton>
                 </div>
               ))}
-              <Button onClick={handleSaveNewExtractionVersion}>
+              <LoadingButton isLoading={saveVersionLoading} onClick={handleSaveNewExtractionVersion}>
                 <Save size={16} className="mr-1" />
                 Save New Version
-              </Button>
+              </LoadingButton>
             </div>
           )}
 
@@ -626,17 +649,10 @@ export default function DocumentTypeDetailClient() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button
-                  onClick={handleActivateLogic}
-                  disabled={activationLoading}
-                  className="mt-2"
-                >
-                  {activationLoading ? "Activating..." : (
-                    <>
-                      <CheckCircle size={16} className="mr-1" />Activate Logic
-                    </>
-                  )}
-                </Button>
+                <LoadingButton isLoading={activationLoading} onClick={handleActivateLogic} disabled={activationLoading} className="mt-2">
+                  <CheckCircle size={16} className="mr-1" />
+                  Activate Logic
+                </LoadingButton>
               </CardFooter>
             </Card>
           )}
@@ -679,10 +695,10 @@ export default function DocumentTypeDetailClient() {
               onChange={(e) => setSampleDocSearchQuery(e.target.value)}
               placeholder="Search sample documents"
             />
-            <Button onClick={() => setShowUploadModal(true)}>
+            <LoadingButton isLoading={false} onClick={() => setShowUploadModal(true)}>
               <UploadCloud size={16} className="mr-1" />
               Add Document
-            </Button>
+            </LoadingButton>
           </div>
 
           {/* Filter the sample documents based on the search query */}
@@ -707,13 +723,9 @@ export default function DocumentTypeDetailClient() {
                       <TableCell className="p-2">{doc.name}</TableCell>
                       <TableCell className="p-2">{doc.uploadedAt}</TableCell>
                       <TableCell className="p-2">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleRemoveSampleDocument(doc.id)}
-                        >
+                        <LoadingButton isLoading={false} variant="destructive" size="sm" onClick={() => handleRemoveSampleDocument(doc.id)}>
                           <Trash size={16} className="mr-1" /> Remove
-                        </Button>
+                        </LoadingButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -731,7 +743,7 @@ export default function DocumentTypeDetailClient() {
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           docType={documentType}
-          onSave={(updatedDocType: DocumentType) => {
+          onSave={async (updatedDocType: DocumentType) => {
             // Update the document type state with the new values
             setDocumentType(updatedDocType);
           }}
