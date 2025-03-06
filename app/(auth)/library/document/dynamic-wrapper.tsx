@@ -37,6 +37,14 @@ interface VersionHistoryEntry {
   extracted_data: Record<string, any>[];
 }
 
+interface UserSuggestion {
+  _id: string;
+  user_data: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+}
 
 interface DocumentDetails {
   id: string;
@@ -85,6 +93,12 @@ export default function DocumentClient() {
   const [isLoading, setIsLoading] = useState(true);  // Add loading state
 
   const [selectedType, setSelectedType] = useState<string>(documentDetails?.type || "");
+
+  const [userQuery, setUserQuery] = useState('');
+  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
+
+  const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
+  const [cursorPosition, setCursorPosition] = useState<number>(0);
 
   useEffect(() => {
     const fetchDocumentDetails = async () => {
@@ -168,10 +182,6 @@ export default function DocumentClient() {
     );
   }
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    setNewComment('');
-  };
 
 
   const handleBack = () => {
@@ -355,6 +365,72 @@ const handleUpdateData = async () => {
   }
 };
 
+// Function to fetch user suggestions based on query
+const fetchUserSuggestions = async (query: string) => {
+  try {
+    const response = await api.get('/v2/comments/user/suggestions/?query=' + query);
+    if ((response as any).status === 'success') {
+      setUserSuggestions((response as any).data.users);
+    }
+  } catch (error) {
+    console.error('Error fetching user suggestions:', error);
+    setUserSuggestions([]);
+  }
+};
+
+// Function to add a comment to the document
+const addComment = async (documentId: string, comment: string) => {
+    try {
+        const response = await api.post('/v2/comments/add/', {
+            document_id: documentId,
+            comment: comment
+        });
+        setNewComment(comment)
+        // Display success message to the user
+    } catch (error) {
+        console.error('Error adding comment:', error);
+    }
+};
+
+const handleCommentKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const target = e.target as HTMLTextAreaElement;
+  setCursorPosition(target.selectionStart);
+  
+  const text = target.value;
+  const textBeforeCursor = text.slice(0, target.selectionStart);
+  const match = textBeforeCursor.match(/@\w*$/);
+  
+  if (match) {
+    setShowUserSuggestions(true);
+    const query = match[0].slice(1); // Remove the @ symbol
+    setUserQuery(query);
+    await fetchUserSuggestions(query);
+  } else {
+    setShowUserSuggestions(false);
+    setUserSuggestions([]);
+  }
+};
+
+const handleUserSelect = (user: UserSuggestion) => {
+  const text = newComment;
+  const beforeCursor = text.slice(0, cursorPosition);
+  const afterCursor = text.slice(cursorPosition);
+  
+  // Find the @ symbol before cursor
+  const lastAtIndex = beforeCursor.lastIndexOf('@');
+  if (lastAtIndex !== -1) {
+    const newText = 
+      beforeCursor.slice(0, lastAtIndex) + 
+      `${user.user_data.first_name} ${user.user_data.last_name}` + 
+      afterCursor;
+    
+    setNewComment(newText);
+  }
+  
+  setShowUserSuggestions(false);
+  setUserSuggestions([]);
+};
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -446,13 +522,34 @@ const handleUpdateData = async () => {
                   className="w-8 h-8 rounded-full"
                 />
                 <div className="flex-1">
-                  <Textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="mb-2"
-                  />
-                  <Button onClick={handleAddComment}>Add Comment</Button>
+                  <div className="relative">
+                    <Textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Add a comment..."
+                      className="mb-2"
+                      onKeyUp={handleCommentKeyDown}
+                    />
+                    {showUserSuggestions && userSuggestions.length > 0 && (
+                      <div className="absolute bottom-full left-0 w-64 max-h-48 overflow-y-auto bg-white border rounded-md shadow-lg">
+                        {userSuggestions.map((user) => (
+                          <div
+                            key={user._id}
+                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => handleUserSelect(user)}
+                          >
+                            <div className="font-medium">
+                              {user.user_data.first_name} {user.user_data.last_name}
+                            </div>
+                            <div className="text-sm text-gray-500">{user.user_data.email}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Button onClick={() => addComment(documentDetails.id, newComment)}>
+                    Add Comment
+                  </Button>
                 </div>
               </div>
             </div>
