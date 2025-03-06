@@ -17,7 +17,7 @@ interface TaskSidebarProps {
   checklistData: Checklist;
   schema?: ColumnSchema[];
   onClose: () => void;
-  onStatusChange: (id: string, status: TaskStatus) => void;
+  onStatusChange: (id: string, status: TaskStatus) => Promise<void>;
   onAssign: (id: string, user: User | null) => void;
   onDelete: (id: string) => void;
   onAddComment: (id: string) => void;
@@ -56,6 +56,7 @@ export function TaskSidebar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [customerData, setCustomerData] = useState<Customer | null>(null);
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   useEffect(() => {
     const customer = getStoredCustomer();
     setCustomerData(customer);
@@ -237,15 +238,18 @@ export function TaskSidebar({
   };
 
   const handleStatusChange = async (newStatus: TaskStatus) => {
+    setIsStatusUpdating(true);
     try {
       await api.post('/audit/v2/checklist/item/status/update/', {
         item_id: task.id,
         status: newStatus
       });
       console.log('status updated');
-      onStatusChange(task.id, newStatus);
+      await onStatusChange(task.id, newStatus);
     } catch (error) {
       console.error('Error updating status:', error);
+    } finally {
+      setIsStatusUpdating(false);
     }
   };
 
@@ -431,19 +435,31 @@ export function TaskSidebar({
           )}
 
           {/* Add Status Selector */}
-          <div>
+          <div className="relative">
             <Label>Status</Label>
-            <select
-              value={task.status}
-              onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
-              className="mt-1 w-full px-3 py-2 rounded-lg border"
-            >
-              {Object.values(TaskStatus).map((status) => (
-                <option key={status} value={status}>
-                  {status}
+            {isStatusUpdating ? (
+              <>
+               <select
+                className="mt-1 w-full px-3 py-2 rounded-lg border"
+              >
+                <option value="">
+                  Updating...
                 </option>
-              ))}
-            </select>
+              </select>
+              </>
+            ) : (
+              <select
+                value={task.status}
+                onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
+                className="mt-1 w-full px-3 py-2 rounded-lg border"
+              >
+                {Object.values(TaskStatus).map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Custom Fields from Schema */}
