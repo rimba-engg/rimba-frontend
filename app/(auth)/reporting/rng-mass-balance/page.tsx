@@ -96,6 +96,7 @@ export default function RngMassBalancePage() {
   const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
   const [chartTitle, setChartTitle] = useState<string>('');
   const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
+  const [showPrevailingWage, setShowPrevailingWage] = useState(false);
 
   // Initialize grid ref for accessing the grid API
   const gridRef = useRef<AgGridReact>(null);
@@ -269,13 +270,13 @@ export default function RngMassBalancePage() {
             </button>
           </div>
 
-          {chartConfig !== null && Object.keys(chartConfig).length > 0 && (
+          {chartConfig && Object.keys(chartConfig).length > 0 && (
             <div className="w-1/2 h-[300px]">
               <Bar data={chartConfig} options={options} />
             </div>
           )}
 
-          {taxCredit !== null && Object.keys(taxCredit).length > 0 && (
+          {taxCredit && Object.keys(taxCredit).length > 0 && (
             <div className="w-1/4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-white rounded-lg shadow">
@@ -296,7 +297,20 @@ export default function RngMassBalancePage() {
                   </a>
                 </div>
                 <div className="space-y-2 text-lg">
-                  $ {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}
+                  <div className="flex items-center justify-between mb-2">
+                    <span>Show Prevailing Wage</span>
+                    <button 
+                      onClick={() => setShowPrevailingWage(!showPrevailingWage)} 
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showPrevailingWage ? 'bg-blue-500' : 'bg-gray-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showPrevailingWage ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  {showPrevailingWage ? (
+                    <p>$ {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}</p>
+                  ) : (
+                    <p>$ {taxCredit['45Z Credit']['Non-Prevailing Wage'].toLocaleString()}</p>
+                  )}
                 </div>
               </div>
             </div>
