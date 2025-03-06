@@ -18,7 +18,7 @@ interface TaskSidebarProps {
   schema?: ColumnSchema[];
   onClose: () => void;
   onStatusChange: (id: string, status: TaskStatus) => void;
-  onAssign: (id: string) => void;
+  onAssign: (id: string, user: User | null) => void;
   onDelete: (id: string) => void;
   onAddComment: (id: string) => void;
   onCustomFieldChange: (itemId: string, columnId: string, value: string) => void;
@@ -215,6 +215,7 @@ export function TaskSidebar({
         user_id: userId
       });
       await fetchAssignedUsers();
+      onAssign(task.id, users.find(user => user.id === userId)!);
     } catch (error) {
       console.error('Error assigning user:', error);
     } finally {
@@ -229,6 +230,7 @@ export function TaskSidebar({
         user_id: userId
       });
       await fetchAssignedUsers();  // Refresh the list after successful unassignment
+      onAssign(task.id, null);
     } catch (error) {
       console.error('Error unassigning user:', error);
     }
@@ -240,6 +242,7 @@ export function TaskSidebar({
         item_id: task.id,
         status: newStatus
       });
+      console.log('status updated');
       onStatusChange(task.id, newStatus);
     } catch (error) {
       console.error('Error updating status:', error);
@@ -257,7 +260,7 @@ export function TaskSidebar({
         if (isEditable) {
           return (
             <button
-              onClick={() => onAssign(task.id)}
+              onClick={() => onAssign(task.id, user)}
               className="mt-1 w-full flex items-center gap-2 px-3 py-2 border rounded-lg text-left"
             >
               {user && user.id ? (

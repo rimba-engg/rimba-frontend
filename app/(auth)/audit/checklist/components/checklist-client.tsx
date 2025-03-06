@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus, ChevronRight, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -121,6 +121,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
             : item
         )
       );
+      handleFieldChange(itemId, 'Status', status);
     } catch (error) {
       console.error('Failed to update status:', error);
     }
@@ -236,6 +237,27 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
     }
   };
 
+  const handleUserAssignment = async (taskId: string, assignedUser: User | null) => {
+    try {
+      console.log('assignedUser', assignedUser);
+      setChecklistItems(prev =>
+        prev.map(item =>
+          item.id === taskId
+            ? {
+                ...item,
+                column_data: {
+                  ...item.column_data,
+                  "Assigned To": assignedUser
+                }
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error('Error assigning user:', error);
+    }
+  };
+
   console.log(checklistItems.find(item => item.id === showTaskSidebar)!);
 
   return (
@@ -307,7 +329,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
           schema={checklistData.schema}
           onClose={() => setShowTaskSidebar(null)}
           onStatusChange={handleStatusChange}
-          onAssign={id => setShowAssignModal(id)}
+          onAssign={handleUserAssignment}
           onDelete={handleDelete}
           onAddComment={handleAddComment}
           onCustomFieldChange={handleFieldChange}
