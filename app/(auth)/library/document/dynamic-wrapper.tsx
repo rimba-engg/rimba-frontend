@@ -14,6 +14,7 @@ import {
   Clock,
   Save,
   Plus,
+  Flag,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -23,11 +24,10 @@ import { api } from '@/lib/api';
 import { MONTHS } from '@/lib/constants';
 
 interface Comment {
-  id: number;
-  user: string;
-  avatar: string;
-  text: string;
-  timestamp: string;
+  user: string;  // UUID string
+  comment: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface VersionHistoryEntry {
@@ -100,6 +100,13 @@ export default function DocumentClient() {
   const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
   const [cursorPosition, setCursorPosition] = useState<number>(0);
 
+  const [isFlagModalOpen, setIsFlagModalOpen] = useState(false);
+  const [flagReason, setFlagReason] = useState('');
+  const [isSubmittingFlag, setIsSubmittingFlag] = useState(false);
+
+  // Add new state for comment loading
+  const [isAddingComment, setIsAddingComment] = useState(false);
+
   useEffect(() => {
     const fetchDocumentDetails = async () => {
       console.log('fetching document details');
@@ -128,7 +135,7 @@ export default function DocumentClient() {
               version: doc.version, // numeric
               lastModified: doc.last_updated_at,
               document_preview_url: doc.preview_url,
-              comments: [], // If your API returns comments, map them
+              comments: doc.comments ?? [], // Map comments directly from API response
               review_reasons: doc.review_reasons ?? [],
               extracted_data: doc.extracted_data ?? [],
               version_history: doc.version_history ?? [],
@@ -380,15 +387,33 @@ const fetchUserSuggestions = async (query: string) => {
 
 // Function to add a comment to the document
 const addComment = async (documentId: string, comment: string) => {
+    if (!comment.trim()) return; // Don't submit empty comments
+    
+    setIsAddingComment(true);
     try {
         const response = await api.post('/v2/comments/add/', {
             document_id: documentId,
             comment: comment
         });
-        setNewComment(comment)
-        // Display success message to the user
+        
+        if ((response as any).status === 'success') {
+            setNewComment(''); // Clear comment field on success
+            // Update documentDetails with new comment
+            setDocumentDetails(prev => prev ? {
+                ...prev,
+                comments: [...prev.comments, {
+                    user: 'You',
+                    comment: comment,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }]
+            } : null);
+        }
     } catch (error) {
         console.error('Error adding comment:', error);
+        alert('Failed to add comment. Please try again.');
+    } finally {
+        setIsAddingComment(false);
     }
 };
 
@@ -431,6 +456,63 @@ const handleUserSelect = (user: UserSuggestion) => {
   setUserSuggestions([]);
 };
 
+const handleFlagDocument = async () => {
+  if (!flagReason.trim()) {
+    alert('Please provide a reason for flagging');
+    return;
+  }
+
+  const documentId = searchParams.get('document_id');
+  if (!documentId) return;
+
+  setIsSubmittingFlag(true);
+  try {
+    const response = await api.post('/v2/document/flag/', {
+      document_id: documentId,
+      reason: flagReason
+    });
+
+    if ((response as any).status === 'success') {
+      setIsFlagModalOpen(false);
+      setFlagReason('');
+      // Update document status locally
+      setDocumentDetails(prev => 
+        prev ? {...prev, status: 'flagged'} : null
+      );
+    } else {
+      alert('Failed to flag document');
+    }
+  } catch (error) {
+    console.error('Error flagging document:', error);
+    alert('Error flagging document');
+  } finally {
+    setIsSubmittingFlag(false);
+  }
+};
+
+const handleUnflagDocument = async () => {
+  const documentId = searchParams.get('document_id');
+  if (!documentId) return;
+
+  try {
+    const response = await api.post('/v2/document/unflag/', {
+      document_id: documentId
+    });
+
+    if ((response as any).status === 'success') {
+      // Update document status locally
+      setDocumentDetails(prev => 
+        prev ? {...prev, status: 'active'} : null
+      );
+    } else {
+      alert('Failed to unflag document');
+    }
+  } catch (error) {
+    console.error('Error unflagging document:', error);
+    alert('Error unflagging document');
+  }
+};
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -438,8 +520,72 @@ const handleUserSelect = (user: UserSuggestion) => {
         <Button variant="ghost" size="icon" onClick={handleBack} className="rounded-full">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-3xl font-bold">{documentDetails.name}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold">{documentDetails.name}</h1>
+          {/* Flag/Unflag button moved here */}
+          {documentDetails?.status === 'FLAGGED' ? (
+            <Button
+              variant="outline"
+              onClick={handleUnflagDocument}
+              className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+              size="sm"
+            >
+              <Flag className="w-4 h-4 mr-2" />
+              Unflag Document
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setIsFlagModalOpen(true)}
+              className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200"
+              size="sm"
+            >
+              <Flag className="w-4 h-4 mr-2" />
+              Flag Document
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Add Flag Modal */}
+      {isFlagModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white w-full max-w-md p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-semibold mb-4">Flag Document</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Reason for flagging
+                </label>
+                <Textarea
+                  value={flagReason}
+                  onChange={(e) => setFlagReason(e.target.value)}
+                  placeholder="Enter reason..."
+                  className="w-full"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsFlagModalOpen(false);
+                    setFlagReason('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleFlagDocument}
+                  disabled={isSubmittingFlag}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  {isSubmittingFlag ? 'Flagging...' : 'Flag Document'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-6">
         {/* Left/Middle Column */}
@@ -494,22 +640,21 @@ const handleUserSelect = (user: UserSuggestion) => {
           <div className="bg-card rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Comments</h2>
             <div className="space-y-4">
-              {documentDetails.comments.map((comment) => (
-                <div key={comment.id} className="flex gap-4">
-                  <img
-                    src={comment.avatar}
-                    alt={comment.user}
-                    className="w-8 h-8 rounded-full"
-                  />
+              {documentDetails.comments.map((comment, index) => (
+                <div key={index} className="flex gap-4">
+                  {/* Placeholder avatar since it's not in the API response */}
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary" />
+                  </div>
                   <div className="flex-1">
                     <div className="bg-muted p-3 rounded-lg">
                       <div className="flex justify-between items-start">
                         <span className="font-medium">{comment.user}</span>
                         <span className="text-xs text-muted-foreground">
-                          {comment.timestamp}
+                          {new Date(comment.created_at).toLocaleString()}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm">{comment.text}</p>
+                      <p className="mt-1 text-sm">{comment.comment}</p>
                     </div>
                   </div>
                 </div>
@@ -547,8 +692,18 @@ const handleUserSelect = (user: UserSuggestion) => {
                       </div>
                     )}
                   </div>
-                  <Button onClick={() => addComment(documentDetails.id, newComment)}>
-                    Add Comment
+                  <Button 
+                    onClick={() => addComment(documentDetails.id, newComment)}
+                    disabled={isAddingComment || !newComment.trim()}
+                  >
+                    {isAddingComment ? (
+                        <>
+                            <div className="spinner-small mr-2"></div>
+                            Adding...
+                        </>
+                    ) : (
+                        'Add Comment'
+                    )}
                   </Button>
                 </div>
               </div>
@@ -912,6 +1067,16 @@ const handleUserSelect = (user: UserSuggestion) => {
           to {
             transform: rotate(360deg);
           }
+        }
+
+        .spinner-small {
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          border-left-color: #ffffff;
+          border-radius: 50%;
+          width: 16px;
+          height: 16px;
+          animation: spin 1s linear infinite;
+          display: inline-block;
         }
       `}</style>
     </div>
