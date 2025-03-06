@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const storedUser = getStoredUser();
@@ -23,25 +25,32 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-    
+    setLoading(true);
+
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const response = await login(email, password);
-    
-    if (response.user) {
-      if (response.customers) {
-        router.push('/select-customer');
+    try {
+      const response = await login(email, password);
+
+      if (response.user) {
+        if (response.customers) {
+          router.push('/select-customer');
+        } else {
+          const customer = getStoredCustomer();
+          if (customer?.is_rng_customer ?? false)
+            router.push('/reporting/rng-mass-balance');
+          else
+            router.push('/library/documents');
+        }
       } else {
-        const customer = getStoredCustomer();
-        if (customer?.is_rng_customer ?? false)
-          router.push('/reporting/rng-mass-balance');
-        else
-          router.push('/library/documents');
+        setError('Invalid credentials');
       }
-    } else {
-      setError('Invalid credentials');
+    } catch (error) {
+      setError('An error occurred during login');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -100,8 +109,12 @@ export default function LoginPage() {
               </Button>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                'Sign In'
+              )}
             </Button>
           </form>
         </CardContent>
