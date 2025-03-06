@@ -73,7 +73,7 @@ interface Contract {
   available_quantity: number;
   difference: number;
   chosen_product_id: string;
-  notes: string[];
+  notes: string;
 }
 
 interface WarehouseAllocation {
@@ -117,7 +117,7 @@ interface ContractDetailsResponse {
   warehouse_quantities: WarehouseAllocation[];
   documents: Document[];
   chosen_product_id: string;
-  notes: string[];
+  notes: string;
 }
 
 interface ApiResponse {
@@ -220,10 +220,9 @@ export default function ContractDetails() {
     };
   
     const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newNotes = e.target.value.split('\n');
       setContract(prev => prev ? {
         ...prev,
-        notes: newNotes
+        notes: e.target.value
       } : null);
     };
   
@@ -463,45 +462,8 @@ export default function ContractDetails() {
                   </>
                 )}
               </Button>
-              
-              <Button
-                variant="outline"
-                className="bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-600 shadow-sm transition-all"
-                onClick={() => setNotesExpanded(!notesExpanded)}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Notes
-                {notesExpanded ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
-              </Button>
             </div>
           </div>
-          
-          {/* Notes section (expandable) */}
-          {notesExpanded && (
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 rounded-lg border border-gray-200 mb-6 animate-fade-in">
-              <div className="flex justify-between items-start mb-2">
-                <Label htmlFor="notes" className="text-sm font-medium text-gray-700 flex items-center">
-                  <FileText className="h-4 w-4 mr-2 text-teal-600" />
-                  Contract Notes
-                </Label>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="text-xs h-7 bg-teal-500 hover:bg-teal-600 text-white" 
-                  onClick={handleSaveNotes}
-                >
-                  Save Notes
-                </Button>
-              </div>
-              <textarea
-                id="notes"
-                value={Array.isArray(contract.notes) ? contract.notes.join('\n') : ''}
-                onChange={handleNotesChange}
-                className="w-full h-24 p-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-teal-400 focus:border-teal-400 transition-all"
-                placeholder="Add notes about this contract..."
-              ></textarea>
-            </div>
-          )}
         </div>
         
         {/* Main content with tabs */}
@@ -856,6 +818,30 @@ export default function ContractDetails() {
                               className="pl-10 border-teal-100 focus:border-teal-300"
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
+                            />
+                            <FileText className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label htmlFor="notes" className="text-sm font-medium text-gray-700 flex items-center">
+                            <FileText className="h-4 w-4 mr-2 text-teal-600" />
+                            Notes
+                          </Label>
+                          <div className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-teal-50 to-blue-50 opacity-20 rounded-md group-hover:opacity-40 transition-opacity"></div>
+                            <Input 
+                              id="notes" 
+                              type="text" 
+                              value={contract.notes || ''}
+                              onChange={(e) => setContract(prev => prev ? {
+                                ...prev,
+                                notes: e.target.value
+                              } : null)}
+                              className="pl-10 border-teal-100 focus:border-teal-300"
+                              readOnly={!isEditing}
+                              style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
+                              placeholder="Enter notes"
                             />
                             <FileText className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                           </div>

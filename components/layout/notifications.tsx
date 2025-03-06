@@ -34,6 +34,7 @@ export function Notifications() {
           created_at: apiNotif.created_at,
           status: apiNotif.status,
           type: 'info',
+          intent_type: apiNotif.intent_type,
           checklist_id: apiNotif.checklist_id,
           reference_id: apiNotif.reference_id
         }));
@@ -131,8 +132,11 @@ export function Notifications() {
                 }`}
                 onClick={() => {
                   markAsRead(notification.id);
-                  if (notification.checklist_id && notification.reference_id) {
+                  if (notification.intent_type === 'CHECKLIST' && notification.checklist_id && notification.reference_id) {
                     router.push(`/audit/checklist?id=${notification.checklist_id}&checklist_item_id=${notification.reference_id}`);
+                    setShowNotifications(false);
+                  } else if (notification.intent_type === 'DOCUMENT' && notification.reference_id) {
+                    router.push(`/library/document?document_id=${notification.reference_id}`);
                     setShowNotifications(false);
                   }
                 }}
