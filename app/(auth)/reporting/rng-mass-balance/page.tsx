@@ -287,6 +287,24 @@ export default function RngMassBalancePage() {
                   <h3 className="font-semibold text-base">D-Code</h3>
                   <p className="text-xl">{taxCredit['D-Code']}</p>
                 </div>
+                <div className="p-4 bg-white rounded-lg shadow">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-base">Prevailing Wage</h3>
+                    <a href="https://www.irs.gov/newsroom/treasury-irs-release-guidance-on-the-prevailing-wage-and-apprenticeship-requirements-for-increased-credit-and-deduction-amounts-under-the-inflation-reduction-act" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700">
+                      <Info size={16} />
+                    </a>
+                  </div>
+                  <button 
+                    onClick={() => setShowPrevailingWage(!showPrevailingWage)} 
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showPrevailingWage ? 'bg-blue-500' : 'bg-gray-200'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showPrevailingWage ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                <div className="p-4 bg-white rounded-lg shadow">
+                  <h3 className="font-semibold text-base mb-1">kg of CO2 / mmBtu</h3>
+                  <p className="text-lg">0. kg / mmBtu</p>
+                </div>
               </div>
 
               <div className="p-4 bg-white rounded-lg shadow">
@@ -297,19 +315,10 @@ export default function RngMassBalancePage() {
                   </a>
                 </div>
                 <div className="space-y-2 text-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span>Show Prevailing Wage</span>
-                    <button 
-                      onClick={() => setShowPrevailingWage(!showPrevailingWage)} 
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showPrevailingWage ? 'bg-blue-500' : 'bg-gray-200'}`}
-                    >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showPrevailingWage ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
                   {showPrevailingWage ? (
-                    <p>$ {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}</p>
+                    <p className="text-lg">$ {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}</p>
                   ) : (
-                    <p>$ {taxCredit['45Z Credit']['Non-Prevailing Wage'].toLocaleString()}</p>
+                    <p className="text-lg">$ {taxCredit['45Z Credit']['Non-Prevailing Wage'].toLocaleString()}</p>
                   )}
                 </div>
               </div>
