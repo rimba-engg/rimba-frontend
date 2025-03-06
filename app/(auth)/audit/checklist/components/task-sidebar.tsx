@@ -57,6 +57,7 @@ export function TaskSidebar({
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+  const [isAddingComment, setIsAddingComment] = useState(false);
   useEffect(() => {
     const customer = getStoredCustomer();
     setCustomerData(customer);
@@ -147,7 +148,7 @@ export function TaskSidebar({
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
-
+    setIsAddingComment(true);
     try {
       await api.post('/audit/v2/add_checklist_comment/', {
         comment: newComment,
@@ -157,6 +158,8 @@ export function TaskSidebar({
       onAddComment(task.id);
     } catch (error) {
       console.error('Error adding comment:', error);
+    } finally {
+      setIsAddingComment(false);
     }
   };
 
@@ -570,8 +573,15 @@ export function TaskSidebar({
                   </div>
                 )}
                 
-                <Button onClick={handleAddComment}>
-                  Add Comment
+                <Button onClick={handleAddComment} disabled={isAddingComment}>
+                  {isAddingComment ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Comment"
+                  )}
                 </Button>
               </div>
             </div>
