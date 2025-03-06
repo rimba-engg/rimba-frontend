@@ -295,13 +295,8 @@ export default function RngMassBalancePage() {
                     <Info size={16} />
                   </a>
                 </div>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    Prevailing Wage: ${taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}
-                  </div>
-                  <div>
-                    Non-Prevailing Wage: ${taxCredit['45Z Credit']['Non-Prevailing Wage'].toLocaleString()}
-                  </div>
+                <div className="space-y-2 text-lg">
+                  {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}
                 </div>
               </div>
             </div>
