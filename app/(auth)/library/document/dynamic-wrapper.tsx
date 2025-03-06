@@ -726,7 +726,7 @@ const handleUnflagDocument = async () => {
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Upload Date:</span>
-                <span>{documentDetails.uploadDate}</span>
+                <span>{new Date(documentDetails.uploadDate).toLocaleDateString()}</span>
               </div>
 
               <div className="flex items-center gap-2 text-sm">
@@ -750,7 +750,7 @@ const handleUnflagDocument = async () => {
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Last Modified:</span>
-                <span>{documentDetails.lastModified}</span>
+                <span>{new Date(documentDetails.lastModified).toLocaleDateString()}</span>
               </div>
 
               <div className="pt-4 border-t">
@@ -770,12 +770,19 @@ const handleUnflagDocument = async () => {
               {/* Review reasons (if any) */}
               {documentDetails.review_reasons.length > 0 && (
                 <div className="pt-4 border-t">
-                  <h3 className="text-sm font-medium mb-2" style={{ color: 'red' }}>
+                  <h3 className="text-sm font-medium mb-2 text-yellow-600">
                     Review Reasons
                   </h3>
-                  <p className="text-sm text-muted-foreground" style={{ color: 'red' }}>
-                    {documentDetails.review_reasons.join(', ')}
-                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {documentDetails.review_reasons.map((reason, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -810,7 +817,7 @@ const handleUnflagDocument = async () => {
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Last Modified: {documentDetails.lastModified}
+                        Last Modified: {new Date(documentDetails.lastModified).toLocaleDateString()}
                       </p>
                     )}
                   </div>
