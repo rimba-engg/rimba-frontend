@@ -138,8 +138,9 @@ export interface Notification {
   id: string;
   message: string;
   created_at: string;
+  intent_type: string;
   status: 'READ' | 'UNREAD';
   type: 'success' | 'warning' | 'info';
   checklist_id?: string;
-  reference_id?: string; // checklist_item_id
+  reference_id?: string; // checklist_item_id or document_id
 }

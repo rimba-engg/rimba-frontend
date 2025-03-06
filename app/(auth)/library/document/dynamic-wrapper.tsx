@@ -170,8 +170,8 @@ export default function DocumentClient() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="spinner mr-2"></div>
-        <p className="text-muted-foreground mt-4">Loading document...</p>
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-muted-foreground mt-6 animate-pulse">Loading document...</p>
       </div>
     );
   }
@@ -397,17 +397,8 @@ const addComment = async (documentId: string, comment: string) => {
         });
         
         if ((response as any).status === 'success') {
-            setNewComment(''); // Clear comment field on success
-            // Update documentDetails with new comment
-            setDocumentDetails(prev => prev ? {
-                ...prev,
-                comments: [...prev.comments, {
-                    user: 'You',
-                    comment: comment,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                }]
-            } : null);
+            setNewComment('');
+            window.location.reload();
         }
     } catch (error) {
         console.error('Error adding comment:', error);
@@ -475,10 +466,7 @@ const handleFlagDocument = async () => {
     if ((response as any).status === 'success') {
       setIsFlagModalOpen(false);
       setFlagReason('');
-      // Update document status locally
-      setDocumentDetails(prev => 
-        prev ? {...prev, status: 'flagged'} : null
-      );
+      window.location.reload(); // Refresh document details
     } else {
       alert('Failed to flag document');
     }
@@ -533,7 +521,7 @@ const handleUnflagDocument = async () => {
               <Flag className="w-4 h-4 mr-2" />
               Unflag Document
             </Button>
-          ) : (
+          ) : documentDetails?.status !== 'RECONCILED' ? (
             <Button
               variant="outline"
               onClick={() => setIsFlagModalOpen(true)}
@@ -543,7 +531,7 @@ const handleUnflagDocument = async () => {
               <Flag className="w-4 h-4 mr-2" />
               Flag Document
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -1060,30 +1048,15 @@ const handleUnflagDocument = async () => {
           </div>
         </div>
       )}
-      <style jsx>{`
-        .spinner {
-          border: 4px solid rgba(0, 0, 0, 0.1);
-          border-left-color: #4f46e5; /* Primary color */
-          border-radius: 50%;
-          width: 24px;
-          height: 24px;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
+      <style jsx global>{`
+        @keyframes spin-fast {
           to {
             transform: rotate(360deg);
           }
         }
 
-        .spinner-small {
-          border: 2px solid rgba(0, 0, 0, 0.1);
-          border-left-color: #ffffff;
-          border-radius: 50%;
-          width: 16px;
-          height: 16px;
-          animation: spin 1s linear infinite;
-          display: inline-block;
+        .animate-spin-fast {
+          animation: spin-fast 0.6s linear infinite;
         }
       `}</style>
     </div>
