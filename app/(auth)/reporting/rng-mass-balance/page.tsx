@@ -296,7 +296,7 @@ export default function RngMassBalancePage() {
                   </a>
                 </div>
                 <div className="space-y-2 text-lg">
-                  {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}
+                  $ {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}
                 </div>
               </div>
             </div>
