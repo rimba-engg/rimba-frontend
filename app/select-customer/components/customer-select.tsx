@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
 
 interface CustomerSelectProps {
   customers: Customer[];
@@ -23,6 +24,7 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const handleCustomerSelect = async () => {
     if (!selectedCustomerId) {
@@ -30,16 +32,22 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
       return;
     }
 
-    const response = await selectCustomer(selectedCustomerId);
-    if (response.status === 'success') {
-      const customer = getStoredCustomer();
-      if (customer?.is_rng_customer ?? false)
-        router.push('/reporting/rng-mass-balance');
-      else
-        router.push('/library/documents');
-    } else {
+    setLoading(true);
+    try {
+      const response = await selectCustomer(selectedCustomerId);
+      if (response.status === 'success') {
+        const customer = getStoredCustomer();
+        if (customer?.is_rng_customer)
+          router.push('/reporting/rng-mass-balance');
+        else
+          router.push('/library/documents');
+      } else {
+        setError('Failed to select customer account');
+      }
+    } catch (error) {
       setError('Failed to select customer account');
     }
+    setLoading(false);
   };
 
   return (
@@ -76,7 +84,7 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
                       <span className="text-sm text-muted-foreground">
                         Role: {customer.role}
                       </span>
-                      {(customer?.is_rng_customer ?? false) && (
+                      {(customer?.is_rng_customer) && (
                         <span className="px-2 text-xs bg-primary/10 text-primary rounded-full inline-block w-fit">
                           RNG Customer
                         </span>
@@ -95,9 +103,13 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
           <Button
             onClick={handleCustomerSelect}
             className="w-full"
-            disabled={!selectedCustomerId}
+            disabled={!selectedCustomerId || loading}
           >
-            Continue
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              "Continue"
+            )}
           </Button>
         </CardContent>
       </Card>
