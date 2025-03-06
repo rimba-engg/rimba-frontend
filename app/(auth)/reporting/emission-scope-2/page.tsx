@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ToastContainer, toast } from 'react-toastify';
 import { api } from '@/lib/api' 
 import { useEffect } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
+import { Recycle, Zap } from 'lucide-react';
 
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -108,7 +108,10 @@ export default function EmissionScope2Page() {
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardHeader>
-              Total Consumption
+              <div className="flex items-center gap-2">
+                <Zap size={24} className="text-muted-foreground" />
+                Total Consumption
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -119,7 +122,10 @@ export default function EmissionScope2Page() {
 
           <Card>
             <CardHeader>
-              Total CO2 Emissions 
+              <div className="flex items-center gap-2">
+                <Recycle size={24} className="text-muted-foreground" />
+                Total CO2 Emissions 
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
