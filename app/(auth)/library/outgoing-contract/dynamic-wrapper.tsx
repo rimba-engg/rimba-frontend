@@ -156,14 +156,31 @@ export default function ContractClient() {
     setEditMode(false);
   };
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
     // Save the restructured groups back to allocations and update groupId accordingly
-    const updatedGroups = editGroups.map((group, groupIndex) => 
+    const updatedGroups = editGroups.map((group, groupIndex) =>
       group.map(allocation => ({ ...allocation, groupId: `${groupIndex + 1}` }))
     );
     setAllocations(updatedGroups);
     console.log('editGroups', updatedGroups);
+    
     setEditMode(false);
+
+    // Prepare the payload for updating group IDs on the server
+    const allocationUpdates = updatedGroups.flatMap(group =>
+      group.map(allocation => ({
+        allocation_id: allocation.id,
+        group_id: allocation.groupId
+      }))
+    );
+
+    try {
+      await api.patch(`/v2/contract/outgoing/update-group-ids/`, { allocations: allocationUpdates });
+      console.log('Group IDs updated successfully');
+    } catch (error) {
+      console.error('Error updating group IDs:', error);
+      throw error;
+    }
   };
 
   const addNewGroup = () => {

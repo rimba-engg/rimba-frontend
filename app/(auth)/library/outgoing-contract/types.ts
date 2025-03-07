@@ -16,6 +16,7 @@ export interface ContractDetails {
 }
   
 export interface Allocation {
+    id: string;
     contractId: string;
     contractNumber: string;
     month: string;
