@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import {
   Chart as ChartJS,
   ChartOptions,
@@ -29,7 +28,7 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
 import { Info } from 'lucide-react';
-
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
@@ -44,6 +43,7 @@ interface ViewsResponse {
 interface MassBalanceResponse {
   view_aggregate: Record<string, any>;
   view_data: Array<Record<string, any>>;
+  full_precision_view_data: Array<Record<string, any>>;
   chart_config: Record<string, any>;
   chart_title: string;
   tax_credit: Record<string, any>;
@@ -89,6 +89,7 @@ export default function RngMassBalancePage() {
   const [error, setError] = useState<string | null>(null);
   const [columnDefs, setColumnDefs] = useState<Record<string, any>[]>([]);
   const [rowData, setRowData] = useState<Array<Record<string, any>>>([]);
+  const [fullPrecisionRowData, setFullPrecisionRowData] = useState<Array<Record<string, any>>>([]);
   const [selectedView, setSelectedView] = useState<GasBalanceView | null>(null);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -96,7 +97,7 @@ export default function RngMassBalancePage() {
   const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
   const [chartTitle, setChartTitle] = useState<string>('');
   const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
-  const [showPrevailingWage, setShowPrevailingWage] = useState(false);
+  const [showPrevailingWage, setShowPrevailingWage] = useState(true);
 
   // Initialize grid ref for accessing the grid API
   const gridRef = useRef<AgGridReact>(null);
@@ -174,6 +175,7 @@ export default function RngMassBalancePage() {
 
       setRowData(response.view_data);
       setViewAggregate(response.view_aggregate);
+      setFullPrecisionRowData(response.full_precision_view_data);
       setChartConfig(response.chart_config as ChartData<"bar", (number | [number, number] | null)[], unknown>);
       setChartTitle(response.chart_title);
       setTaxCredit(response.tax_credit);
@@ -189,9 +191,15 @@ export default function RngMassBalancePage() {
 
   // Function to handle CSV export
   const handleDownloadCsv = () => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.exportDataAsCsv();
-    }
+    const csvContent = fullPrecisionRowData.map(row => Object.values(row).join(',')).join('\n');
+    // add header to csvContent
+    const header = Object.keys(fullPrecisionRowData[0]).join(',');
+    const blob = new Blob([header + '\n' + csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedView?.view_name}.csv`;
+    a.click();
   };
 
   if (loading && !rowData.length || chartConfig === null) {
@@ -216,51 +224,66 @@ export default function RngMassBalancePage() {
       )}
 
         <div className="flex gap-6">
-          <div className="flex flex-col gap-4 w-1/4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">View Name</label>
-              <Select
-                value={selectedView?.id}
-                onValueChange={(value: string) => {
-                  const view = views.find((view) => view.id === value);
-                  if (view) {
-                    setSelectedView(view);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select view" />
-                </SelectTrigger>
-                <SelectContent>
-                  {views.map((view) => (
-                    <SelectItem key={view.id} value={view.id}>
-                      {view.view_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex flex-col mt-2 space-y-4 w-1/4">
+            <Select
+              value={selectedView?.id}
+              onValueChange={(value: string) => {
+                const view = views.find((view) => view.id === value);
+                if (view) {
+                  setSelectedView(view);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select view" />
+              </SelectTrigger>
+              <SelectContent>
+                {views.map((view) => (
+                  <SelectItem key={view.id} value={view.id}>
+                    {view.view_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <FloatingLabelInput
+              label="Start Date (EST)"
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full"
+              max={endDate}
+            />
+
+            <FloatingLabelInput
+              label="End Date (EST)"
+              type="datetime-local"
+              min={startDate}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full"
+            />
+
+            <div className="flex justify-center">
+              <span>OR</span>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Start Date (EST)</label>
-              <Input
-                type="datetime-local"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full"
-                max={endDate}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">End Date (EST)</label>
-              <Input
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full"
-              />
-            </div>
+            <FloatingLabelInput
+              label="Single Day (EST)"
+              type="date" 
+              className="w-full"
+              onChange={(e) => {
+                const selectedDate = new Date(e.target.value);
+                // Set to 10 AM EST on selected date in EST
+                selectedDate.setHours(26,0,0,0);
+                setStartDate(selectedDate.toISOString().slice(0,16));
+                
+                // Set to 10 AM EST next day
+                const nextDay = new Date(selectedDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+                setEndDate(nextDay.toISOString().slice(0,16));
+              }}
+            />
 
             <button
               onClick={handleDownloadCsv}
