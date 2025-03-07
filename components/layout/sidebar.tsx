@@ -14,6 +14,7 @@ import {
   UserCog,
   ChevronRight,
   Download,
+  Wind,
   Upload,
   Library,
   BarChart3,
@@ -60,6 +61,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       items: [
         { icon: Scale, label: 'Gas Balance', href: '/reporting/rng-mass-balance' },
         { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
+        { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
       ],
     },
   ] : [
