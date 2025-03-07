@@ -53,6 +53,7 @@ const fetchContractData = async (id: string): Promise<{
       is_ins: string;
       warehouses: Warehouse[];
       allocations?: {
+        id: string;
         contract_id: string;
         contract_number: string;
         warehouse: string;
@@ -91,6 +92,7 @@ const fetchContractData = async (id: string): Promise<{
     },
     allocations: data.allocations?.map(group => 
       group.map(allocation => ({
+        id: allocation.id,
         contractId: allocation.contract_id,
         contractNumber: allocation.contract_number,
         warehouse: allocation.warehouse,
@@ -139,6 +141,45 @@ export default function ContractClient() {
 
   // New state to indicate an API call is in progress
   const [processing, setProcessing] = useState(false);
+
+  // Add new state declarations and helper functions for editing groups
+  const [editMode, setEditMode] = useState(false);
+  const [editGroups, setEditGroups] = useState<Allocation[][]>([]);
+
+  const startEditMode = () => {
+    // Clone current allocations into editGroups and activate edit mode
+    setEditGroups(allocations.map(group => [...group]));
+    setEditMode(true);
+  };
+
+  const cancelEdit = () => {
+    setEditMode(false);
+  };
+
+  const saveChanges = () => {
+    // Save the restructured groups back to allocations and update groupId accordingly
+    const updatedGroups = editGroups.map((group, groupIndex) => 
+      group.map(allocation => ({ ...allocation, groupId: `${groupIndex + 1}` }))
+    );
+    setAllocations(updatedGroups);
+    console.log('editGroups', updatedGroups);
+    setEditMode(false);
+  };
+
+  const addNewGroup = () => {
+    setEditGroups(prev => [...prev, []]);
+  };
+
+  const handleMoveAllocation = (fromGroupIndex: number, rowIndex: number, toGroupIndex: number) => {
+    if (fromGroupIndex === toGroupIndex) return;
+    setEditGroups(prev => {
+      const newGroups = prev.map(group => [...group]);
+      const [movedAllocation] = newGroups[fromGroupIndex].splice(rowIndex, 1);
+      movedAllocation.groupId = `${toGroupIndex + 1}`;
+      newGroups[toGroupIndex].push(movedAllocation);
+      return newGroups;
+    });
+  };
 
   useEffect(() => {
     if (contractId) {
@@ -263,6 +304,7 @@ export default function ContractClient() {
             outgoingSDUrl: allocation.outgoing_sd_url,
             groupId: allocation.group_id,
             month: allocation.for_month,
+            id: allocation.id,
           }))
         );
         setPreviewAllocations(formattedAllocations);
@@ -518,8 +560,19 @@ export default function ContractClient() {
 
           {contract.isAllocated ? (
             <div className="space-y-6">
-              <h2 className="text-2xl font-semibold">Incoming Allocated</h2>
-              
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-semibold">Incoming Allocated</h2>
+                {editMode ? (
+                  <div className="flex gap-2">
+                    <Button onClick={addNewGroup} disabled={processing}>Add New Group</Button>
+                    <Button onClick={saveChanges} disabled={processing}>Save Changes</Button>
+                    <Button variant="outline" onClick={cancelEdit} disabled={processing}>Cancel</Button>
+                  </div>
+                ) : (
+                  <Button onClick={startEditMode} disabled={processing}>Edit Groups</Button>
+                )}
+              </div>
+
               <div className="rounded-lg border overflow-hidden">
                 <table className="w-full">
                   <thead>
@@ -529,43 +582,35 @@ export default function ContractClient() {
                       <th className="px-4 py-3 text-left">Allocated Quantity (MT)</th>
                       <th className="px-4 py-3 text-left">GHG (kgCO₂eq/dry-ton)</th>
                       <th className="px-4 py-3 text-left">Outgoing SD</th>
+                      {editMode && <th className="px-4 py-3 text-left">Group</th>}
                     </tr>
                   </thead>
-                  {allocations.map((group, groupIndex) => (
-                    <tbody
-                      key={groupIndex}
-                      className="border-t-4 border-primary"
-                    >
-                      {group.map((allocation, index) => (
-                        <tr key={allocation.contractId} className="border-b last:border-b-0">
-                          <td className="px-4 py-3">
-                            <a
-                              href={`/reporting/incoming/${allocation.contractId}`}
-                              className="text-primary hover:underline"
-                            >
-                              {allocation.contractNumber}
-                            </a>
-                          </td>
-                          <td className="px-4 py-3">{allocation.warehouse}</td>
-                          <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
-                          <td className="px-4 py-3">{allocation.ghg}</td>
-                          {index === 0 && (
-                            <td className="px-4 py-3" rowSpan={group.length}>
+                  {editMode ? (
+                    editGroups.map((group, groupIndex) => (
+                      <tbody key={groupIndex} className="border-t-4 border-primary">
+                        {group.map((allocation, rowIndex) => (
+                          <tr key={allocation.contractId} className="border-b last:border-b-0">
+                            <td className="px-4 py-3">
+                              <a
+                                href={`/reporting/incoming/${allocation.contractId}`}
+                                className="text-primary hover:underline"
+                              >
+                                {allocation.contractNumber}
+                              </a>
+                            </td>
+                            <td className="px-4 py-3">{allocation.warehouse}</td>
+                            <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
+                            <td className="px-4 py-3">{allocation.ghg}</td>
+                            <td className="px-4 py-3">
                               {allocation.outgoingSD === 'Not generated' ? (
                                 <div className="space-y-2">
-                                  <Input
-                                    placeholder="SD Number"
-                                    className="w-40"
-                                  />
-                                  <Input
-                                    placeholder="Certification Number"
-                                    className="w-40"
-                                  />
+                                  <Input placeholder="SD Number" className="w-40" />
+                                  <Input placeholder="Certification Number" className="w-40" />
                                   <Button
                                     size="sm"
                                     onClick={() => handleGenerateTemplate(
                                       allocation.groupId,
-                                      'SD-123', // Replace with actual input values
+                                      'SD-123',
                                       'CERT-123'
                                     )}
                                     disabled={processing}
@@ -582,19 +627,82 @@ export default function ContractClient() {
                                 </a>
                               )}
                             </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  ))}
+                            <td className="px-4 py-3">
+                              <select
+                                className="border p-1"
+                                value={groupIndex}
+                                onChange={(e) =>
+                                  handleMoveAllocation(
+                                    groupIndex,
+                                    rowIndex,
+                                    parseInt(e.target.value)
+                                  )
+                                }
+                                disabled={processing}
+                              >
+                                {editGroups.map((_, idx) => (
+                                  <option key={idx} value={idx}>
+                                    {`Group ${idx + 1}`}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    ))
+                  ) : (
+                    allocations.map((group, groupIndex) => (
+                      <tbody key={groupIndex} className="border-t-4 border-primary">
+                        {group.map((allocation, index) => (
+                          <tr key={allocation.contractId} className="border-b last:border-b-0">
+                            <td className="px-4 py-3">
+                              <a
+                                href={`/reporting/incoming/${allocation.contractId}`}
+                                className="text-primary hover:underline"
+                              >
+                                {allocation.contractNumber}
+                              </a>
+                            </td>
+                            <td className="px-4 py-3">{allocation.warehouse}</td>
+                            <td className="px-4 py-3">{allocation.allocatedQuantity}</td>
+                            <td className="px-4 py-3">{allocation.ghg}</td>
+                            {index === 0 && (
+                              <td className="px-4 py-3" rowSpan={group.length}>
+                                {allocation.outgoingSD === 'Not generated' ? (
+                                  <div className="space-y-2">
+                                    <Input placeholder="SD Number" className="w-40" />
+                                    <Input placeholder="Certification Number" className="w-40" />
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleGenerateTemplate(
+                                        allocation.groupId,
+                                        'SD-123',
+                                        'CERT-123'
+                                      )}
+                                      disabled={processing}
+                                    >
+                                      Generate Template
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <a
+                                    href={allocation.outgoingSDUrl}
+                                    className="text-primary hover:underline"
+                                  >
+                                    {allocation.outgoingSD}
+                                  </a>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    ))
+                  )}
                 </table>
               </div>
-
-              <Button
-                variant="destructive"
-                onClick={handleUndoAllocation}
-                disabled={processing}
-              >
+              <Button variant="destructive" onClick={handleUndoAllocation} disabled={processing}>
                 Undo Allocation
               </Button>
             </div>

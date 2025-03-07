@@ -90,14 +90,14 @@ export default function StorageInventoryPage() {
   );
 
   // Filter products that have non-zero values for display
-  const filterNonZeroProducts = (items: InventoryItem[]) => {
-    return items.filter(item => 
-      item.opening !== 0 || 
-      item.incoming !== 0 || 
-      item.outgoing !== 0 || 
-      item.closing !== 0
-    );
-  };
+  // const filterNonZeroProducts = (items: InventoryItem[]) => {
+  //   return items.filter(item => 
+  //     item.opening !== 0 || 
+  //     item.incoming !== 0 || 
+  //     item.outgoing !== 0 || 
+  //     item.closing !== 0
+  //   );
+  // };
 
   // Toggle expanded state for a location
   const toggleLocationExpanded = (location: string) => {
@@ -225,7 +225,8 @@ export default function StorageInventoryPage() {
               </div>
             </div>
           ) : Object.entries(inventoryData).map(([storageLocation, items]) => {
-            const filteredItems = filterNonZeroProducts(items);
+            // const filteredItems = filterNonZeroProducts(items);
+            const filteredItems = items;
             if (filteredItems.length === 0) return null;
             const isExpanded = expandedLocations[storageLocation] || false;
 
