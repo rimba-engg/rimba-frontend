@@ -517,8 +517,8 @@ export function TaskSidebar({
           <div>
             <Label>Comments</Label>
             <div className="mt-2 space-y-4">
-              {task.comments.map(comment => (
-                <div key={comment.id} className="bg-gray-50 p-3 rounded-lg">
+              {task.comments.map((comment, index) => (
+                <div key={index} className="bg-gray-50 p-3 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <img
                       src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop"
