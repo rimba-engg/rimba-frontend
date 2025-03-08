@@ -107,6 +107,9 @@ export default function DocumentClient() {
   // Add new state for comment loading
   const [isAddingComment, setIsAddingComment] = useState(false);
 
+  // Add new state for comments visibility
+  const [showComments, setShowComments] = useState(true);
+
   useEffect(() => {
     const fetchDocumentDetails = async () => {
       console.log('fetching document details');
@@ -146,6 +149,8 @@ export default function DocumentClient() {
             setSelectedYear(doc.for_year?.toString() ?? null);
             setSelectedMonth(doc.for_month ?? null);
             setEditedRows(docDetails.extracted_data);
+            setSelectedVersion(docDetails.version);
+            setSelectedVersionData(docDetails.extracted_data);
           } else {
             console.error(
               'Error fetching document details:',
@@ -613,89 +618,315 @@ const handleUnflagDocument = async () => {
             )}
           </div>
 
-          {/* Extracted Data Button (to open modal) */}
-          <div className="bg-card rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-2">Extracted Data</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              View or edit the extracted data for Version {documentDetails.version}.
-            </p>
-            <Button onClick={openModal} className="bg-primary hover:bg-primary/90">
-              View Extracted Data
-            </Button>
+          {/* Extracted Data Table - Replaced the button with direct table rendering */}
+          <div className="relative bg-white w-full p-4 rounded-lg shadow-lg">
+            {/* Move heading outside of modal header */}
+            <h2 className="text-lg font-semibold mb-4">Extracted Data</h2>
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-4">
+              {/* Version Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Select Version:</span>
+                <select
+                  className="border rounded p-1 text-sm"
+                  value={selectedVersion ?? documentDetails.version}
+                  onChange={(e) => handleSelectVersion(Number(e.target.value))}
+                >
+                  {allVersions.map((v) => (
+                    <option key={v} value={v}>
+                      Version {v}
+                    </option>
+                  ))}
+                </select>
+                
+                {/* Add Year/Month selector */}
+                <div className="ml-4 flex gap-2">
+                  {/* Document Type Dropdown */}
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="border rounded p-1 text-sm"
+                    disabled={!isEditing}
+                  >
+                    {[
+                      "Bill Of Lading",
+                      "Business Document",
+                      "Delivery Note",
+                      "SD INS",
+                      "SD ISCC",
+                      "SD ISCC Outgoing",
+                      "WB Ticket",
+                      "WeighBridge Ticket"
+                    ].map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedYear ?? documentDetails.for_year}
+                    onChange={(e) => setSelectedYear((e.target.value))}
+                    className="border rounded p-1 text-sm"
+                  >
+                    {Array.from({length: 11}, (_, i) => 2020 + i).map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={selectedMonth ?? documentDetails.for_month}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="border rounded p-1 text-sm"
+                  >
+                    {MONTHS.map((month, index) => (
+                      <option key={month} value={index}>{month}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* If the selectedVersion is not the doc's current version and
+                  the doc has multiple versions, we can compare with the current. */}
+              {documentDetails.version_history.length > 0 && selectedVersion !== documentDetails.version && (
+                <label className="flex items-center gap-1 ml-4">
+                  <input
+                    type="checkbox"
+                    checked={compareCurrent}
+                    onChange={handleToggleCompare}
+                  />
+                  <span className="text-sm">Compare with Version {documentDetails.version}</span>
+                </label>
+              )}
+
+              {/* Edit / Save Buttons (only if selectedVersion == doc.version) */}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={toggleEdit}>
+                  {isEditing ? 'Cancel Edit' : 'Edit Data'}
+                </Button>
+                {isEditing && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleAddRow}
+                      className="ml-2"
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Add Row
+                    </Button>
+                    <Button 
+                      onClick={handleUpdateData} 
+                      className="bg-primary hover:bg-primary/90"
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <div className="flex items-center">
+                          <div className="spinner mr-2"></div>
+                          Updating...
+                        </div>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Update Data
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Table content */}
+            <div className="overflow-auto max-h-[70vh]">
+              {/* Table for the SELECTED version */}
+              <h3 className="mb-2 text-sm font-medium">
+                Showing Version {selectedVersion}
+                {selectedVersion === documentDetails.version ? ' (current)' : ''}
+              </h3>
+              <table className="w-full border-collapse text-sm table-auto whitespace-nowrap mb-8">
+                <thead>
+                  <tr className="border-b border-gray-300">
+                    {allKeys.map((key) => (
+                      <th 
+                        key={key} 
+                        className="py-2 px-3 text-left font-semibold min-w-[150px] whitespace-nowrap"
+                      >
+                        {key}
+                      </th>
+                    ))}
+                    {isEditing && <th className="py-2 px-3 text-left font-semibold min-w-[100px]">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedVersion === documentDetails.version && isEditing
+                    ? editedRows
+                    : selectedVersionData
+                  ).map((row, rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
+                    >
+                      {allKeys.map((key) => {
+                        const cellValue = row[key] !== undefined ? row[key] : '';
+                        return (
+                          <td 
+                            key={key} 
+                            className="py-2 px-3 align-top min-w-[150px] whitespace-nowrap"
+                          >
+                            {selectedVersion === documentDetails.version && isEditing ? (
+                              <Input
+                                value={cellValue}
+                                onChange={(e) =>
+                                  handleCellChange(rowIndex, key, e.target.value)
+                                }
+                                className="text-sm"
+                              />
+                            ) : (
+                              cellValue
+                            )}
+                          </td>
+                        );
+                      })}
+                      {isEditing && (
+                        <td className="py-2 px-3 align-top">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteRow(rowIndex)}
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* If "compareCurrent" is true, show the doc.version side-by-side in a second table */}
+              {compareCurrent && (
+                <>
+                  <h3 className="mb-2 text-sm font-medium">
+                    Comparing with Version {documentDetails.version} (current)
+                  </h3>
+                  <table className="w-full border-collapse text-sm table-auto whitespace-nowrap">
+                    <thead>
+                      <tr className="border-b border-gray-300">
+                        {allKeys.map((key) => (
+                          <th key={key} className="py-2 px-3 text-left font-semibold">
+                            {key}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documentDetails.extracted_data.map((row, rowIndex) => (
+                        <tr
+                          key={rowIndex}
+                          className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
+                        >
+                          {allKeys.map((key) => {
+                            const cellValue = row[key] !== undefined ? row[key] : '';
+                            // No editing for compare view
+                            return (
+                              <td key={key} className="py-2 px-3 align-top">
+                                {cellValue}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Comments Section */}
           <div className="bg-card rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Comments</h2>
-            <div className="space-y-4">
-              {documentDetails.comments.map((comment, index) => (
-                <div key={index} className="flex gap-4">
-                  {/* Placeholder avatar since it's not in the API response */}
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-muted p-3 rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{comment.user}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(comment.created_at).toLocaleString()}
-                        </span>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Comments</h2>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowComments(!showComments)}
+                className="text-muted-foreground hover:bg-gray-100"
+              >
+                {showComments ? 'Hide Comments' : 'Show Comments'}
+              </Button>
+            </div>
+            
+            {showComments && (
+              <div className="space-y-4">
+                {documentDetails.comments.map((comment, index) => (
+                  <div key={index} className="flex gap-4">
+                    {/* Placeholder avatar since it's not in the API response */}
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-muted p-3 rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <span className="font-medium">{comment.user}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(comment.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm">{comment.comment}</p>
                       </div>
-                      <p className="mt-1 text-sm">{comment.comment}</p>
                     </div>
                   </div>
-                </div>
-              ))}
-              {/* Add new comment */}
-              <div className="flex gap-4">
-                <img
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop"
-                  alt="Current user"
-                  className="w-8 h-8 rounded-full"
-                />
-                <div className="flex-1">
-                  <div className="relative">
-                    <Textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Add a comment..."
-                      className="mb-2"
-                      onKeyUp={handleCommentKeyDown}
-                    />
-                    {showUserSuggestions && userSuggestions.length > 0 && (
-                      <div className="absolute bottom-full left-0 w-64 max-h-48 overflow-y-auto bg-white border rounded-md shadow-lg">
-                        {userSuggestions.map((user) => (
-                          <div
-                            key={user._id}
-                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                            onClick={() => handleUserSelect(user)}
-                          >
-                            <div className="font-medium">
-                              {user.user_data.first_name} {user.user_data.last_name}
+                ))}
+                
+                {/* Add new comment form */}
+                <div className="flex gap-4">
+                  <img
+                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop"
+                    alt="Current user"
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Add a comment..."
+                        className="mb-2"
+                        onKeyUp={handleCommentKeyDown}
+                      />
+                      {showUserSuggestions && userSuggestions.length > 0 && (
+                        <div className="absolute bottom-full left-0 w-64 max-h-48 overflow-y-auto bg-white border rounded-md shadow-lg">
+                          {userSuggestions.map((user) => (
+                            <div
+                              key={user._id}
+                              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => handleUserSelect(user)}
+                            >
+                              <div className="font-medium">
+                                {user.user_data.first_name} {user.user_data.last_name}
+                              </div>
+                              <div className="text-sm text-gray-500">{user.user_data.email}</div>
                             </div>
-                            <div className="text-sm text-gray-500">{user.user_data.email}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <Button 
+                      onClick={() => addComment(documentDetails.id, newComment)}
+                      disabled={isAddingComment || !newComment.trim()}
+                    >
+                      {isAddingComment ? (
+                          <>
+                              <div className="spinner-small mr-2"></div>
+                              Adding...
+                          </>
+                      ) : (
+                          'Add Comment'
+                      )}
+                    </Button>
                   </div>
-                  <Button 
-                    onClick={() => addComment(documentDetails.id, newComment)}
-                    disabled={isAddingComment || !newComment.trim()}
-                  >
-                    {isAddingComment ? (
-                        <>
-                            <div className="spinner-small mr-2"></div>
-                            Adding...
-                        </>
-                    ) : (
-                        'Add Comment'
-                    )}
-                  </Button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -816,238 +1047,6 @@ const handleUnflagDocument = async () => {
         </div>
       </div>
 
-      {/* Modal for Extracted Data, showing selected version + optional compare */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="relative bg-white w-11/12 max-w-7xl p-4 rounded-lg shadow-lg">
-            {/* Close Button */}
-            <button
-              className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 text-2xl leading-none"
-              onClick={closeModal}
-            >
-              &times;
-            </button>
-
-            {/* Modal Header */}
-            <div className="flex justify-between items-center mb-4">
-              {/* Version Selector */}
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold mr-2">Extracted Data</h2>
-                <span className="text-sm">Select Version:</span>
-                <select
-                  className="border rounded p-1 text-sm"
-                  value={selectedVersion ?? documentDetails.version}
-                  onChange={(e) => handleSelectVersion(Number(e.target.value))}
-                >
-                  {allVersions.map((v) => (
-                    <option key={v} value={v}>
-                      Version {v}
-                    </option>
-                  ))}
-                </select>
-                
-                {/* Add Year/Month selector */}
-                <div className="ml-4 flex gap-2">
-                  {/* Document Type Dropdown */}
-                  <select
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                    className="border rounded p-1 text-sm"
-                    disabled={!isEditing}
-                  >
-                    {[
-                      "Bill Of Lading",
-                      "Business Document",
-                      "Delivery Note",
-                      "SD INS",
-                      "SD ISCC",
-                      "SD ISCC Outgoing",
-                      "WB Ticket",
-                      "WeighBridge Ticket"
-                    ].map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={selectedYear ?? documentDetails.for_year}
-                    onChange={(e) => setSelectedYear((e.target.value))}
-                    className="border rounded p-1 text-sm"
-                  >
-                    {Array.from({length: 11}, (_, i) => 2020 + i).map((year) => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                  
-                  <select
-                    value={selectedMonth ?? documentDetails.for_month}
-                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="border rounded p-1 text-sm"
-                  >
-                    {MONTHS.map((month, index) => (
-                      <option key={month} value={index}>{month}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* If the selectedVersion is not the doc's current version and
-                  the doc has multiple versions, we can compare with the current. */}
-              {documentDetails.version_history.length > 0 && selectedVersion !== documentDetails.version && (
-                <label className="flex items-center gap-1 ml-4">
-                  <input
-                    type="checkbox"
-                    checked={compareCurrent}
-                    onChange={handleToggleCompare}
-                  />
-                  <span className="text-sm">Compare with Version {documentDetails.version}</span>
-                </label>
-              )}
-
-              {/* Edit / Save Buttons (only if selectedVersion == doc.version) */}
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={toggleEdit}>
-                  {isEditing ? 'Cancel Edit' : 'Edit Data'}
-                </Button>
-                {isEditing && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleAddRow}
-                      className="ml-2"
-                    >
-                      <Plus className="w-4 h-4 mr-2" /> Add Row
-                    </Button>
-                    <Button 
-                      onClick={handleUpdateData} 
-                      className="bg-primary hover:bg-primary/90"
-                      disabled={isUpdating}
-                    >
-                      {isUpdating ? (
-                        <div className="flex items-center">
-                          <div className="spinner mr-2"></div>
-                          Updating...
-                        </div>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Update Data
-                        </>
-                      )}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Build the table(s) with smaller row spacing, horizontally scrollable */}
-            <div className="overflow-auto max-h-[70vh]">
-              {/* Table for the SELECTED version */}
-              <h3 className="mb-2 text-sm font-medium">
-                Showing Version {selectedVersion}
-                {selectedVersion === documentDetails.version ? ' (current)' : ''}
-              </h3>
-              <table className="w-full border-collapse text-sm table-auto whitespace-nowrap mb-8">
-                <thead>
-                  <tr className="border-b border-gray-300">
-                    {allKeys.map((key) => (
-                      <th 
-                        key={key} 
-                        className="py-2 px-3 text-left font-semibold min-w-[150px] whitespace-nowrap"
-                      >
-                        {key}
-                      </th>
-                    ))}
-                    {isEditing && <th className="py-2 px-3 text-left font-semibold min-w-[100px]">Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(selectedVersion === documentDetails.version && isEditing
-                    ? editedRows
-                    : selectedVersionData
-                  ).map((row, rowIndex) => (
-                    <tr
-                      key={rowIndex}
-                      className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
-                    >
-                      {allKeys.map((key) => {
-                        const cellValue = row[key] !== undefined ? row[key] : '';
-                        return (
-                          <td 
-                            key={key} 
-                            className="py-2 px-3 align-top min-w-[150px] whitespace-nowrap"
-                          >
-                            {selectedVersion === documentDetails.version && isEditing ? (
-                              <Input
-                                value={cellValue}
-                                onChange={(e) =>
-                                  handleCellChange(rowIndex, key, e.target.value)
-                                }
-                                className="text-sm"
-                              />
-                            ) : (
-                              cellValue
-                            )}
-                          </td>
-                        );
-                      })}
-                      {isEditing && (
-                        <td className="py-2 px-3 align-top">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteRow(rowIndex)}
-                          >
-                            Delete
-                          </Button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* If "compareCurrent" is true, show the doc.version side-by-side in a second table */}
-              {compareCurrent && (
-                <>
-                  <h3 className="mb-2 text-sm font-medium">
-                    Comparing with Version {documentDetails.version} (current)
-                  </h3>
-                  <table className="w-full border-collapse text-sm table-auto whitespace-nowrap">
-                    <thead>
-                      <tr className="border-b border-gray-300">
-                        {allKeys.map((key) => (
-                          <th key={key} className="py-2 px-3 text-left font-semibold">
-                            {key}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {documentDetails.extracted_data.map((row, rowIndex) => (
-                        <tr
-                          key={rowIndex}
-                          className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50"
-                        >
-                          {allKeys.map((key) => {
-                            const cellValue = row[key] !== undefined ? row[key] : '';
-                            // No editing for compare view
-                            return (
-                              <td key={key} className="py-2 px-3 align-top">
-                                {cellValue}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       <style jsx global>{`
         @keyframes spin-fast {
           to {

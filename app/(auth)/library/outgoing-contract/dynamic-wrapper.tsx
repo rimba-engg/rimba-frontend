@@ -26,6 +26,31 @@ import { ContractDetails, Allocation, Warehouse } from './types';
 import { Loader } from '@/components/ui/loader';
 import WarehouseDropdown from '@/app/(auth)/library/outgoing-contract/WarehouseDropdown';
 import {BASE_URL} from '@/lib/api';
+import { distanceData } from './constants';
+
+// Add this utility function near the top of the file
+function getDistance(portOfLoading: string, portOfDischarge: string, route: 'Suez' | 'COGH') {
+    console.log("Port of Loading:", portOfLoading);
+    console.log("Port of Discharge:", portOfDischarge);
+    console.log("Route:", route);
+
+    // Convert keys to arrays for fuzzy matching
+    const loadingPorts = Object.keys(distanceData);
+    const dischargePorts = loadingPorts.flatMap(loadingPort => Object.keys(distanceData[loadingPort as keyof typeof distanceData]));
+
+    // Convert input to lowercase for case-insensitive matching
+    const lowerPortOfLoading = portOfLoading.toLowerCase();
+    const lowerPortOfDischarge = portOfDischarge.toLowerCase();
+
+    // Find matching ports using includes for fuzzy matching
+    const matchedLoadingPort = loadingPorts.find(port => lowerPortOfLoading.includes(port.toLowerCase()));
+    const matchedDischargePort = dischargePorts.find(port => lowerPortOfDischarge.includes(port.toLowerCase()));
+
+    if (matchedLoadingPort && matchedDischargePort) {
+        return distanceData[matchedLoadingPort as keyof typeof distanceData][matchedDischargePort as keyof (typeof distanceData)[keyof typeof distanceData]][route] || 0;
+    }
+    return 0;
+}
 
 // Replace the mock API functions with real API calls
 const fetchContractData = async (id: string): Promise<{
@@ -145,6 +170,10 @@ export default function ContractClient() {
   // Add new state declarations and helper functions for editing groups
   const [editMode, setEditMode] = useState(false);
   const [editGroups, setEditGroups] = useState<Allocation[][]>([]);
+
+  // Add new state for user inputs
+  const [sdNumber, setSdNumber] = useState('');
+  const [certNumber, setCertNumber] = useState('');
 
   const startEditMode = () => {
     // Clone current allocations into editGroups and activate edit mode
@@ -393,9 +422,61 @@ export default function ContractClient() {
   const handleGenerateTemplate = async (groupId: string, sdNumber: string, certNumber: string) => {
     setProcessing(true);
     try {
-      // API call to generate template
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Handle file download
+      console.log('generating template for group', groupId);
+      console.log('contract', contract);
+      console.log('route', route);
+      
+      // Find the corresponding allocation group
+      const groups = editMode ? editGroups : allocations;
+      const targetGroup = groups.find(group => group[0]?.groupId === groupId);
+      
+      if (!targetGroup) {
+        throw new Error('Could not find allocation group');
+      }
+
+      // Calculate total quantity and max GHG from the group
+      const totalQuantity = targetGroup.reduce((sum, allocation) => sum + allocation.allocatedQuantity, 0);
+      const maxGHGValue = Math.max(...targetGroup.map(allocation => allocation.ghg));
+
+      // Get distance based on selected route from constants
+      const totalDistance = getDistance(contract?.portOfLoading as string, contract?.portOfDischarge as string, route);
+      console.log('totalDistance', totalDistance);
+      console.log('totalQuantity', totalQuantity);
+      console.log('maxGHGValue', maxGHGValue);
+      console.log('sdNumber', sdNumber);
+      console.log('certNumber', certNumber);
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${BASE_URL}/reporting/v2/outgoing-sd-template/generate/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          group_id: groupId,
+          contract_id: contract?.id,
+          quantity: totalQuantity,
+          distance: totalDistance,
+          sd_number: sdNumber,
+          ghg: maxGHGValue,
+          certification_number: certNumber
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to generate template');
+
+      // Handle blob response
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `outgoing_sd_template_${groupId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
     } catch (error) {
       console.error('Error generating template:', error);
     } finally {
@@ -621,14 +702,24 @@ export default function ContractClient() {
                             <td className="px-4 py-3">
                               {allocation.outgoingSD === 'Not generated' ? (
                                 <div className="space-y-2">
-                                  <Input placeholder="SD Number" className="w-40" />
-                                  <Input placeholder="Certification Number" className="w-40" />
+                                  <Input 
+                                    placeholder="SD Number" 
+                                    className="w-40" 
+                                    value={sdNumber}
+                                    onChange={(e) => setSdNumber(e.target.value)}
+                                  />
+                                  <Input 
+                                    placeholder="Certification Number" 
+                                    className="w-40" 
+                                    value={certNumber}
+                                    onChange={(e) => setCertNumber(e.target.value)}
+                                  />
                                   <Button
                                     size="sm"
                                     onClick={() => handleGenerateTemplate(
                                       allocation.groupId,
-                                      'SD-123',
-                                      'CERT-123'
+                                      sdNumber,
+                                      certNumber
                                     )}
                                     disabled={processing}
                                   >
@@ -688,14 +779,24 @@ export default function ContractClient() {
                               <td className="px-4 py-3" rowSpan={group.length}>
                                 {allocation.outgoingSD === 'Not generated' ? (
                                   <div className="space-y-2">
-                                    <Input placeholder="SD Number" className="w-40" />
-                                    <Input placeholder="Certification Number" className="w-40" />
+                                    <Input 
+                                      placeholder="SD Number" 
+                                      className="w-40" 
+                                      value={sdNumber}
+                                      onChange={(e) => setSdNumber(e.target.value)}
+                                    />
+                                    <Input 
+                                      placeholder="Certification Number" 
+                                      className="w-40" 
+                                      value={certNumber}
+                                      onChange={(e) => setCertNumber(e.target.value)}
+                                    />
                                     <Button
                                       size="sm"
                                       onClick={() => handleGenerateTemplate(
                                         allocation.groupId,
-                                        'SD-123',
-                                        'CERT-123'
+                                        sdNumber,
+                                        certNumber
                                       )}
                                       disabled={processing}
                                     >
