@@ -26,6 +26,7 @@ export interface Allocation {
     groupId: string;
     outgoingSD: string;
     outgoingSDUrl: string;
+    outgoingSDDocId: string;
 }
   
 export interface Warehouse {
