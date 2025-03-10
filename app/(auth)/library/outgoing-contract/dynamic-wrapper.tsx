@@ -88,6 +88,7 @@ const fetchContractData = async (id: string): Promise<{
         outgoing_sd_url: string;
         group_id: string;
         for_month: string;
+        outgoing_sd_doc_id: string;
       }[][];
     };
   }>(`/v2/contract/outgoing/detail/${id}/`);
@@ -127,6 +128,7 @@ const fetchContractData = async (id: string): Promise<{
         outgoingSDUrl: allocation.outgoing_sd_url,
         groupId: allocation.group_id,
         month: allocation.for_month,
+        outgoingSDDocId: allocation.outgoing_sd_doc_id,
       }))
     ) || [],
     warehouses: data.warehouses,
@@ -351,6 +353,7 @@ export default function ContractClient() {
             groupId: allocation.group_id,
             month: allocation.for_month,
             id: allocation.id,
+            outgoingSDDocId: allocation.outgoing_sd_doc_id,
           }))
         );
         setPreviewAllocations(formattedAllocations);
@@ -727,12 +730,12 @@ export default function ContractClient() {
                                   </Button>
                                 </div>
                               ) : (
-                                <a
-                                  href={allocation.outgoingSDUrl}
-                                  className="text-primary hover:underline"
+                                <span
+                                  onClick={() => router.push(`/library/document?document_id=${allocation.outgoingSDDocId}`)}
+                                  className="text-primary hover:underline cursor-pointer"
                                 >
                                   {allocation.outgoingSD}
-                                </a>
+                                </span>
                               )}
                             </td>
                             <td className="px-4 py-3">
@@ -804,12 +807,12 @@ export default function ContractClient() {
                                     </Button>
                                   </div>
                                 ) : (
-                                  <a
-                                    href={allocation.outgoingSDUrl}
-                                    className="text-primary hover:underline"
+                                  <span
+                                    onClick={() => router.push(`/library/document?document_id=${allocation.outgoingSDDocId}`)}
+                                    className="text-primary hover:underline cursor-pointer"
                                   >
                                     {allocation.outgoingSD}
-                                  </a>
+                                  </span>
                                 )}
                               </td>
                             )}
