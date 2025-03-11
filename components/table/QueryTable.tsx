@@ -4,6 +4,8 @@ import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
@@ -74,6 +76,13 @@ const QueryTable = () => {
   const [pendingViewConfig, setPendingViewConfig] = useState<ViewConfig | null>(null);
   const gridRef = useRef<any>(null);
 
+  // Add these new states
+  const [previewMode, setPreviewMode] = useState<boolean>(false);
+  const [previewResponse, setPreviewResponse] = useState<APIResponse | null>(null);
+  const [previewRowCount, setPreviewRowCount] = useState<number>(10); // Preview first 10 rows
+  const [originalRowData, setOriginalRowData] = useState<any[]>([]);
+  const [originalColumnDefs, setOriginalColumnDefs] = useState<ColumnDefinition[]>([]);
+
   useEffect(() => {
     const generateRandomData = (numRows: number) => {
       const data = [];
@@ -132,7 +141,7 @@ const QueryTable = () => {
           // Add more sorting configurations if needed.
         ],
         filtering: [
-          { field: "flag", criteria: "Flagged" }
+        //   { field: "flag", criteria: "Flagged" }
           // You can add additional filter criteria here.
         ]
       }
@@ -140,16 +149,26 @@ const QueryTable = () => {
 
     // Simulate API delay
     setTimeout(() => {
-      applyChangesToTable(mockResponse);
+      // Store original data before preview
+      setOriginalRowData([...rowData]);
+      setOriginalColumnDefs([...columnDefs]);
+      
+      // Store the response for later use if user confirms
+      setPreviewResponse(mockResponse);
+      
+      // Apply changes only to preview rows
+      applyChangesToPreview(mockResponse, previewRowCount);
+      
+      setPreviewMode(true);
       setLoading(false);
     }, 1000);
   };
 
-  // Apply changes to the table based on API response
-  const applyChangesToTable = (response: APIResponse) => {
+  // Apply changes to only a subset of rows for preview
+  const applyChangesToPreview = (response: APIResponse, previewCount: number) => {
     let updatedRows = [...rowData];
     let updatedColumns = [...columnDefs];
-
+    
     // Process each new column
     if (response.newColumns) {
       response.newColumns.forEach(newCol => {
@@ -157,21 +176,64 @@ const QueryTable = () => {
         if (!updatedColumns.find(col => col.field === newCol.field)) {
           updatedColumns.push({ headerName: newCol.headerName, field: newCol.field });
         }
-        // Map all rows to include the computed column value.
-        updatedRows = updatedRows.map(row => ({
-          ...row,
-          [newCol.field]: computeFormula(newCol.formula, row)
-        }));
+        
+        // Apply formula only to the first previewCount rows
+        updatedRows = updatedRows.map((row, index) => {
+          if (index < previewCount) {
+            return {
+              ...row,
+              [newCol.field]: computeFormula(newCol.formula, row)
+            };
+          }
+          return row;
+        });
       });
     }
 
-    // Store the view configuration (which may include multiple sorting and filtering definitions)
+    // Store the view configuration but don't apply it yet
     if (response.viewConfig) {
       setPendingViewConfig(response.viewConfig);
     }
 
     setColumnDefs(updatedColumns);
     setRowData(updatedRows);
+  };
+
+  // Apply changes to all rows
+  const applyChangesToAllRows = () => {
+    if (!previewResponse) return;
+    
+    let updatedRows = [...rowData];
+    
+    // Process each new column for all rows
+    if (previewResponse.newColumns) {
+      previewResponse.newColumns.forEach(newCol => {
+        // Apply formula to all rows
+        updatedRows = updatedRows.map(row => {
+          // Skip rows that already have the computed value
+          if (row[newCol.field] !== undefined) {
+            return row;
+          }
+          return {
+            ...row,
+            [newCol.field]: computeFormula(newCol.formula, row)
+          };
+        });
+      });
+    }
+
+    setRowData(updatedRows);
+    setPreviewMode(false);
+    setPreviewResponse(null);
+  };
+
+  // Revert changes
+  const revertChanges = () => {
+    setRowData(originalRowData);
+    setColumnDefs(originalColumnDefs);
+    setPendingViewConfig(null);
+    setPreviewMode(false);
+    setPreviewResponse(null);
   };
 
   // Apply the pending view configuration once the grid has registered the new columns.
@@ -214,18 +276,42 @@ const QueryTable = () => {
         columnDefs={columnDefs} 
         ref={gridRef}
       />
-      <div style={{ marginTop: 20 }}>
+      
+      {previewMode && (
+        <div className="mt-4 p-4 bg-background border rounded-md shadow-sm">
+          <p>Changes have been applied to the first {previewRowCount} rows as a preview.</p>
+          <div className="flex gap-2 mt-2">
+            <Button 
+              onClick={applyChangesToAllRows}
+              variant="default"
+            >
+              Apply to All Rows
+            </Button>
+            <Button 
+              onClick={revertChanges}
+              variant="destructive"
+            >
+              Revert Changes
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      <div className="mt-6 space-y-2">
         <textarea 
+          className="flex w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Enter your query..."
           value={query}
           onChange={e => setQuery(e.target.value)}
           rows={4}
-          cols={50}
         />
-        <br />
-        <button onClick={handleQuerySubmit} disabled={loading} style={{ marginTop: 10 }}>
+        <Button 
+          onClick={handleQuerySubmit} 
+          disabled={loading || previewMode}
+          className="mt-2"
+        >
           {loading ? 'Processing...' : 'Submit Query'}
-        </button>
+        </Button>
       </div>
     </div>
   );
