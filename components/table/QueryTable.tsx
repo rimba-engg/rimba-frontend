@@ -6,6 +6,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { api } from '@/lib/api';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
@@ -42,6 +43,12 @@ interface ColumnDefinition {
   field: string;
 }
 
+// Add this interface for column type information
+interface ColumnWithType extends ColumnDefinition {
+  type: 'string' | 'number' | 'boolean' | 'date';
+  sample?: any; // Optional sample value
+}
+
 const TableComponent = React.forwardRef(({
   rowData,
   columnDefs
@@ -70,7 +77,7 @@ const TableComponent = React.forwardRef(({
 const QueryTable = () => {
   const [query, setQuery] = useState<string>("");
   const [rowData, setRowData] = useState<any[]>([]);
-  const [columnDefs, setColumnDefs] = useState<ColumnDefinition[]>([]);
+  const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([]);
   const [loading, setLoading] = useState(false);
   // State to hold pending view configuration (sorting + filtering)
   const [pendingViewConfig, setPendingViewConfig] = useState<ViewConfig | null>(null);
@@ -81,7 +88,7 @@ const QueryTable = () => {
   const [previewResponse, setPreviewResponse] = useState<APIResponse | null>(null);
   const [previewRowCount, setPreviewRowCount] = useState<number>(10); // Preview first 10 rows
   const [originalRowData, setOriginalRowData] = useState<any[]>([]);
-  const [originalColumnDefs, setOriginalColumnDefs] = useState<ColumnDefinition[]>([]);
+  const [originalColumnDefs, setOriginalColumnDefs] = useState<ColumnWithType[]>([]);
 
   useEffect(() => {
     const generateRandomData = (numRows: number) => {
@@ -94,13 +101,14 @@ const QueryTable = () => {
       return data;
     };
 
-    const data = generateRandomData(100); // Change 10 to any number of rows you want to generate
+    const data = generateRandomData(100);
     setRowData(data);
 
-    const columns: ColumnDefinition[] = [
-      { headerName: "ID", field: "id" },
-      { headerName: "Received", field: "received" },
-      { headerName: "Supplied", field: "supplied" }
+    // Updated column definitions with type information
+    const columns: ColumnWithType[] = [
+      { headerName: "ID", field: "id", type: "number", sample: 1 },
+      { headerName: "Received", field: "received", type: "number", sample: 500 },
+      { headerName: "Supplied", field: "supplied", type: "number", sample: 300 }
     ];
     setColumnDefs(columns);
   }, []);
@@ -116,52 +124,68 @@ const QueryTable = () => {
     }
   };
 
-  // Simulate an API call by mocking the response from the LLM.
-  const handleQuerySubmit = async () => {
-    setLoading(true);
-
-    // Updated mock response supports multiple new columns, sorting and filtering criteria.
-    const mockResponse: APIResponse = {
-      newColumns: [
-        {
-          headerName: "Flag",
-          field: "flag",
-          formula: "return (Math.abs(row.received - row.supplied) / row.received > 0.55) ? 'Flagged' : 'OK';"
-        },
-        {
-          headerName: "Difference",
-          field: "difference",
-          formula: "return (Math.abs(row.received - row.supplied) / row.received) * 100;"
-        }
-        // You can add additional new column definitions here.
-      ],
-      viewConfig: {
-        sorting: [
-          { field: "id", order: "asc" }
-          // Add more sorting configurations if needed.
-        ],
-        filtering: [
-        //   { field: "flag", criteria: "Flagged" }
-          // You can add additional filter criteria here.
-        ]
-      }
+  // Mock API request function using actual API call
+  const fetchQueryResults = async (
+    userQuery: string, 
+    tableSchema: ColumnWithType[]
+  ): Promise<APIResponse> => {
+    // Create the request payload
+    const payload = {
+      query: userQuery,
+      tableSchema: tableSchema.map(col => ({
+        field: col.field,
+        headerName: col.headerName,
+        type: col.type,
+        sample: col.sample || getSampleValueForColumn(col.field, rowData)
+      })),
+      // Optionally include a sample of the data
+      sampleData: rowData.slice(0, 5)
     };
 
-    // Simulate API delay
-    setTimeout(() => {
+    // For debugging purposes
+    console.log("API Payload:", JSON.stringify(payload, null, 2));
+
+    // Make the actual API call to '/v2/table-query/' using our API client.
+    const response = await api.post<APIResponse>("/reporting/v2/table-query/", payload);
+    return response;
+  };
+  
+  // Helper function to get a sample value for a column
+  const getSampleValueForColumn = (field: string, data: any[]): any => {
+    if (data.length === 0) return null;
+    return data[0][field];
+  };
+
+  // Updated query submit handler to use the mock API
+  const handleQuerySubmit = async () => {
+    if (!query.trim()) {
+      alert("Please enter a query");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      // Call the mock API with the user query and table schema
+      const response = await fetchQueryResults(query, columnDefs);
+      
       // Store original data before preview
       setOriginalRowData([...rowData]);
       setOriginalColumnDefs([...columnDefs]);
       
       // Store the response for later use if user confirms
-      setPreviewResponse(mockResponse);
+      setPreviewResponse(response);
       
       // Apply changes only to preview rows
-      applyChangesToPreview(mockResponse, previewRowCount);
+      applyChangesToPreview(response, previewRowCount);
       
       setPreviewMode(true);
+    } catch (error) {
+      console.error("Error fetching query results:", error);
+      alert("An error occurred while processing your query. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   // Apply changes to only a subset of rows for preview
@@ -174,7 +198,7 @@ const QueryTable = () => {
       response.newColumns.forEach(newCol => {
         // Only add if the column doesn't already exist
         if (!updatedColumns.find(col => col.field === newCol.field)) {
-          updatedColumns.push({ headerName: newCol.headerName, field: newCol.field });
+          updatedColumns.push({ headerName: newCol.headerName, field: newCol.field, type: 'number' });
         }
         
         // Apply formula only to the first previewCount rows
@@ -269,8 +293,8 @@ const QueryTable = () => {
   }, [columnDefs, pendingViewConfig]);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Data Table with Natural Language Query</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Data Table with Natural Language Query</h1>
       <TableComponent 
         rowData={rowData} 
         columnDefs={columnDefs} 
@@ -279,7 +303,7 @@ const QueryTable = () => {
       
       {previewMode && (
         <div className="mt-4 p-4 bg-background border rounded-md shadow-sm">
-          <p>Changes have been applied to the first {previewRowCount} rows as a preview.</p>
+          <p className="text-sm">Changes have been applied to the first {previewRowCount} rows as a preview.</p>
           <div className="flex gap-2 mt-2">
             <Button 
               onClick={applyChangesToAllRows}
@@ -298,20 +322,31 @@ const QueryTable = () => {
       )}
       
       <div className="mt-6 space-y-2">
-        <textarea 
-          className="flex w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder="Enter your query..."
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          rows={4}
-        />
-        <Button 
-          onClick={handleQuerySubmit} 
-          disabled={loading || previewMode}
-          className="mt-2"
-        >
-          {loading ? 'Processing...' : 'Submit Query'}
-        </Button>
+        <div className="flex flex-col">
+          <label htmlFor="query-input" className="text-sm font-medium mb-1">
+            Enter your natural language query:
+          </label>
+          <textarea 
+            id="query-input"
+            className="flex w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            placeholder="Example: Show me all rows where the difference between received and supplied is more than 50%"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            rows={4}
+          />
+        </div>
+        <div className="flex justify-between items-center">
+          <p className="text-xs text-muted-foreground">
+            {loading ? 'Sending query to API...' : 'Your query will be processed by our AI to generate table transformations.'}
+          </p>
+          <Button 
+            onClick={handleQuerySubmit} 
+            disabled={loading || previewMode || !query.trim()}
+            className="mt-2"
+          >
+            {loading ? 'Processing...' : 'Submit Query'}
+          </Button>
+        </div>
       </div>
     </div>
   );
