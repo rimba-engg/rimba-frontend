@@ -44,9 +44,15 @@ interface ColumnDefinition {
 }
 
 // Add this interface for column type information
-interface ColumnWithType extends ColumnDefinition {
+export interface ColumnWithType extends ColumnDefinition {
   type: 'string' | 'number' | 'boolean' | 'date';
   sample?: any; // Optional sample value
+}
+
+// New interface for QueryTable props to pass in table data
+interface QueryTableProps {
+  initialRowData: any[];
+  initialColumnDefs: ColumnWithType[];
 }
 
 const TableComponent = React.forwardRef(({
@@ -74,44 +80,22 @@ const TableComponent = React.forwardRef(({
   );
 });
 
-const QueryTable = () => {
+const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDefs }) => {
+  // Initialize state using props
   const [query, setQuery] = useState<string>("");
-  const [rowData, setRowData] = useState<any[]>([]);
-  const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([]);
+  const [rowData, setRowData] = useState<any[]>(initialRowData);
+  const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>(initialColumnDefs);
   const [loading, setLoading] = useState(false);
   // State to hold pending view configuration (sorting + filtering)
   const [pendingViewConfig, setPendingViewConfig] = useState<ViewConfig | null>(null);
   const gridRef = useRef<any>(null);
 
-  // Add these new states
+  // Add these new states for preview mode
   const [previewMode, setPreviewMode] = useState<boolean>(false);
   const [previewResponse, setPreviewResponse] = useState<APIResponse | null>(null);
   const [previewRowCount, setPreviewRowCount] = useState<number>(10); // Preview first 10 rows
   const [originalRowData, setOriginalRowData] = useState<any[]>([]);
   const [originalColumnDefs, setOriginalColumnDefs] = useState<ColumnWithType[]>([]);
-
-  useEffect(() => {
-    const generateRandomData = (numRows: number) => {
-      const data = [];
-      for (let i = 1; i <= numRows; i++) {
-        const received = Math.floor(Math.random() * 1000) + 1;
-        const supplied = Math.floor(Math.random() * received);
-        data.push({ id: i, received, supplied });
-      }
-      return data;
-    };
-
-    const data = generateRandomData(100);
-    setRowData(data);
-
-    // Updated column definitions with type information
-    const columns: ColumnWithType[] = [
-      { headerName: "ID", field: "id", type: "number", sample: 1 },
-      { headerName: "Received", field: "received", type: "number", sample: 500 },
-      { headerName: "Supplied", field: "supplied", type: "number", sample: 300 }
-    ];
-    setColumnDefs(columns);
-  }, []);
 
   // Computes the result for a new column using a formula.
   const computeFormula = (formula: string, row: any): any => {
@@ -124,7 +108,7 @@ const QueryTable = () => {
     }
   };
 
-  // Mock API request function using actual API call
+  // Actual API request function using the api client  
   const fetchQueryResults = async (
     userQuery: string, 
     tableSchema: ColumnWithType[]
@@ -142,7 +126,6 @@ const QueryTable = () => {
       sampleData: rowData.slice(0, 5)
     };
 
-    // For debugging purposes
     console.log("API Payload:", JSON.stringify(payload, null, 2));
 
     // Make the actual API call to '/v2/table-query/' using our API client.
@@ -156,7 +139,7 @@ const QueryTable = () => {
     return data[0][field];
   };
 
-  // Updated query submit handler to use the mock API
+  // Updated query submit handler to call the API
   const handleQuerySubmit = async () => {
     if (!query.trim()) {
       alert("Please enter a query");
@@ -166,7 +149,6 @@ const QueryTable = () => {
     setLoading(true);
     
     try {
-      // Call the mock API with the user query and table schema
       const response = await fetchQueryResults(query, columnDefs);
       
       // Store original data before preview
@@ -176,7 +158,7 @@ const QueryTable = () => {
       // Store the response for later use if user confirms
       setPreviewResponse(response);
       
-      // Apply changes only to preview rows
+      // Apply preview changes only to a subset (first previewRowCount rows)
       applyChangesToPreview(response, previewRowCount);
       
       setPreviewMode(true);
