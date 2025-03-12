@@ -102,8 +102,43 @@ export default function ExtractionsPage() {
 
   const columnDefs = useMemo(() => {
     if (filteredRowData.length === 0) return [];
-    const keys = Object.keys(filteredRowData[0]);
-    return keys.map(key => ({ headerName: key, field: key, type: 'string' }));
+    const keys = Object.keys(filteredRowData[0]).filter(key => key !== 'document_id');
+    
+    // Create column definitions with potential custom renderers
+    const cols = keys.map(key => {
+      const baseCol = { 
+        headerName: key, 
+        field: key, 
+        type: 'string' 
+      };
+      
+      // Add link renderer for document_name column
+      if (key === 'Document Name') {
+        return {
+          ...baseCol,
+          cellRenderer: (params: any) => {
+            const documentId = params.data.document_id;
+            return (
+              <a 
+                href={`/library/document?document_id=${documentId}`} 
+                className="text-blue-600 hover:underline"
+              >
+                {params.value}
+              </a>
+            );
+          }
+        };
+      }
+      return baseCol;
+    });
+
+    // Reorder columns to put document_name first
+    const nameIndex = cols.findIndex(c => c.field === 'Document Name');
+    if (nameIndex > -1) {
+      const [nameCol] = cols.splice(nameIndex, 1);
+      return [nameCol, ...cols];
+    }
+    return cols;
   }, [filteredRowData]);
 
   // Added useEffect hooks for debugging state updates

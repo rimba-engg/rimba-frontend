@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Table, Eye, Download } from 'lucide-react';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
@@ -70,12 +70,31 @@ const TableComponent = React.forwardRef(({
         ref={ref}
         rowData={rowData} 
         columnDefs={columnDefs}
+        columnTypes={{
+          string: {
+            filter: 'agTextColumnFilter',
+            cellDataType: 'text',
+          },
+          number: {
+            filter: 'agNumberColumnFilter',
+            cellDataType: 'number',
+          },
+          date: {
+            filter: 'agDateColumnFilter',
+            cellDataType: 'date',
+          },
+          boolean: {
+            filter: 'agBooleanColumnFilter',
+            cellDataType: 'boolean',
+          }
+        }}
         defaultColDef={{
           filter: true,
           sortable: true,
           resizable: true,
           flex: 1,
           minWidth: 200,
+          type: ['string'], // Default to string type
         }}
       />
     </div>
@@ -109,6 +128,19 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
   const [isPivotMode, setIsPivotMode] = useState(false);
   const [backupRowData, setBackupRowData] = useState<any[] | null>(null);
   const [backupColumnDefs, setBackupColumnDefs] = useState<ColumnWithType[] | null>(null);
+
+  // Add new state for visible columns
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    new Set(initialColumnDefs.map(col => col.field))
+  );
+
+  // Update visible columns when initial columns change
+  useEffect(() => {
+    setVisibleColumns(new Set(initialColumnDefs.map(col => col.field)));
+  }, [initialColumnDefs]);
+
+  // Filter column definitions based on visibility
+  const filteredColumnDefs = columnDefs.filter(col => visibleColumns.has(col.field));
 
   // Add this useEffect to update internal state when props change, with added debug logs
   useEffect(() => {
@@ -199,6 +231,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
   const applyChangesToPreview = (response: APIResponse, previewCount: number) => {
     let updatedRows = [...rowData];
     let updatedColumns = [...columnDefs];
+    const newVisibleColumns = new Set(visibleColumns);
     
     // Process each new column
     if (response.newColumns) {
@@ -206,6 +239,8 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
         // Only add if the column doesn't already exist
         if (!updatedColumns.find(col => col.field === newCol.field)) {
           updatedColumns.push({ headerName: newCol.headerName, field: newCol.field, type: 'string' });
+          // Add new column to visible columns
+          newVisibleColumns.add(newCol.field);
         }
         
         // Apply formula only to the first previewCount rows
@@ -220,6 +255,9 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
         });
       });
     }
+
+    // Update visible columns state with new columns
+    setVisibleColumns(newVisibleColumns);
 
     // Store the view configuration but don't apply it yet
     if (response.viewConfig) {
@@ -314,6 +352,10 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
       setBackupColumnDefs(columnDefs);
     }
     const { newRows, newColDefs } = pivotData(rowData, pivotOptions);
+    
+    // Show all pivot-generated columns by default
+    setVisibleColumns(new Set(newColDefs.map(col => col.field)));
+    
     setRowData(newRows);
     setColumnDefs(newColDefs);
     setIsPivotMode(true);
@@ -321,6 +363,9 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
 
   const handleClearPivot = () => {
     if (backupRowData && backupColumnDefs) {
+      // Restore original visibility when clearing pivot
+      setVisibleColumns(new Set(backupColumnDefs.map(col => col.field)));
+      
       setRowData(backupRowData);
       setColumnDefs(backupColumnDefs);
       setBackupRowData(null);
@@ -361,151 +406,196 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     }
   }, [columnDefs, pendingViewConfig]);
 
-  const cleanedColumnDefs = columnDefs.map(({ headerName, field }) => ({ headerName, field }));
+  // New: Function to export the current table data to CSV
+  const handleExportCSV = () => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.exportDataAsCsv();
+    }
+  };
+
+  // Add column visibility handler
+  const handleColumnVisibilityChange = (field: string, isVisible: boolean) => {
+    const newVisible = new Set(visibleColumns);
+    isVisible ? newVisible.add(field) : newVisible.delete(field);
+    setVisibleColumns(newVisible);
+  };
 
   return (
     <div className="p-2">
       {/* <h1 className="text-2xl font-bold mb-4">Data Table with Natural Language Query</h1> */}
-      <div className="flex justify-start mb-2">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="default"
-              className="mr-4"
-            >
-              <MessageSquare className="w-5 h-5" />
-              <span>Ask AI</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 p-4">
-            <div className="space-y-2">
-              <div className="flex flex-col">
-                {/* <label htmlFor="query-input" className="text-sm font-medium mb-1">
-                  Enter your natural language query:
-                </label> */}
-                <textarea 
-                  id="query-input"
-                  className="flex w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Example: Show me all rows where the difference between received and supplied is more than 50%"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  rows={4}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-muted-foreground">
-                  {loading ? 'Sending query to API...' : 'Your query will be processed by our AI to generate table transformations.'}
-                </p>
-                <Button 
-                  onClick={handleQuerySubmit} 
-                  disabled={loading || previewMode || !query.trim()}
-                  className="mt-2"
+      <div className="flex justify-between mb-2">
+        <div className='flex'>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="default"
+                className="mr-4 gap-2"
                 >
-                  {loading ? 'Processing...' : 'Submit Query'}
-                </Button>
+                <MessageSquare className="w-5 h-5" />
+                <span>Ask AI</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-4">
+              <div className="space-y-2">
+                <div className="flex flex-col">
+                  {/* <label htmlFor="query-input" className="text-sm font-medium mb-1">
+                    Enter your natural language query:
+                    </label> */}
+                  <textarea 
+                    id="query-input"
+                    className="flex w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Example: Show me all rows where the difference between received and supplied is more than 50%"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    rows={4}
+                    />
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-muted-foreground">
+                    {loading ? 'Sending query to API...' : 'Your query will be processed by our AI to generate table transformations.'}
+                  </p>
+                  <Button 
+                    onClick={handleQuerySubmit} 
+                    disabled={loading || previewMode || !query.trim()}
+                    className="mt-2"
+                    >
+                    {loading ? 'Processing...' : 'Submit Query'}
+                  </Button>
+                </div>
               </div>
-            </div>
-            {previewMode && (
+              {previewMode && (
                 <div className="mt-4 p-4 bg-background border rounded-md shadow-sm">
-                <p className="text-sm">Changes have been applied to the first {previewRowCount} rows as a preview.</p>
+                  <p className="text-sm">Changes have been applied to the first {previewRowCount} rows as a preview.</p>
+                  <div className="flex gap-2 mt-2">
+                      <Button 
+                      onClick={applyChangesToAllRows}
+                      variant="default"
+                      >
+                      Apply to All Rows
+                      </Button>
+                      <Button 
+                      onClick={revertChanges}
+                      variant="destructive"
+                      >
+                      Revert Changes
+                      </Button>
+                  </div>
+                  </div>
+              )}
+            </PopoverContent>
+          </Popover>
+          {/* NEW: Pivot Table Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="default" className="flex gap-2 items-center">
+                <Table className="w-5 h-5" />
+                <span>Pivot View</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-4">
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Group By</label>
+                  <select
+                    value={pivotOptions.groupBy}
+                    onChange={(e) => setPivotOptions({ ...pivotOptions, groupBy: e.target.value })}
+                    className="w-full rounded-md border px-3 py-2"
+                    >
+                    <option value="">Select Column</option>
+                    {columnDefs.map(col => (
+                      <option key={col.field} value={col.field}>{col.headerName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Pivot Column</label>
+                  <select
+                    value={pivotOptions.pivotColumn}
+                    onChange={(e) => setPivotOptions({ ...pivotOptions, pivotColumn: e.target.value })}
+                    className="w-full rounded-md border px-3 py-2"
+                    >
+                    <option value="">Select Column</option>
+                    {columnDefs.map(col => (
+                      <option key={col.field} value={col.field}>{col.headerName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Value Column</label>
+                  <select
+                    value={pivotOptions.valueColumn}
+                    onChange={(e) => setPivotOptions({ ...pivotOptions, valueColumn: e.target.value })}
+                    className="w-full rounded-md border px-3 py-2"
+                    >
+                    <option value="">Select Column</option>
+                    {columnDefs.map(col => (
+                      <option key={col.field} value={col.field}>{col.headerName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Aggregation</label>
+                  <select
+                    value={pivotOptions.aggregation}
+                    onChange={(e) => setPivotOptions({ ...pivotOptions, aggregation: e.target.value })}
+                    className="w-full rounded-md border px-3 py-2"
+                    >
+                    <option value="sum">Sum</option>
+                    <option value="count">Count</option>
+                  </select>
+                </div>
                 <div className="flex gap-2 mt-2">
-                    <Button 
-                    onClick={applyChangesToAllRows}
-                    variant="default"
-                    >
-                    Apply to All Rows
+                  {isPivotMode ? (
+                    <Button onClick={handleClearPivot} variant="destructive">
+                      Clear Pivot
                     </Button>
-                    <Button 
-                    onClick={revertChanges}
-                    variant="destructive"
-                    >
-                    Revert Changes
+                  ) : (
+                    <Button onClick={handlePivotApply} variant="default">
+                      Apply Pivot
                     </Button>
+                  )}
                 </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+          {/* New Column Visibility Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="default" className="flex gap-2 items-center ml-2">
+                <Eye className="w-5 h-5" />
+                <span>Filter Columns</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-4 max-h-96 overflow-y-auto">
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">Visible Columns</h4>
+                <div className="space-y-1">
+                  {columnDefs.map(col => (
+                    <label key={col.field} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.has(col.field)}
+                        onChange={(e) => handleColumnVisibilityChange(col.field, e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{col.headerName}</span>
+                    </label>
+                  ))}
                 </div>
-            )}
-          </PopoverContent>
-        </Popover>
-        {/* NEW: Pivot Table Popover */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="default"
-              className=""
-            >
-              <span>Manual Edit</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 p-4">
-            <div className="space-y-2">
-              <div>
-                <label className="block text-sm font-medium mb-1">Group By</label>
-                <select
-                  value={pivotOptions.groupBy}
-                  onChange={(e) => setPivotOptions({ ...pivotOptions, groupBy: e.target.value })}
-                  className="w-full rounded-md border px-3 py-2"
-                >
-                  <option value="">Select Column</option>
-                  {columnDefs.map(col => (
-                    <option key={col.field} value={col.field}>{col.headerName}</option>
-                  ))}
-                </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Pivot Column</label>
-                <select
-                  value={pivotOptions.pivotColumn}
-                  onChange={(e) => setPivotOptions({ ...pivotOptions, pivotColumn: e.target.value })}
-                  className="w-full rounded-md border px-3 py-2"
-                >
-                  <option value="">Select Column</option>
-                  {columnDefs.map(col => (
-                    <option key={col.field} value={col.field}>{col.headerName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Value Column</label>
-                <select
-                  value={pivotOptions.valueColumn}
-                  onChange={(e) => setPivotOptions({ ...pivotOptions, valueColumn: e.target.value })}
-                  className="w-full rounded-md border px-3 py-2"
-                >
-                  <option value="">Select Column</option>
-                  {columnDefs.map(col => (
-                    <option key={col.field} value={col.field}>{col.headerName}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Aggregation</label>
-                <select
-                  value={pivotOptions.aggregation}
-                  onChange={(e) => setPivotOptions({ ...pivotOptions, aggregation: e.target.value })}
-                  className="w-full rounded-md border px-3 py-2"
-                >
-                  <option value="sum">Sum</option>
-                  <option value="count">Count</option>
-                </select>
-              </div>
-              <div className="flex gap-2 mt-2">
-                {isPivotMode ? (
-                  <Button onClick={handleClearPivot} variant="destructive">
-                    Clear Pivot
-                  </Button>
-                ) : (
-                  <Button onClick={handlePivotApply} variant="default">
-                    Apply Pivot
-                  </Button>
-                )}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="flex">
+          <Button onClick={handleExportCSV} variant="default" className="ml-4 flex gap-2 items-center">
+            <Download className="w-5 h-5" />
+            <span>Export CSV</span>
+          </Button>
+        </div>
       </div>
       <TableComponent 
         rowData={rowData} 
-        columnDefs={cleanedColumnDefs} 
+        columnDefs={filteredColumnDefs}
         ref={gridRef}
       />
 
