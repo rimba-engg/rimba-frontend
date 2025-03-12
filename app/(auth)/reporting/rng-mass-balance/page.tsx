@@ -27,7 +27,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -43,7 +43,7 @@ interface ViewsResponse {
 interface MassBalanceResponse {
   view_aggregate: Record<string, any>;
   view_data: Array<Record<string, any>>;
-  full_precision_view_data: Array<Record<string, any>>;
+  full_precision_view_data_csv: string;
   chart_config: Record<string, any>;
   chart_title: string;
   tax_credit: Record<string, any>;
@@ -89,7 +89,7 @@ export default function RngMassBalancePage() {
   const [error, setError] = useState<string | null>(null);
   const [columnDefs, setColumnDefs] = useState<Record<string, any>[]>([]);
   const [rowData, setRowData] = useState<Array<Record<string, any>>>([]);
-  const [fullPrecisionRowData, setFullPrecisionRowData] = useState<Array<Record<string, any>>>([]);
+  const [fullPrecisionRowDataCsv, setFullPrecisionRowDataCsv] = useState<string>('');
   const [selectedView, setSelectedView] = useState<GasBalanceView | null>(null);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -171,11 +171,10 @@ export default function RngMassBalancePage() {
       }
 
       const response = await api.post<MassBalanceResponse>('/reporting/v2/rng-mass-balance/', payload);
-      console.log(response);
 
       setRowData(response.view_data);
       setViewAggregate(response.view_aggregate);
-      setFullPrecisionRowData(response.full_precision_view_data);
+      setFullPrecisionRowDataCsv(response.full_precision_view_data_csv);
       setChartConfig(response.chart_config as ChartData<"bar", (number | [number, number] | null)[], unknown>);
       setChartTitle(response.chart_title);
       setTaxCredit(response.tax_credit);
@@ -191,10 +190,7 @@ export default function RngMassBalancePage() {
 
   // Function to handle CSV export
   const handleDownloadCsv = () => {
-    const csvContent = fullPrecisionRowData.map(row => Object.values(row).join(',')).join('\n');
-    // add header to csvContent
-    const header = Object.keys(fullPrecisionRowData[0]).join(',');
-    const blob = new Blob([header + '\n' + csvContent], { type: 'text/csv' });
+    const blob = new Blob([fullPrecisionRowDataCsv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -202,10 +198,13 @@ export default function RngMassBalancePage() {
     a.click();
   };
 
-  if (loading && !rowData.length || chartConfig === null) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-muted-foreground">Loading data...</div>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
+          <Loader2 className="animate-spin" size={24} />
+          <div className="text-lg font-medium">Loading data...</div>
+        </div>
       </div>
     );
   }
