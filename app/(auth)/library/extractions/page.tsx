@@ -76,16 +76,20 @@ export default function ExtractionsPage() {
   }, []); // Empty dependency array runs only once on mount
 
   const loadExtractions = async () => {
-    // Added debug log for loadExtractions call
     console.log('loadExtractions: called with selectedMonth:', selectedMonth, 'selectedYear:', selectedYear);
     setLoading(true);
-    const monthIndex = parseInt(selectedMonth);
-    const response = await fetchExtractions(monthIndex, selectedYear);
-    // Added debug log for fetched response
-    console.log('Fetched extractions response:', response);
-    setExtractionsData(response.data);
-    if (response.data.document_types.length > 0) {
+    try {
+      const monthIndex = parseInt(selectedMonth);
+      const response = await fetchExtractions(monthIndex, selectedYear);
+      console.log('Fetched extractions response:', response);
+      setExtractionsData(response.data);
+      if (response.data.document_types.length > 0) {
         setSelectedDocType(response.data.document_types[0]);
+      }
+    } catch (error) {
+      console.error('Error in loadExtractions:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,12 +192,17 @@ export default function ExtractionsPage() {
 
       {/* Table Container using QueryTable */}
       <div className="bg-card rounded-lg shadow p-4">
-        {/* {console.log('Rendering QueryTable with rowData:', extractionsData?.merged_data[selectedDocType] || [], 'and columnDefs:', columnDefs)} */}
-        <QueryTable 
-          key={`${selectedMonth}-${selectedYear}-${selectedDocType}-${filteredRowData.length}`}
-          initialRowData={filteredRowData}
-          initialColumnDefs={columnDefs as ColumnWithType[]}
-        />
+        {loading ? (
+          <div className="flex justify-center items-center">
+            <div className="spinner" />
+          </div>
+        ) : (
+          <QueryTable 
+            key={`${selectedMonth}-${selectedYear}-${selectedDocType?.id}-${filteredRowData.length}`}
+            initialRowData={filteredRowData}
+            initialColumnDefs={columnDefs as ColumnWithType[]}
+          />
+        )}
       </div>
 
       <style jsx>{`
