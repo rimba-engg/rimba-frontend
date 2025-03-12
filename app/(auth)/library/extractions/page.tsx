@@ -25,6 +25,21 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+interface ViewConfig {
+  id?: string; // Provided by backend when the view is saved
+  userId: string;
+  viewName: string;
+  documentType: string;
+  viewMode: 'normal' | 'pivot' | 'transpose';
+  pivotRowField?: string;
+  pivotColumnField?: string;
+  pivotValueField?: string;
+  pivotAggregator?: string;
+  selectedColumns: string[];
+  selectedRowIndices: number[];
+}
 
 interface ExtractionData {
   document_id: string;
@@ -33,11 +48,16 @@ interface ExtractionData {
   [key: string]: string | number | undefined;
 }
 
+interface DocumentType {
+  id: string;
+  name: string;
+}
+
 interface ApiResponse {
   status: string;
   message: string;
   data: {
-    document_types: string[];
+    document_types: DocumentType[];
     merged_data: Record<string, ExtractionData[]>;
     MONTHS: string[];
     current_month: string;
@@ -65,7 +85,7 @@ export default function ExtractionsPage() {
   const [loading, setLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>('3'); // Default to APRIL
   const [selectedYear, setSelectedYear] = useState<number>(2025); // Default to 2025
-  const [selectedDocType, setSelectedDocType] = useState<string>('');
+  const [selectedDocType, setSelectedDocType] = useState<DocumentType>({id: '', name: ''});
   const [searchQuery, setSearchQuery] = useState('');
   const [extractionData, setExtractionData] = useState<ApiResponse['data'] | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -82,6 +102,11 @@ export default function ExtractionsPage() {
 
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
   const [selectedRowIndices, setSelectedRowIndices] = useState<number[]>([]);
+
+  const viewMode = pivot ? 'pivot' : transpose ? 'transpose' : 'normal';
+
+  const [availableViews, setAvailableViews] = useState<ViewConfig[]>([]);
+  const [saveViewName, setSaveViewName] = useState<string>('');
 
   // Load extractions on mount
   useEffect(() => {
@@ -103,6 +128,9 @@ export default function ExtractionsPage() {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    console.log(selectedDocType);
+  }, [selectedDocType]);
 
   const handleFilter = async () => {
     await loadExtractions();
@@ -126,7 +154,7 @@ export default function ExtractionsPage() {
   };
 
   const filteredData =
-    extractionData?.merged_data[selectedDocType]?.filter((item) =>
+    extractionData?.merged_data[selectedDocType.name]?.filter((item) =>
       Object.values(item).some((value) =>
         value?.toString().toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -135,8 +163,8 @@ export default function ExtractionsPage() {
 
   // Get all unique headers for the selected document type
   const headers = useMemo(() => {
-    if (!extractionData?.merged_data[selectedDocType]) return [];
-    const allKeys = extractionData.merged_data[selectedDocType].flatMap(item => 
+    if (!extractionData?.merged_data[selectedDocType.name]) return [];
+    const allKeys = extractionData.merged_data[selectedDocType.name].flatMap(item => 
       Object.keys(item).filter(key => key !== 'document_id')
     );
     return Array.from(new Set(allKeys));
@@ -214,7 +242,7 @@ export default function ExtractionsPage() {
 
   // Render table body rows (normal view)
   const renderTableBody = () => {
-    return extractionData?.merged_data[selectedDocType]?.map((item, index) => (
+    return extractionData?.merged_data[selectedDocType.name]?.map((item, index) => (
       <TableRow 
         key={index}
         onClick={() => handleDocumentClick(item.document_id)}
@@ -304,6 +332,48 @@ export default function ExtractionsPage() {
 
   // ---- End CSV Export ----
 
+  // New function to fetch available saved views from the backend
+  const fetchViews = async () => {
+    try {
+      const response = await api.get<{ status: string; message: string; data: ViewConfig[] }>('/v2/extraction-view-config/');
+      if (response.status === 'success') {
+        setAvailableViews(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch saved views", error);
+    }
+  };
+
+  // New function to save the current view configuration to the backend
+  const handleSaveView = async () => {
+    // Construct the payload using the current view configuration
+    const viewPayload = {
+      document_type: selectedDocType.id,
+      view_mode: viewMode,
+      pivot_row_field: pivot ? pivotRowField : '',
+      pivot_column_field: pivot ? pivotColumnField : '',
+      pivot_value_field: pivot ? pivotValueField : '',
+      pivot_aggregator: pivot ? pivotAggregator : 'sum',
+      selected_columns: selectedColumns,
+      selected_row_indices: selectedRowIndices,
+    };
+    try {
+      const response = await api.post<{ status: string; message: string; data: ViewConfig }>('/v2/extraction-view-config/', viewPayload);
+      if (response.status === 'success') {
+        // Optionally update the local list or show a message before refetching later
+        // setAvailableViews((prev) => [...prev, response.data]);
+        alert("View saved successfully!");
+        setSaveViewName('');
+        fetchViews()
+      } else {
+        alert("Failed to save view: " + response.message);
+      }
+    } catch (error) {
+      console.error("Error saving view", error);
+      alert("Error saving view.");
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4">
       {/* Header */}
@@ -349,14 +419,14 @@ export default function ExtractionsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedDocType} onValueChange={setSelectedDocType}>
+              <Select value={selectedDocType.name} onValueChange={(value) => setSelectedDocType({id: selectedDocType.id, name: value})}>
                 <SelectTrigger className="w-[240px]">
                   <SelectValue placeholder="Select document type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {extractionData?.document_types.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
+                  {extractionData?.document_types.map((docType) => (
+                    <SelectItem key={docType.id} value={docType.name}>
+                      {docType.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -373,7 +443,7 @@ export default function ExtractionsPage() {
             </Button>
           </div>
             {/* Edit View Popover */}
-            <Popover>
+            <Popover onOpenChange={(open) => { if (open) fetchViews(); }}>
               <PopoverTrigger asChild>
                 <Button variant="outline">Edit View</Button>
               </PopoverTrigger>
@@ -413,7 +483,7 @@ export default function ExtractionsPage() {
                         <label htmlFor="pivot-row-select" className="text-sm font-semibold">
                           Row Field
                         </label>
-                        <Select  value={pivotRowField} onValueChange={setPivotRowField}>
+                        <Select value={pivotRowField} onValueChange={setPivotRowField}>
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Select row field" />
                           </SelectTrigger>
@@ -529,6 +599,54 @@ export default function ExtractionsPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* --- New Section: Load Saved Views --- */}
+                  <div>
+                    <label className="block font-semibold mb-1">Saved Views:</label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline">Load Saved View</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {availableViews.length > 0 ? (
+                          availableViews.map((view) => (
+                            <DropdownMenuItem
+                              key={view.id || view.viewName}
+                              onSelect={() => {
+                                // Load the view configuration into your UI:
+                                setTranspose(view.viewMode === 'transpose');
+                                setPivot(view.viewMode === 'pivot');
+                                setPivotRowField(view.pivotRowField || '');
+                                setPivotColumnField(view.pivotColumnField || '');
+                                setPivotValueField(view.pivotValueField || '');
+                                setPivotAggregator(view.pivotAggregator || 'sum');
+                                setSelectedColumns(view.selectedColumns);
+                                setSelectedRowIndices(view.selectedRowIndices);
+                              }}
+                            >
+                              {view.viewName}
+                            </DropdownMenuItem>
+                          ))
+                        ) : (
+                          <DropdownMenuItem disabled>No saved views</DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* --- New Section: Save Current View --- */}
+                  <div>
+                    <label className="block font-semibold mb-1">Save Current View:</label>
+                    <Input
+                      placeholder="Enter view name"
+                      value={saveViewName}
+                      onChange={(e) => setSaveViewName(e.target.value)}
+                    />
+                    <Button onClick={handleSaveView} className="mt-2" disabled={!saveViewName}>
+                      Save View
+                    </Button>
+                  </div>
+
                 </div>
               </PopoverContent>
             </Popover>
