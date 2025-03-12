@@ -182,7 +182,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
       response.newColumns.forEach(newCol => {
         // Only add if the column doesn't already exist
         if (!updatedColumns.find(col => col.field === newCol.field)) {
-          updatedColumns.push({ headerName: newCol.headerName, field: newCol.field, type: 'number' });
+          updatedColumns.push({ headerName: newCol.headerName, field: newCol.field, type: 'string' });
         }
         
         // Apply formula only to the first previewCount rows
@@ -276,6 +276,8 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     }
   }, [columnDefs, pendingViewConfig]);
 
+  const cleanedColumnDefs = columnDefs.map(({ headerName, field }) => ({ headerName, field }));
+
   return (
     <div className="p-2">
       {/* <h1 className="text-2xl font-bold mb-4">Data Table with Natural Language Query</h1> */}
@@ -342,7 +344,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
       </div>
       <TableComponent 
         rowData={rowData} 
-        columnDefs={columnDefs} 
+        columnDefs={cleanedColumnDefs} 
         ref={gridRef}
       />
 
