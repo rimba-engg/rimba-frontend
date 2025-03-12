@@ -99,6 +99,29 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
   const [originalRowData, setOriginalRowData] = useState<any[]>([]);
   const [originalColumnDefs, setOriginalColumnDefs] = useState<ColumnWithType[]>([]);
 
+  // NEW: State for Pivot Feature
+  const [pivotOptions, setPivotOptions] = useState({
+    groupBy: '',
+    pivotColumn: '',
+    valueColumn: '',
+    aggregation: 'sum'
+  });
+  const [isPivotMode, setIsPivotMode] = useState(false);
+  const [backupRowData, setBackupRowData] = useState<any[] | null>(null);
+  const [backupColumnDefs, setBackupColumnDefs] = useState<ColumnWithType[] | null>(null);
+
+  // Add this useEffect to update internal state when props change, with added debug logs
+  useEffect(() => {
+    console.log("QueryTable received new props:", { initialRowData, initialColumnDefs });
+    setRowData(initialRowData);
+    setColumnDefs(initialColumnDefs);
+  }, [initialRowData, initialColumnDefs]);
+
+  // Log current state when the table is rendered
+  useEffect(() => {
+    console.log("QueryTable internal state updated:", { rowData, columnDefs });
+  }, [rowData, columnDefs]);
+
   // Computes the result for a new column using a formula.
   const computeFormula = (formula: string, row: any): any => {
     try {
@@ -244,6 +267,68 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     setPreviewResponse(null);
   };
 
+  // NEW: Pivot helper functions
+  const pivotData = (data: any[], options: any) => {
+    const { groupBy, pivotColumn, valueColumn, aggregation } = options;
+    const groups: { [key: string]: any[] } = {};
+    data.forEach(row => {
+      const key = row[groupBy];
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    });
+    const pivotValuesSet = new Set();
+    data.forEach(row => {
+      pivotValuesSet.add(row[pivotColumn]);
+    });
+    const pivotValues = Array.from(pivotValuesSet);
+    const newRows = [];
+    for (const group in groups) {
+      const groupedRows = groups[group];
+      const newRow: any = { [groupBy]: group };
+      pivotValues.forEach(pivotVal => {
+        const rowsForPivot = groupedRows.filter(r => r[pivotColumn] === pivotVal);
+        let aggregated;
+        if (aggregation === 'sum') {
+          aggregated = rowsForPivot.reduce((acc, cur) => acc + Number(cur[valueColumn] || 0), 0);
+        } else if (aggregation === 'count') {
+          aggregated = rowsForPivot.length;
+        }
+        newRow[pivotVal as string] = aggregated;
+      });
+      newRows.push(newRow);
+    }
+    const newColDefs: ColumnWithType[] = [ { headerName: groupBy, field: groupBy, type: 'string' } ];
+    pivotValues.forEach(val => {
+      newColDefs.push({ headerName: String(val), field: String(val), type: 'number' });
+    });
+    return { newRows, newColDefs };
+  };
+
+  const handlePivotApply = () => {
+    if (!pivotOptions.groupBy || !pivotOptions.pivotColumn || !pivotOptions.valueColumn) {
+      alert('Please select all pivot options');
+      return;
+    }
+    if (!isPivotMode) {
+      setBackupRowData(rowData);
+      setBackupColumnDefs(columnDefs);
+    }
+    const { newRows, newColDefs } = pivotData(rowData, pivotOptions);
+    setRowData(newRows);
+    setColumnDefs(newColDefs);
+    setIsPivotMode(true);
+  };
+
+  const handleClearPivot = () => {
+    if (backupRowData && backupColumnDefs) {
+      setRowData(backupRowData);
+      setColumnDefs(backupColumnDefs);
+      setBackupRowData(null);
+      setBackupColumnDefs(null);
+    }
+    setIsPivotMode(false);
+  };
+
   // Apply the pending view configuration once the grid has registered the new columns.
   useEffect(() => {
     if (pendingViewConfig && gridRef.current?.api) {
@@ -285,8 +370,8 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
         <Popover>
           <PopoverTrigger asChild>
             <Button
-              variant="ghost"
-              className="px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-100 ring-2 ring-ring rounded"
+              variant="default"
+              className="mr-4"
             >
               <MessageSquare className="w-5 h-5" />
               <span>Ask AI</span>
@@ -339,6 +424,82 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
                 </div>
                 </div>
             )}
+          </PopoverContent>
+        </Popover>
+        {/* NEW: Pivot Table Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="default"
+              className=""
+            >
+              <span>Manual Edit</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-4">
+            <div className="space-y-2">
+              <div>
+                <label className="block text-sm font-medium mb-1">Group By</label>
+                <select
+                  value={pivotOptions.groupBy}
+                  onChange={(e) => setPivotOptions({ ...pivotOptions, groupBy: e.target.value })}
+                  className="w-full rounded-md border px-3 py-2"
+                >
+                  <option value="">Select Column</option>
+                  {columnDefs.map(col => (
+                    <option key={col.field} value={col.field}>{col.headerName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Pivot Column</label>
+                <select
+                  value={pivotOptions.pivotColumn}
+                  onChange={(e) => setPivotOptions({ ...pivotOptions, pivotColumn: e.target.value })}
+                  className="w-full rounded-md border px-3 py-2"
+                >
+                  <option value="">Select Column</option>
+                  {columnDefs.map(col => (
+                    <option key={col.field} value={col.field}>{col.headerName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Value Column</label>
+                <select
+                  value={pivotOptions.valueColumn}
+                  onChange={(e) => setPivotOptions({ ...pivotOptions, valueColumn: e.target.value })}
+                  className="w-full rounded-md border px-3 py-2"
+                >
+                  <option value="">Select Column</option>
+                  {columnDefs.map(col => (
+                    <option key={col.field} value={col.field}>{col.headerName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Aggregation</label>
+                <select
+                  value={pivotOptions.aggregation}
+                  onChange={(e) => setPivotOptions({ ...pivotOptions, aggregation: e.target.value })}
+                  className="w-full rounded-md border px-3 py-2"
+                >
+                  <option value="sum">Sum</option>
+                  <option value="count">Count</option>
+                </select>
+              </div>
+              <div className="flex gap-2 mt-2">
+                {isPivotMode ? (
+                  <Button onClick={handleClearPivot} variant="destructive">
+                    Clear Pivot
+                  </Button>
+                ) : (
+                  <Button onClick={handlePivotApply} variant="default">
+                    Apply Pivot
+                  </Button>
+                )}
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
       </div>
