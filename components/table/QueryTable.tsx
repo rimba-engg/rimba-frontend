@@ -70,12 +70,31 @@ const TableComponent = React.forwardRef(({
         ref={ref}
         rowData={rowData} 
         columnDefs={columnDefs}
+        columnTypes={{
+          string: {
+            filter: 'agTextColumnFilter',
+            cellDataType: 'text',
+          },
+          number: {
+            filter: 'agNumberColumnFilter',
+            cellDataType: 'number',
+          },
+          date: {
+            filter: 'agDateColumnFilter',
+            cellDataType: 'date',
+          },
+          boolean: {
+            filter: 'agBooleanColumnFilter',
+            cellDataType: 'boolean',
+          }
+        }}
         defaultColDef={{
           filter: true,
           sortable: true,
           resizable: true,
           flex: 1,
           minWidth: 200,
+          type: ['string'], // Default to string type
         }}
       />
     </div>
@@ -361,8 +380,6 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     }
   }, [columnDefs, pendingViewConfig]);
 
-  const cleanedColumnDefs = columnDefs.map(({ headerName, field }) => ({ headerName, field }));
-
   // New: Function to export the current table data to CSV
   const handleExportCSV = () => {
     if (gridRef.current?.api) {
@@ -518,7 +535,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
       </div>
       <TableComponent 
         rowData={rowData} 
-        columnDefs={cleanedColumnDefs} 
+        columnDefs={columnDefs} 
         ref={gridRef}
       />
 
