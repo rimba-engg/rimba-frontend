@@ -65,7 +65,7 @@ const TableComponent = React.forwardRef(({
   columnDefs: ColumnDefinition[];
 }, ref: any) => {
   return (
-    <div className="ag-theme-alpine w-[80vw] h-[600px]">
+    <div className="ag-theme-alpine w-[85vw] h-[80vh]">
       <AgGridReact 
         ref={ref}
         rowData={rowData} 
@@ -175,7 +175,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     
     try {
       const response = await fetchQueryResults(query, columnDefs);
-      
+      console.log("Query response:", response);
       // Store original data before preview
       setOriginalRowData([...rowData]);
       setOriginalColumnDefs([...columnDefs]);
