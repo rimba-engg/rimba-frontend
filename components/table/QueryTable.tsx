@@ -7,6 +7,8 @@ import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { MessageSquare } from 'lucide-react';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
@@ -275,61 +277,76 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
   }, [columnDefs, pendingViewConfig]);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Data Table with Natural Language Query</h1>
+    <div className="p-2">
+      {/* <h1 className="text-2xl font-bold mb-4">Data Table with Natural Language Query</h1> */}
+      <div className="flex justify-start mb-2">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              className="px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-100 ring-2 ring-ring rounded"
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>Ask AI</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-4">
+            <div className="space-y-2">
+              <div className="flex flex-col">
+                {/* <label htmlFor="query-input" className="text-sm font-medium mb-1">
+                  Enter your natural language query:
+                </label> */}
+                <textarea 
+                  id="query-input"
+                  className="flex w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Example: Show me all rows where the difference between received and supplied is more than 50%"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  rows={4}
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-muted-foreground">
+                  {loading ? 'Sending query to API...' : 'Your query will be processed by our AI to generate table transformations.'}
+                </p>
+                <Button 
+                  onClick={handleQuerySubmit} 
+                  disabled={loading || previewMode || !query.trim()}
+                  className="mt-2"
+                >
+                  {loading ? 'Processing...' : 'Submit Query'}
+                </Button>
+              </div>
+            </div>
+            {previewMode && (
+                <div className="mt-4 p-4 bg-background border rounded-md shadow-sm">
+                <p className="text-sm">Changes have been applied to the first {previewRowCount} rows as a preview.</p>
+                <div className="flex gap-2 mt-2">
+                    <Button 
+                    onClick={applyChangesToAllRows}
+                    variant="default"
+                    >
+                    Apply to All Rows
+                    </Button>
+                    <Button 
+                    onClick={revertChanges}
+                    variant="destructive"
+                    >
+                    Revert Changes
+                    </Button>
+                </div>
+                </div>
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
       <TableComponent 
         rowData={rowData} 
         columnDefs={columnDefs} 
         ref={gridRef}
       />
+
       
-      {previewMode && (
-        <div className="mt-4 p-4 bg-background border rounded-md shadow-sm">
-          <p className="text-sm">Changes have been applied to the first {previewRowCount} rows as a preview.</p>
-          <div className="flex gap-2 mt-2">
-            <Button 
-              onClick={applyChangesToAllRows}
-              variant="default"
-            >
-              Apply to All Rows
-            </Button>
-            <Button 
-              onClick={revertChanges}
-              variant="destructive"
-            >
-              Revert Changes
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      <div className="mt-6 space-y-2">
-        <div className="flex flex-col">
-          <label htmlFor="query-input" className="text-sm font-medium mb-1">
-            Enter your natural language query:
-          </label>
-          <textarea 
-            id="query-input"
-            className="flex w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Example: Show me all rows where the difference between received and supplied is more than 50%"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            rows={4}
-          />
-        </div>
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-muted-foreground">
-            {loading ? 'Sending query to API...' : 'Your query will be processed by our AI to generate table transformations.'}
-          </p>
-          <Button 
-            onClick={handleQuerySubmit} 
-            disabled={loading || previewMode || !query.trim()}
-            className="mt-2"
-          >
-            {loading ? 'Processing...' : 'Submit Query'}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };
