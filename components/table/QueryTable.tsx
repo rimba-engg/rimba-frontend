@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { MessageSquare, Columns, Download } from 'lucide-react';
+import { MessageSquare, Table, Eye, Download } from 'lucide-react';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
@@ -129,6 +129,19 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
   const [backupRowData, setBackupRowData] = useState<any[] | null>(null);
   const [backupColumnDefs, setBackupColumnDefs] = useState<ColumnWithType[] | null>(null);
 
+  // Add new state for visible columns
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    new Set(initialColumnDefs.map(col => col.field))
+  );
+
+  // Update visible columns when initial columns change
+  useEffect(() => {
+    setVisibleColumns(new Set(initialColumnDefs.map(col => col.field)));
+  }, [initialColumnDefs]);
+
+  // Filter column definitions based on visibility
+  const filteredColumnDefs = columnDefs.filter(col => visibleColumns.has(col.field));
+
   // Add this useEffect to update internal state when props change, with added debug logs
   useEffect(() => {
     console.log("QueryTable received new props:", { initialRowData, initialColumnDefs });
@@ -218,6 +231,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
   const applyChangesToPreview = (response: APIResponse, previewCount: number) => {
     let updatedRows = [...rowData];
     let updatedColumns = [...columnDefs];
+    const newVisibleColumns = new Set(visibleColumns);
     
     // Process each new column
     if (response.newColumns) {
@@ -225,6 +239,8 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
         // Only add if the column doesn't already exist
         if (!updatedColumns.find(col => col.field === newCol.field)) {
           updatedColumns.push({ headerName: newCol.headerName, field: newCol.field, type: 'string' });
+          // Add new column to visible columns
+          newVisibleColumns.add(newCol.field);
         }
         
         // Apply formula only to the first previewCount rows
@@ -239,6 +255,9 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
         });
       });
     }
+
+    // Update visible columns state with new columns
+    setVisibleColumns(newVisibleColumns);
 
     // Store the view configuration but don't apply it yet
     if (response.viewConfig) {
@@ -333,6 +352,10 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
       setBackupColumnDefs(columnDefs);
     }
     const { newRows, newColDefs } = pivotData(rowData, pivotOptions);
+    
+    // Show all pivot-generated columns by default
+    setVisibleColumns(new Set(newColDefs.map(col => col.field)));
+    
     setRowData(newRows);
     setColumnDefs(newColDefs);
     setIsPivotMode(true);
@@ -340,6 +363,9 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
 
   const handleClearPivot = () => {
     if (backupRowData && backupColumnDefs) {
+      // Restore original visibility when clearing pivot
+      setVisibleColumns(new Set(backupColumnDefs.map(col => col.field)));
+      
       setRowData(backupRowData);
       setColumnDefs(backupColumnDefs);
       setBackupRowData(null);
@@ -385,6 +411,13 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     if (gridRef.current?.api) {
       gridRef.current.api.exportDataAsCsv();
     }
+  };
+
+  // Add column visibility handler
+  const handleColumnVisibilityChange = (field: string, isVisible: boolean) => {
+    const newVisible = new Set(visibleColumns);
+    isVisible ? newVisible.add(field) : newVisible.delete(field);
+    setVisibleColumns(newVisible);
   };
 
   return (
@@ -455,7 +488,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="default" className="flex gap-2 items-center">
-                <Columns className="w-5 h-5" />
+                <Table className="w-5 h-5" />
                 <span>Pivot View</span>
               </Button>
             </PopoverTrigger>
@@ -525,6 +558,33 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
               </div>
             </PopoverContent>
           </Popover>
+          {/* New Column Visibility Popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="default" className="flex gap-2 items-center ml-2">
+                <Eye className="w-5 h-5" />
+                <span>Filter Columns</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-4 max-h-96 overflow-y-auto">
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">Visible Columns</h4>
+                <div className="space-y-1">
+                  {columnDefs.map(col => (
+                    <label key={col.field} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.has(col.field)}
+                        onChange={(e) => handleColumnVisibilityChange(col.field, e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm">{col.headerName}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex">
           <Button onClick={handleExportCSV} variant="default" className="ml-4 flex gap-2 items-center">
@@ -535,7 +595,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
       </div>
       <TableComponent 
         rowData={rowData} 
-        columnDefs={columnDefs} 
+        columnDefs={filteredColumnDefs}
         ref={gridRef}
       />
 
