@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Grid, RefreshCw } from 'lucide-react';
 import { AllChecklistTable } from './components/projects-table';
@@ -34,16 +34,7 @@ interface DeleteChecklistResponse {
 interface SyncDocumentsResponse {
   message: string;
   status: string;
-  classification_results: {
-    document_results: {
-      document_name: string;
-      status: string;
-      found_document_name: string;
-      reasoning: string;
-    }[];
-  };
-  drive_documents_count: number;
-  processed_documents: any[];
+  details: string;
 }
 
 
@@ -65,13 +56,24 @@ export default function ProjectsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState<Checklist>({} as Checklist);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [columns, setColumns] = useState<ColumnSchema[]>(defaultColumns);
   const [isSyncing, setIsSyncing] = useState(false);
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchChecklists();
+  }, []);
+
+  // Clear success message timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+    };
   }, []);
 
   const fetchChecklists = async () => {
@@ -175,11 +177,24 @@ export default function ProjectsPage() {
   const handleSyncDocuments = async () => {
     try {
       setIsSyncing(true);
+      setError(null);
+      setSuccessMessage(null);
+      
+      // Clear any existing timeout
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+        successTimeoutRef.current = null;
+      }
+      
       const response = await api.post<SyncDocumentsResponse>('/v2/document-verification/', {});
-      console.log(response.status);
-      console.log(response.message);
+      
       if (response.status === "success") {
-        console.log('Documents synced successfully:', response.message);
+        setSuccessMessage("Document has been synced, we'll notify you ASAP after processing if any missing document is there");
+        
+        // Auto-hide the success message after 3 seconds
+        successTimeoutRef.current = setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
       } else {
         throw new Error(response.message || 'Failed to sync documents');
       }
@@ -204,6 +219,12 @@ export default function ProjectsPage() {
       {error && (
         <div className="mb-6 bg-destructive/10 text-destructive px-4 py-2 rounded-lg">
           {error}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div className="mb-6 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+          {successMessage}
         </div>
       )}
 
