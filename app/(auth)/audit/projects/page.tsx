@@ -31,11 +31,6 @@ interface DeleteChecklistResponse {
   message?: string;
 }
 
-interface SyncDocumentsResponse {
-  message: string;
-  status: string;
-  details: string;
-}
 
 
 const defaultColumns: ColumnSchema[] = [
@@ -60,7 +55,6 @@ export default function ProjectsPage() {
   const [formData, setFormData] = useState<Checklist>({} as Checklist);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [columns, setColumns] = useState<ColumnSchema[]>(defaultColumns);
-  const [isSyncing, setIsSyncing] = useState(false);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -174,45 +168,6 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleSyncDocuments = async () => {
-    try {
-      setIsSyncing(true);
-      setError(null);
-      setSuccessMessage(null);
-      
-      // Clear any existing timeout
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current);
-        successTimeoutRef.current = null;
-      }
-      
-      const response = await api.post<SyncDocumentsResponse>('/v2/document-verification/', {});
-      
-      if (response.status === "success") {
-        setSuccessMessage("Document has been synced, we'll notify you ASAP after processing if any missing document is there");
-        
-        // Auto-hide the success message after 3 seconds
-        successTimeoutRef.current = setTimeout(() => {
-          setSuccessMessage(null);
-        }, 3000);
-      } else {
-        throw new Error(response.message || 'Failed to sync documents');
-      }
-    } catch (error) {
-      console.error('Error syncing documents:', error);
-      setError(error instanceof Error ? error.message : 'Failed to sync documents');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-muted-foreground">Loading projects...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-[calc(100vw-16rem)] mx-auto">
@@ -247,23 +202,6 @@ export default function ProjectsPage() {
               >
                 <Grid size={16} />
                 Add Column
-              </button>
-              <button
-                onClick={handleSyncDocuments}
-                disabled={isSyncing}
-                className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isSyncing ? (
-                  <>
-                    <RefreshCw size={16} className="animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={16} />
-                    Sync Documents
-                  </>
-                )}
               </button>
             </div>
           </div>
