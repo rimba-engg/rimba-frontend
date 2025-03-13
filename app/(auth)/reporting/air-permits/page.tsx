@@ -5,20 +5,15 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Download, Loader2 } from 'lucide-react'
 import { api, BASE_URL } from '@/lib/api' 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
-// Register all community features
-ModuleRegistry.registerModules([AllCommunityModule]);
-provideGlobalGridOptions({ theme: "legacy"});
+import QueryTable from '@/components/table/QueryTable';
+import { ColumnWithType } from '@/components/table/QueryTable';
 
-
-const defaultColDef = {
-  flex: 1,
-  minWidth: 200,
-  resizable: true,
-};
+// removed as already defined in QueryTable 
+// const defaultColDef = {
+//   flex: 1,
+//   minWidth: 200,
+//   resizable: true,
+// };
 
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
@@ -47,11 +42,11 @@ export default function AirPermitsPage() {
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [rowData, setRowData] = useState<any[]>([])
-  const [columnDefs, setColumnDefs] = useState<any[]>([])
+  const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([])
   const [viewAggregate, setViewAggregate] = useState<any[]>([])
 
   // Initialize grid ref for accessing the grid API
-  const gridRef = useRef<AgGridReact>(null);
+  // const gridRef = useRef<AgGridReact>(null);
 
   // Fetch data when view or dates change
   useEffect(() => {
@@ -67,6 +62,7 @@ export default function AirPermitsPage() {
           headerName: key,
           sortable: true,
           valueFormatter: key === 'Day' ? undefined : numberFormatter,
+          type: 'string',
         }))
       );
     }
@@ -205,14 +201,20 @@ export default function AirPermitsPage() {
 
       {/* AG Grid Table */}
       <div className="ag-theme-alpine w-full h-[800px]">
-        <AgGridReact
+        <QueryTable
+          initialRowData={rowData}
+          initialColumnDefs={columnDefs}
+          pinnedTopRowData={[viewAggregate]}
+          getRowStyle={getRowStyle} // Apply row styles
+        />
+        {/* <AgGridReact
           ref={gridRef}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           pinnedTopRowData={[viewAggregate]}
           getRowStyle={getRowStyle} // Apply row styles
-        />
+        /> */}
       </div>
       <ToastContainer />
     </div>
