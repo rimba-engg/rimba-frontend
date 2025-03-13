@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { YearMonthSelect } from '@/components/ui/year-month-select';
 import { api,BASE_URL } from '@/lib/api';
 import { MONTHS } from '@/lib/constants';
+import { getStoredCustomer } from '@/lib/auth';
+
 
 interface Document {
   id: string;
@@ -65,6 +67,13 @@ export default function DocumentsPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isTestCustomer, setIsTestCustomer] = useState(false);
+
+  useEffect(() => {
+    const customer = getStoredCustomer();
+    console.log(customer);
+    setIsTestCustomer(customer?.name === "Test Customer");
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -218,6 +227,16 @@ export default function DocumentsPage() {
             <Download className="w-4 h-4 mr-2" />
             {isExporting ? 'Exporting...' : 'Export'}
           </Button>
+          {isTestCustomer && (
+            <Button
+              variant="outline"
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+              onClick={() => router.push('/library/shared-documents/')}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Shared Documents
+            </Button>
+          )}
           <Button
             onClick={() => setShowUploadModal(true)}
             className="bg-primary hover:bg-primary/90"
