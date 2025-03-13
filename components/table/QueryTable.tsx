@@ -3,12 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AgGridReact, AgGridReactProps } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
+import { AllCommunityModule, ColDef, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { MessageSquare, Table, Eye, Download } from 'lucide-react';
+import { MockResponse } from './MockData';
 // Register all community features
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
@@ -27,7 +28,7 @@ interface SortingConfig {
 
 interface FilteringConfig {
   field: string;
-  criteria: string;
+  criteria: string | boolean | number;
 }
 
 interface ViewConfig {
@@ -35,7 +36,7 @@ interface ViewConfig {
   filtering?: FilteringConfig[];
 }
 
-interface APIResponse {
+export interface APIResponse {
   newColumns?: NewColumn[];
   viewConfig?: ViewConfig;
 }
@@ -58,12 +59,17 @@ interface QueryTableProps extends AgGridReactProps {
 }
 const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, ref) => {
   const { rowData, columnDefs } = props;
+  const removeTypeFromColumnDefs = (columnDefs: ColDef<any, any>[]): ColDef<any, any>[] => {
+    return columnDefs.map(({ type, ...rest }) => rest);
+  };
+  const columnDefsWithoutType = removeTypeFromColumnDefs(columnDefs || []);
+  console.log("Column defs without type:", columnDefsWithoutType);
   return (
     <div className="ag-theme-alpine w-[85vw] h-[80vh]">
       <AgGridReact 
         ref={ref}
         rowData={rowData} 
-        columnDefs={columnDefs}
+        columnDefs={columnDefsWithoutType}
         columnTypes={{
           string: {
             filter: 'agTextColumnFilter',
@@ -78,7 +84,7 @@ const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, r
             cellDataType: 'date',
           },
           boolean: {
-            filter: 'agBooleanColumnFilter',
+            filter: 'agTextColumnFilter',
             cellDataType: 'boolean',
           }
         }}
@@ -88,7 +94,7 @@ const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, r
           resizable: true,
           flex: 1,
           minWidth: 200,
-          type: ['string'], // Default to string type
+          // type: ['string'], // Default to string type
         }}
         {...props}
       />
@@ -177,12 +183,10 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
       // Optionally include a sample of the data
       sampleData: rowData.slice(0, 5)
     };
-
-    console.log("API Payload:", JSON.stringify(payload, null, 2));
-
     // Make the actual API call to '/v2/table-query/' using our API client.
     const response = await api.post<APIResponse>("/reporting/v2/table-query/", payload);
     return response;
+    // return MockResponse;
   };
   
   // Helper function to get a sample value for a column
@@ -202,7 +206,6 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     
     try {
       const response = await fetchQueryResults(query, columnDefs);
-      console.log("Query response:", response);
       // Store original data before preview
       setOriginalRowData([...rowData]);
       setOriginalColumnDefs([...columnDefs]);
@@ -369,6 +372,13 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     setIsPivotMode(false);
   };
 
+  const logFilterModel = () => {
+    const filterModel = gridRef.current?.api.getFilterModel();
+    console.log("Filter model:", filterModel);
+    const columnDefs = gridRef.current?.api.getColumnDefs();
+    console.log("Column defs:", columnDefs);
+  };
+
   // Apply the pending view configuration once the grid has registered the new columns.
   useEffect(() => {
     if (pendingViewConfig && gridRef.current?.api) {
@@ -383,18 +393,55 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     //     gridRef.current.api.setSortModel(sortModel);
     //   }
 
-      // Apply filtering if available.
+      // Apply generic filtering based on the column's cellDataType
       if (pendingViewConfig.filtering) {
-        const filterModel: any = {};
-        pendingViewConfig.filtering.forEach(filter => {
-          if (gridRef.current.api.getColumnDef(filter.field)) {
-            filterModel[filter.field] = {
-              filterType: 'text',
-              type: 'equals',
-              filter: filter.criteria
+        const filterModel: Record<string, any> = {};
+        pendingViewConfig.filtering.forEach((filterItem) => {
+          // Look up the column definition (from our internal state or ag-grid)
+          const columnDef = columnDefs.find(col => col.field === filterItem.field);
+          if (columnDef) {
+            // Get the cellDataType from ag-grid's column definition, or fall back to our own type
+            const gridColumnDef = gridRef.current?.api.getColumnDef(filterItem.field);
+            console.log("Grid column definition:", gridColumnDef);
+            const cellDataType = gridColumnDef?.cellDataType || columnDef.type;
+            
+            // Build the filter entry based on the cellDataType
+            let filterEntry;
+            switch(cellDataType) {
+              case 'number':
+                filterEntry = {
+                  filter: Number(filterItem.criteria),
+                  type: 'equals'
+                };
+                break;
+              case 'date':
+                filterEntry = {
+                  filter: filterItem.criteria, // Ensure the criteria is in the appropriate date format
+                  type: 'equals'
+                };
+                break;
+              case 'boolean':
+                filterEntry = {
+                  filter: filterItem.criteria === true || filterItem.criteria === 'true',
+                  type: 'true'
+                };
+                break;
+              default:
+                // Default to text filtering using "contains" mode for a more flexible match
+                filterEntry = {
+                  filter: filterItem.criteria,
+                  type: 'equals'
+                };
+            }
+            
+            // Set the filter type (text filter for "text", otherwise use the cellDataType)
+            filterModel[filterItem.field] = {
+              filterType: cellDataType === 'text' ? 'text' : cellDataType,
+              ...filterEntry
             };
           }
         });
+        // console.log("Generic Filter model:", filterModel);
         gridRef.current.api.setFilterModel(filterModel);
       }
       setPendingViewConfig(null);
@@ -480,6 +527,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
             </PopoverContent>
           </Popover>
           {/* NEW: Pivot Table Popover */}
+          {/* <button onClick={logFilterModel}>Log Filter Model</button> */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="default" className="flex gap-2 items-center">
