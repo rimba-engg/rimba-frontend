@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Grid } from 'lucide-react';
+import { Plus, Grid, RefreshCw } from 'lucide-react';
 import { AllChecklistTable } from './components/projects-table';
 import { DeleteModal } from './components/modals/delete-modal';
 import { ProjectFormModal } from './components/modals/project-form-modal';
@@ -31,6 +31,22 @@ interface DeleteChecklistResponse {
   message?: string;
 }
 
+interface SyncDocumentsResponse {
+  message: string;
+  status: string;
+  classification_results: {
+    document_results: {
+      document_name: string;
+      status: string;
+      found_document_name: string;
+      reasoning: string;
+    }[];
+  };
+  drive_documents_count: number;
+  processed_documents: any[];
+}
+
+
 const defaultColumns: ColumnSchema[] = [
   { id: 'name', name: 'Name', type: 'text' },
   { id: 'updated_at', name: 'Last Updated', type: 'date' },
@@ -52,6 +68,7 @@ export default function ProjectsPage() {
   const [formData, setFormData] = useState<Checklist>({} as Checklist);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [columns, setColumns] = useState<ColumnSchema[]>(defaultColumns);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     fetchChecklists();
@@ -155,6 +172,25 @@ export default function ProjectsPage() {
     }
   };
 
+  const handleSyncDocuments = async () => {
+    try {
+      setIsSyncing(true);
+      const response = await api.post<SyncDocumentsResponse>('/v2/document-verification/', {});
+      console.log(response.status);
+      console.log(response.message);
+      if (response.status === "success") {
+        console.log('Documents synced successfully:', response.message);
+      } else {
+        throw new Error(response.message || 'Failed to sync documents');
+      }
+    } catch (error) {
+      console.error('Error syncing documents:', error);
+      setError(error instanceof Error ? error.message : 'Failed to sync documents');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -190,6 +226,23 @@ export default function ProjectsPage() {
               >
                 <Grid size={16} />
                 Add Column
+              </button>
+              <button
+                onClick={handleSyncDocuments}
+                disabled={isSyncing}
+                className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isSyncing ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} />
+                    Sync Documents
+                  </>
+                )}
               </button>
             </div>
           </div>
