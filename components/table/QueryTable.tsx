@@ -1,6 +1,6 @@
 // pages/table.js
 import React, { useState, useEffect, useRef } from 'react';
-import { AgGridReact } from 'ag-grid-react';
+import { AgGridReact, AgGridReactProps } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
@@ -52,18 +52,12 @@ export interface ColumnWithType extends ColumnDefinition {
 }
 
 // New interface for QueryTable props to pass in table data
-interface QueryTableProps {
+interface QueryTableProps extends AgGridReactProps {
   initialRowData: any[];
   initialColumnDefs: ColumnWithType[];
 }
-
-const TableComponent = React.forwardRef(({
-  rowData,
-  columnDefs
-}: {
-  rowData: any[];
-  columnDefs: ColumnDefinition[];
-}, ref: any) => {
+const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, ref) => {
+  const { rowData, columnDefs } = props;
   return (
     <div className="ag-theme-alpine w-[85vw] h-[80vh]">
       <AgGridReact 
@@ -96,12 +90,13 @@ const TableComponent = React.forwardRef(({
           minWidth: 200,
           type: ['string'], // Default to string type
         }}
+        {...props}
       />
     </div>
   );
 });
 
-const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDefs }) => {
+const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDefs, ...props }) => {
   // Initialize state using props
   const [query, setQuery] = useState<string>("");
   const [rowData, setRowData] = useState<any[]>(initialRowData);
@@ -597,6 +592,7 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
         rowData={rowData} 
         columnDefs={filteredColumnDefs}
         ref={gridRef}
+        {...props}
       />
 
       
