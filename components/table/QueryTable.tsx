@@ -65,7 +65,7 @@ const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, r
     return columnDefs.map(({ type, ...rest }) => rest);
   };
   const columnDefsWithoutType = removeTypeFromColumnDefs(columnDefs || []);
-  // console.log("Column defs without type:", columnDefsWithoutType);
+
   return (
     <div className="ag-theme-alpine w-[85vw] h-[80vh]">
       <AgGridReact 
@@ -176,12 +176,18 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     // Create the request payload
     const payload = {
       query: userQuery,
-      tableSchema: tableSchema.map(col => ({
-        field: col.field,
-        headerName: col.headerName,
-        type: col.type,
-        sample: col.sample || getSampleValueForColumn(col.field, rowData)
-      })),
+      tableSchema: tableSchema.map(col => {
+        // Fetch the grid column definition to get the cellDataType
+        const gridColumnDef = gridRef.current?.api.getColumnDef(col.field);
+        const cellDataType = gridColumnDef?.cellDataType || col.type; // Fallback to col.type if cellDataType is undefined
+
+        return {
+          field: col.field,
+          headerName: col.headerName,
+          type: cellDataType, // Use cellDataType instead of col.type
+          sample: col.sample || getSampleValueForColumn(col.field, rowData)
+        };
+      }),
       // Optionally include a sample of the data
       sampleData: rowData.slice(0, 5)
     };
