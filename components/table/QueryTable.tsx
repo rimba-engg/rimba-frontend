@@ -65,13 +65,13 @@ const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, r
     return columnDefs.map(({ type, ...rest }) => rest);
   };
   const columnDefsWithoutType = removeTypeFromColumnDefs(columnDefs || []);
+  // console.log("Column defs without type:", columnDefsWithoutType);
 
   return (
     <div className="ag-theme-alpine w-[85vw] h-[80vh]">
       <AgGridReact 
         ref={ref}
         rowData={rowData} 
-        columnDefs={columnDefsWithoutType}
         columnTypes={{
           string: {
             filter: 'agTextColumnFilter',
@@ -99,6 +99,8 @@ const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, r
           // type: ['string'], // Default to string type
         }}
         {...props}
+        columnDefs={columnDefsWithoutType}
+
       />
     </div>
   );
