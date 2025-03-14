@@ -128,7 +128,7 @@ export default function DocumentClient() {
               id: doc.id,
               name: doc.name,
               for_year: parseInt(doc.for_year, 10),
-              for_month: doc.for_month - 1,
+              for_month: doc.for_month,
               type: doc.document_type,
               uploadDate: doc.last_updated_at,
               uploadedBy: doc.last_uploaded_by,
@@ -349,7 +349,7 @@ const handleUpdateData = async () => {
       extracted_data: editedRows,
       document_type: selectedType,
       document_year: selectedYear,
-      document_month: selectedMonth !== null ? MONTHS[selectedMonth] : null
+      document_month: selectedMonth // Send the month number directly, not the month name
     };
 
     const response = await api.post('/v2/document/update/', payload);
@@ -679,7 +679,7 @@ const handleUnflagDocument = async () => {
                     className="border rounded p-1 text-sm"
                   >
                     {MONTHS.map((month, index) => (
-                      <option key={month} value={index}>{month}</option>
+                      <option key={month} value={index + 1}>{month}</option>
                     ))}
                   </select>
                 </div>

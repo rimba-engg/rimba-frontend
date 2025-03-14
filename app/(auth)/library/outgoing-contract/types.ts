@@ -8,7 +8,7 @@ export interface ContractDetails {
     quantity: number;
     product: string;
     billOfLading: string;
-    docLink: string;
+    documentId: string;
     portOfLoading: string;
     portOfDischarge: string;
     isAllocated: boolean;
