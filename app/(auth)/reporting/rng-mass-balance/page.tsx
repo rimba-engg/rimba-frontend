@@ -3,10 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { type GasBalanceView } from './types';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
 import {
   Select,
   SelectContent,
@@ -29,10 +25,8 @@ import { Bar } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
 import { Info, Loader2 } from 'lucide-react';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-// Register all community features
-ModuleRegistry.registerModules([AllCommunityModule]);
-provideGlobalGridOptions({ theme: "legacy"});
-
+import QueryTable from '@/components/table/QueryTable';
+import { ColumnWithType } from '@/components/table/QueryTable';
 // Register necessary components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -49,11 +43,11 @@ interface MassBalanceResponse {
   tax_credit: Record<string, any>;
 }
 
-const defaultColDef = {
-  flex: 1,
-  minWidth: 200,
-  resizable: true,
-};
+// const defaultColDef = {
+//   flex: 1,
+//   minWidth: 200,
+//   resizable: true,
+// };
 
 // Define the row style based on whether the row is pinned
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
@@ -87,7 +81,7 @@ export default function RngMassBalancePage() {
   const [views, setViews] = useState<GasBalanceView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [columnDefs, setColumnDefs] = useState<Record<string, any>[]>([]);
+  const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([]);
   const [rowData, setRowData] = useState<Array<Record<string, any>>>([]);
   const [fullPrecisionRowDataCsv, setFullPrecisionRowDataCsv] = useState<string>('');
   const [selectedView, setSelectedView] = useState<GasBalanceView | null>(null);
@@ -99,8 +93,6 @@ export default function RngMassBalancePage() {
   const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
   const [showPrevailingWage, setShowPrevailingWage] = useState(true);
 
-  // Initialize grid ref for accessing the grid API
-  const gridRef = useRef<AgGridReact>(null);
 
   useEffect(() => {
     fetchViews();
@@ -129,9 +121,9 @@ export default function RngMassBalancePage() {
           headerName: key,
           sortable: true,
           filter: key === 'Timestamp' ? 'agDateColumnFilter' : 'agNumberColumnFilter',
-          type: key === 'Timestamp' ? 'rightAligned' : 'numericColumn',
+          type: key === 'Timestamp' ? 'date' : 'number',
           valueFormatter: key === 'Timestamp' ? undefined : numberFormatter,
-        }))
+        })) as ColumnWithType[]
       );
     }
   }, [rowData]);
@@ -350,7 +342,13 @@ export default function RngMassBalancePage() {
       </div>
 
       {/* AG Grid Table */}
-      <div className="ag-theme-alpine w-full h-[600px]">
+      <QueryTable
+        initialRowData={rowData}
+        initialColumnDefs={columnDefs}
+        pinnedTopRowData={[viewAggregate]}
+        getRowStyle={getRowStyle} // Apply row styles
+      />
+      {/* <div className="ag-theme-alpine w-full h-[600px]">
         <AgGridReact
           ref={gridRef}
           rowData={rowData}
@@ -359,7 +357,7 @@ export default function RngMassBalancePage() {
           pinnedTopRowData={[viewAggregate]}
           getRowStyle={getRowStyle} // Apply row styles
         />
-      </div>
+      </div> */}
       <ToastContainer />
     </div>
   );
