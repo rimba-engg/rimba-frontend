@@ -72,8 +72,8 @@ function numberFormatter(params: any) {
       return '';
   }
   return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: params.colDef.field.includes('%') ? 1 : 0,
-    maximumFractionDigits: params.colDef.field.includes('%') ? 1 : 0
+    minimumFractionDigits: params.colDef.field.includes('%') ? 1 : 2,
+    maximumFractionDigits: params.colDef.field.includes('%') ? 1 : 2
   }).format(params.value);
 }
 
