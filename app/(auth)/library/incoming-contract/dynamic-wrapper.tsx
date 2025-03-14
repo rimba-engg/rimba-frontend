@@ -656,7 +656,7 @@ export default function ContractDetails() {
                         
                         <div className="space-y-1.5">
                           <Label htmlFor="contract_qty" className="text-sm font-medium text-gray-700 flex items-center">
-                            <DollarSign className="h-4 w-4 mr-2 text-teal-600" />
+                            <Package className="h-4 w-4 mr-2 text-teal-600" />
                             Contract QTY (MT)
                           </Label>
                           <div className="relative group">
@@ -679,7 +679,7 @@ export default function ContractDetails() {
                               readOnly={!isEditing}
                               style={!isEditing ? { backgroundColor: '#f8fafc', cursor: 'default' } : {}}
                             />
-                            <DollarSign className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                            <Package className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                           </div>
                         </div>
                         
