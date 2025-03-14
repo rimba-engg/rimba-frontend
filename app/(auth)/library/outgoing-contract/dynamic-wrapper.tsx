@@ -71,7 +71,7 @@ const fetchContractData = async (id: string): Promise<{
       quantity: number;
       product: string;
       bill_of_lading: string;
-      doc_link: string;
+      document_id: string;
       port_of_loading: string;
       port_of_discharge: string;
       is_allocated: string;
@@ -110,7 +110,7 @@ const fetchContractData = async (id: string): Promise<{
       quantity: data.quantity,
       product: data.product,
       billOfLading: data.bill_of_lading,
-      docLink: data.doc_link,
+      documentId: data.document_id,
       portOfLoading: data.port_of_loading,
       portOfDischarge: data.port_of_discharge,
       isAllocated: data.is_allocated === 'true',
@@ -615,14 +615,12 @@ export default function ContractClient() {
                 <th className="py-4 text-left">Bill Of Lading</th>
                 <td className="py-4">
                   {contract.billOfLading && (
-                    <a
-                      href={contract.docLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
+                    <span
+                      onClick={() => router.push(`/library/document?document_id=${contract.documentId}`)}
+                      className="text-primary hover:underline cursor-pointer"
                     >
                       {contract.billOfLading}
-                    </a>
+                    </span>
                   )}
                 </td>
               </tr>
