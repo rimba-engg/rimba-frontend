@@ -16,10 +16,13 @@ export const MockResponse: APIResponse = {
       sorting: [
         { field: "id", order: "asc" }
       ],
-      filtering: [
-        { field: "flag", criteria: "true" },
-        { field: "difference", criteria: true }
-      ]
+      agGridFilterModel: {
+        difference: {
+          filterType: "number",
+          type: "equals",
+          filter: 0.55
+        }
+      }
     }
   }
 

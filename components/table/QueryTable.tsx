@@ -14,7 +14,8 @@ import { MockResponse } from './MockData';
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
 
-// Interfaces for API response and related data types
+/// Updated interfaces for API response and related types
+
 interface NewColumn {
   headerName: string;
   field: string;
@@ -26,14 +27,15 @@ interface SortingConfig {
   order: 'asc' | 'desc';
 }
 
-interface FilteringConfig {
-  field: string;
-  criteria: string | boolean | number;
+interface AgGridColumnFilter {
+  filterType: string; // e.g. "text", "number", "date", etc.
+  type: string;       // e.g. "contains", "equals", etc.
+  filter: string | number | null;
 }
 
 interface ViewConfig {
   sorting?: SortingConfig[];
-  filtering?: FilteringConfig[];
+  agGridFilterModel?: Record<string, AgGridColumnFilter>;
 }
 
 export interface APIResponse {
@@ -63,13 +65,13 @@ const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, r
     return columnDefs.map(({ type, ...rest }) => rest);
   };
   const columnDefsWithoutType = removeTypeFromColumnDefs(columnDefs || []);
-  console.log("Column defs without type:", columnDefsWithoutType);
+  // console.log("Column defs without type:", columnDefsWithoutType);
+
   return (
     <div className="ag-theme-alpine w-[85vw] h-[80vh]">
       <AgGridReact 
         ref={ref}
         rowData={rowData} 
-        columnDefs={columnDefsWithoutType}
         columnTypes={{
           string: {
             filter: 'agTextColumnFilter',
@@ -97,6 +99,8 @@ const TableComponent = React.forwardRef<AgGridReact, AgGridReactProps>((props, r
           // type: ['string'], // Default to string type
         }}
         {...props}
+        columnDefs={columnDefsWithoutType}
+
       />
     </div>
   );
@@ -174,12 +178,18 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     // Create the request payload
     const payload = {
       query: userQuery,
-      tableSchema: tableSchema.map(col => ({
-        field: col.field,
-        headerName: col.headerName,
-        type: col.type,
-        sample: col.sample || getSampleValueForColumn(col.field, rowData)
-      })),
+      tableSchema: tableSchema.map(col => {
+        // Fetch the grid column definition to get the cellDataType
+        const gridColumnDef = gridRef.current?.api.getColumnDef(col.field);
+        const cellDataType = gridColumnDef?.cellDataType || col.type; // Fallback to col.type if cellDataType is undefined
+
+        return {
+          field: col.field,
+          headerName: col.headerName,
+          type: cellDataType, // Use cellDataType instead of col.type
+          sample: col.sample || getSampleValueForColumn(col.field, rowData)
+        };
+      }),
       // Optionally include a sample of the data
       sampleData: rowData.slice(0, 5)
     };
@@ -379,71 +389,24 @@ const QueryTable: React.FC<QueryTableProps> = ({ initialRowData, initialColumnDe
     console.log("Column defs:", columnDefs);
   };
 
-  // Apply the pending view configuration once the grid has registered the new columns.
   useEffect(() => {
     if (pendingViewConfig && gridRef.current?.api) {
       // Apply sorting if available.
-    //   if (pendingViewConfig.sorting) {
-    //     const sortModel = pendingViewConfig.sorting
-    //       .filter(sort => gridRef.current.api.getColumnDef(sort.field))
-    //       .map(sort => ({
-    //         colId: sort.field,
-    //         sort: sort.order.toLowerCase()
-    //       }));
-    //     gridRef.current.api.setSortModel(sortModel);
-    //   }
-
-      // Apply generic filtering based on the column's cellDataType
-      if (pendingViewConfig.filtering) {
-        const filterModel: Record<string, any> = {};
-        pendingViewConfig.filtering.forEach((filterItem) => {
-          // Look up the column definition (from our internal state or ag-grid)
-          const columnDef = columnDefs.find(col => col.field === filterItem.field);
-          if (columnDef) {
-            // Get the cellDataType from ag-grid's column definition, or fall back to our own type
-            const gridColumnDef = gridRef.current?.api.getColumnDef(filterItem.field);
-            console.log("Grid column definition:", gridColumnDef);
-            const cellDataType = gridColumnDef?.cellDataType || columnDef.type;
-            
-            // Build the filter entry based on the cellDataType
-            let filterEntry;
-            switch(cellDataType) {
-              case 'number':
-                filterEntry = {
-                  filter: Number(filterItem.criteria),
-                  type: 'equals'
-                };
-                break;
-              case 'date':
-                filterEntry = {
-                  filter: filterItem.criteria, // Ensure the criteria is in the appropriate date format
-                  type: 'equals'
-                };
-                break;
-              case 'boolean':
-                filterEntry = {
-                  filter: filterItem.criteria === true || filterItem.criteria === 'true',
-                  type: 'true'
-                };
-                break;
-              default:
-                // Default to text filtering using "contains" mode for a more flexible match
-                filterEntry = {
-                  filter: filterItem.criteria,
-                  type: 'equals'
-                };
-            }
-            
-            // Set the filter type (text filter for "text", otherwise use the cellDataType)
-            filterModel[filterItem.field] = {
-              filterType: cellDataType === 'text' ? 'text' : cellDataType,
-              ...filterEntry
-            };
-          }
-        });
-        // console.log("Generic Filter model:", filterModel);
-        gridRef.current.api.setFilterModel(filterModel);
+      // if (pendingViewConfig.sorting) {
+      //   const sortModel = pendingViewConfig.sorting
+      //     .filter(sort => gridRef.current.api.getColumnDef(sort.field))
+      //     .map(sort => ({
+      //       colId: sort.field,
+      //       sort: sort.order.toLowerCase()
+      //     }));
+      //   gridRef.current.api.setSortModel(sortModel);
+      // }
+  
+      // Directly apply the agGridFilterModel from the API response.
+      if (pendingViewConfig.agGridFilterModel) {
+        gridRef.current.api.setFilterModel(pendingViewConfig.agGridFilterModel);
       }
+      
       setPendingViewConfig(null);
     }
   }, [columnDefs, pendingViewConfig]);
