@@ -146,7 +146,7 @@ export default function AirPermitsPage() {
   }
 
   return (
-    <div className="container mx-auto gap-4">
+    <div className="mx-auto gap-4">
       <div className="text-2xl font-bold">Air Permits</div>
       <div className="flex flex-row my-3 items-center space-x-4 w-1/4">
         <FloatingLabelInput
