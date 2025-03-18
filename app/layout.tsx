@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Rubik } from 'next/font/google';
 import Script from 'next/script';
+import ClientAuthProvider from './ClientAuthProvider';
 
 const rubik = Rubik({ subsets: ['latin'] });
 
@@ -37,7 +38,9 @@ export default function RootLayout({
             }}
           />
         )}
-        {children}
+        <ClientAuthProvider>
+          {children}
+        </ClientAuthProvider>
       </body>
     </html>
   );

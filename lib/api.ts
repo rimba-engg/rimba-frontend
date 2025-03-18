@@ -1,7 +1,7 @@
-import { LoginResponse, SelectCustomerResponse } from './types';
+import { SelectCustomerResponse } from './types';
 
-export const BASE_URL = 'https://app-v1.rimba.ai';
-// export const BASE_URL = 'http://localhost:8000';
+// export const BASE_URL = 'https://app-v1.rimba.ai';
+export const BASE_URL = 'http://localhost:8000';
 
 class ApiClient {
   private static instance: ApiClient;
@@ -47,14 +47,9 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle 401 Unauthorized - attempt token refresh
-        if (response.status === 401) {
-          const refreshed = await this.refreshAccessToken();
-          if (refreshed) {
-            // Retry the original request with new token
-            return this.request<T>(endpoint, options);
-          }
-        }
+        // Handle 401 Unauthorized - logout
+        if (response.status === 401) 
+          this.logout();
 
         throw new Error(data.message || 'API request failed');
       }
@@ -66,61 +61,6 @@ class ApiClient {
         throw new Error(`API Error: ${error.message}`);
       }
       throw new Error('Unknown API error occurred');
-    }
-  }
-
-  private async refreshAccessToken(): Promise<boolean> {
-    if (!this.refreshToken) {
-      this.logout();
-      return false;
-    }
-
-    try {
-      const response = await fetch(`${BASE_URL}/v2/auth/refresh/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          refresh_token: this.refreshToken,
-        }),
-      });
-
-      if (!response.ok) {
-        this.logout();
-        return false;
-      }
-
-      const data = await response.json();
-      this.setTokens(data.tokens.access, data.tokens.refresh);
-      return true;
-    } catch (error) {
-      this.logout();
-      return false;
-    }
-  }
-
-  public async login(email: string, password: string): Promise<LoginResponse> {
-    try {
-      const response = await this.request<LoginResponse>('/v2/login/', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.status === 'success' && response.data?.tokens) {
-        this.setTokens(
-          response.data.tokens.access,
-          response.data.tokens.refresh
-        );
-      }
-
-      return response;
-    } catch (error) {
-      console.log('Error', error);
-      return {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Login failed',
-      };
     }
   }
 
@@ -162,8 +102,8 @@ class ApiClient {
       localStorage.removeItem('selected_customer');
       localStorage.removeItem('user');
 
-      // Redirect to login page
-      window.location.href = '/login';
+      // Redirect to root
+      window.location.href = '/';
     }
   }
 

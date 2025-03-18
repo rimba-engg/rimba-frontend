@@ -1,5 +1,5 @@
 import { api } from './api';
-import { User, Customer, LoginResponse, SelectCustomerResponse } from './types';
+import { User, Customer, SelectCustomerResponse, UserInfoResponse } from './types';
 
 export function getStoredUser(): User | null {
   if (typeof window === 'undefined') return null;
@@ -23,30 +23,18 @@ export function getStoredCustomer(): Customer | null {
   }
 }
 
-export async function login(email: string, password: string): Promise<{ user: User | null; customers: Customer[] | null }> {
+export async function getUserInfo(): Promise<{ user: User | null; customers: Customer[] | null }> {
   try {
-    const response = await api.login(email, password);
+    // make a get request to /v2/user/info/
+    const response = await api.get<UserInfoResponse>('/v2/user/info/');
     
-    if (response.status === 'success' && response.data) {
-      const { user, customers } = response.data;
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // If there's only one customer, automatically select it
-      if (customers.length === 1) {
-        const selectResponse = await selectCustomer(customers[0].id);
-        if (selectResponse.status === 'success') {
-          return { user, customers: null }; // No need to show customer selection
-        }
-      }
-      
-      // Store customers in localStorage for the selection page
-      localStorage.setItem('login_customers', JSON.stringify(customers));
+    if (response) {
+      const { user, customers } = response;
       return { user, customers };
     }
-    
     return { user: null, customers: null };
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('User info error:', error);
     return { user: null, customers: null };
   }
 }
@@ -74,5 +62,5 @@ export function logout() {
   api.logout();
   localStorage.removeItem('user');
   localStorage.removeItem('selected_customer');
-  localStorage.removeItem('login_customers');
+  localStorage.removeItem('all_customers');
 }

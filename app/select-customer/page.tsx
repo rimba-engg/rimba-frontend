@@ -14,21 +14,21 @@ export default function SelectCustomerPage() {
     console.log('on customer account selection page');
     const storedUser = getStoredUser();
     if (!storedUser) {
-      router.push('/login');
+      router.push('/');
       return;
     }
 
-    const storedCustomers = localStorage.getItem('login_customers');
-    if (storedCustomers) {
+    const allCustomers = localStorage.getItem('all_customers');
+    if (allCustomers) {
       try {
-        const parsedCustomers = JSON.parse(storedCustomers);
+        const parsedCustomers = JSON.parse(allCustomers);
         setCustomers(parsedCustomers);
       } catch (error) {
         console.error('Error parsing stored customers:', error);
-        router.push('/login');
+        router.push('/');
       }
     } else {
-      router.push('/login');
+      router.push('/');
     }
   }, [router]);
 
