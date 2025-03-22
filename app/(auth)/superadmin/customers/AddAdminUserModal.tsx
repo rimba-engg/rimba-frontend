@@ -15,34 +15,45 @@ interface AddAdminUserModalProps {
 }
 
 export default function AddAdminUserModal({ customer, onClose }: AddAdminUserModalProps) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+  });
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName.trim() || !email.trim() || !password.trim()) {
+
+    if (!formData.first_name.trim() || !formData.email.trim() || !formData.password.trim()) {
       setError('Please fill in all required fields');
       return;
     }
 
-    const payload = {
-      customer_id: customer.id,
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      password,
-    };
-
-    setError('');
+    setError(null);
     setLoading(true);
+
     try {
-      const response: any = await api.post('/user-mgt/v2/admin-user/', payload);
+      const payload = {
+        customer_id: customer.id,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        password: formData.password,
+        role_name: 'ADMIN',
+      };
+
+      // API POST request similar to the one in @page.tsx
+      const response: any = await api.post('/user-mgt/v2/user/', payload);
+
       if (response.success) {
-        alert('Admin user created successfully');
+        // If user creation is successful, close the modal.
         onClose();
       } else {
         setError(response.message || 'Failed to create admin user');
@@ -69,8 +80,8 @@ export default function AddAdminUserModal({ customer, onClose }: AddAdminUserMod
             <Input
               id="firstName"
               type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              value={formData.first_name}
+              onChange={(e) => handleInputChange('first_name', e.target.value)}
               placeholder="First Name"
               required
             />
@@ -81,8 +92,8 @@ export default function AddAdminUserModal({ customer, onClose }: AddAdminUserMod
             <Input
               id="lastName"
               type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              value={formData.last_name}
+              onChange={(e) => handleInputChange('last_name', e.target.value)}
               placeholder="Last Name"
             />
           </div>
@@ -92,8 +103,8 @@ export default function AddAdminUserModal({ customer, onClose }: AddAdminUserMod
             <Input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="Enter email"
               required
             />
@@ -104,8 +115,8 @@ export default function AddAdminUserModal({ customer, onClose }: AddAdminUserMod
             <Input
               id="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
               placeholder="Enter password"
               required
             />
