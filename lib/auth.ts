@@ -27,7 +27,7 @@ export function getStoredCustomer(): Customer | null {
 export async function getUserInfo(): Promise<{ user: User | null; customers: Customer[] | null }> {
   try {
     // make a post request to /v2/user/info/
-    const response = await api.get<UserInfoResponse>('/v2/user/info/', {});
+    const response = await api.post<UserInfoResponse>('/v2/user/info/', {});
     
     if (response) {
       const { user, customers } = response;
@@ -47,7 +47,7 @@ export async function selectCustomer(customerId: string): Promise<SelectCustomer
     if (response.status === 'success' && response.data) {
       const { customer } = response.data;
       localStorage.setItem('selected_customer', JSON.stringify(customer));
-      localStorage.setItem('customer_id', customer.id);
+      api.setCustomerId(customer.id);
     }
     
     return response;
@@ -65,4 +65,7 @@ export function logout() {
   localStorage.removeItem('user');
   localStorage.removeItem('selected_customer');
   localStorage.removeItem('all_customers');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('id_token');
+  localStorage.removeItem('customer_id');
 }

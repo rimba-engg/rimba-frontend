@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useRouter } from 'next/navigation';
 import { getUserInfo, selectCustomer } from '@/lib/auth';
+import { api } from '@/lib/api';
 export default function CallbackPage() {
   const { 
       // Auth state:
@@ -26,7 +27,8 @@ export default function CallbackPage() {
           // store the token in local storage
           localStorage.setItem('access_token', accessToken);
           localStorage.setItem('id_token', idToken);
-          
+          console.log('access_token', accessToken);
+          api.setTokens(accessToken, idToken, '');
           // for debugging
           console.log('access_token', accessToken);
           console.log('id_token', idToken);

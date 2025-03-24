@@ -18,14 +18,7 @@ class ApiClient {
   private idToken: string | null = null;
   private csId: string | null = null;
 
-  private constructor() {
-    // Load tokens from localStorage if they exist
-    if (typeof window !== 'undefined') {
-      this.accessToken = localStorage.getItem('access_token');
-      this.idToken = localStorage.getItem('id_token');      this.csId = localStorage.getItem('customer_id');
-    }
-  }
-
+  
   public static getInstance(): ApiClient {
     if (!ApiClient.instance) {
       ApiClient.instance = new ApiClient();
@@ -107,11 +100,13 @@ class ApiClient {
   public logout(): void {
     this.accessToken = null;
     this.idToken = null;
+    this.csId = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('id_token');
       localStorage.removeItem('selected_customer');
       localStorage.removeItem('user');
+      localStorage.removeItem('customer_id');
 
       // Redirect to root
       window.location.href = '/';
@@ -169,6 +164,32 @@ class ApiClient {
   // Check if user is authenticated
   public isAuthenticated(): boolean {
     return !!this.accessToken;
+  }
+
+  private updateDefaultHeaders(): void {
+    defaultHeaders['Authorization'] = `Bearer ${this.accessToken || ''}`;
+    defaultHeaders['X-Id-Token'] = this.idToken || '';
+    defaultHeaders['X-Customer-Id'] = this.csId || '';
+  }
+
+  public setTokens(accessToken: string, idToken: string, customerId: string): void {
+    this.accessToken = accessToken;
+    this.idToken = idToken;
+    this.csId = customerId;
+    this.updateDefaultHeaders();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('id_token', idToken);
+      localStorage.setItem('customer_id', customerId);
+    }
+  }
+
+  public setCustomerId(customerId: string): void {
+    this.csId = customerId;
+    this.updateDefaultHeaders();
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('customer_id', customerId);
+    }
   }
 }
 
