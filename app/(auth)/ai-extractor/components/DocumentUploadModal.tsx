@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { DocumentType } from '../types'; // Adjust the import path as needed
-import { BASE_URL } from '@/lib/api';
+import { BASE_URL, defaultHeaders } from '@/lib/api';
 
 interface DocumentUploadModalProps {
   isOpen: boolean;
@@ -68,7 +68,7 @@ export default function DocumentUploadModal({
       // Set up the request options.
       const requestOptions = {
         method: "POST",
-        headers: myHeaders,
+        headers: defaultHeaders,
         body: formData,
         redirect: "follow" as RequestRedirect,
       };

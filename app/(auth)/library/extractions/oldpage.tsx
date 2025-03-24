@@ -14,7 +14,7 @@ import {
   SelectGroup,
 } from '@/components/ui/select';
 import { StatCard } from '@/components/ui/statcard';
-import { api, BASE_URL } from '@/lib/api'; // Adjust the import path as necessary
+import { api, BASE_URL, defaultHeaders } from '@/lib/api'; // Adjust the import path as necessary
 import { MONTHS } from '@/lib/constants';
 import {
   Table,

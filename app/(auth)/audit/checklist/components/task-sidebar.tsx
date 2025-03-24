@@ -7,8 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { X, User2, Upload, FileText, Trash2, Download, Loader2 } from 'lucide-react';
 import { Customer, TaskStatus, type Checklist, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
-import { api } from '@/lib/api';
-import { BASE_URL } from '@/lib/api';
+import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { getStoredCustomer } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
@@ -174,12 +173,11 @@ export function TaskSidebar({
         formData.append('documents', file);
       });
 
-      const token = localStorage.getItem('access_token');
       const response = await fetch(`${BASE_URL}/audit/v2/checklist/item/file/upload/`, {
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${token}`
+          ...defaultHeaders
         }
       });
 

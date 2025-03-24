@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
-import { BASE_URL } from '@/lib/api';
+import { BASE_URL , defaultHeaders} from '@/lib/api';
 import { Notification } from '@/lib/types';
 
 export function Notifications() {
@@ -23,8 +23,7 @@ export function Notifications() {
         const response = await fetch(`${BASE_URL}/notifs/v2/notification-list/`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            ...defaultHeaders
           }
         });
         const data = await response.json();
@@ -76,8 +75,7 @@ export function Notifications() {
       const response = await fetch(`${BASE_URL}/notifs/v2/notifications/mark-all-read/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          ...defaultHeaders
         }
       });
       

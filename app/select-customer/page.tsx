@@ -14,6 +14,7 @@ export default function SelectCustomerPage() {
     console.log('on customer account selection page');
     const storedUser = getStoredUser();
     if (!storedUser) {
+      console.log('no stored user');
       router.push('/');
       return;
     }

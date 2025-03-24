@@ -25,7 +25,7 @@ import { api } from '@/lib/api';
 import { ContractDetails, Allocation, Warehouse } from './types';
 import { Loader } from '@/components/ui/loader';
 import WarehouseDropdown from '@/app/(auth)/library/outgoing-contract/WarehouseDropdown';
-import {BASE_URL} from '@/lib/api';
+import {BASE_URL, defaultHeaders} from '@/lib/api';
 import { distanceData } from './constants';
 
 // Add this utility function near the top of the file
@@ -311,7 +311,7 @@ export default function ContractClient() {
       // Set up the request options.
       const requestOptions = {
         method: "POST",
-        headers: myHeaders,
+        headers: defaultHeaders,
         body: formData,
         redirect: "follow" as RequestRedirect,
       };
@@ -449,12 +449,10 @@ export default function ContractClient() {
       console.log('sdNumber', sdNumber);
       console.log('certNumber', certNumber);
 
-      const token = localStorage.getItem('access_token');
       const response = await fetch(`${BASE_URL}/reporting/v2/outgoing-sd-template/generate/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...defaultHeaders
         },
         body: JSON.stringify({
           group_id: groupId,
@@ -512,7 +510,7 @@ export default function ContractClient() {
       // Set up the request options.
       const requestOptions = {
         method: "POST",
-        headers: myHeaders,
+        headers: defaultHeaders,
         body: formData,
         redirect: "follow" as RequestRedirect,
       };

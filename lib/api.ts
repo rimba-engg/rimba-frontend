@@ -1,18 +1,28 @@
 import { SelectCustomerResponse } from './types';
 
-// export const BASE_URL = 'https://app-v1.rimba.ai';
-export const BASE_URL = 'http://localhost:8000';
+export const BASE_URL = 'https://app-v1.rimba.ai';
+// export const BASE_URL = 'http://localhost:8000';
+
+
+export const defaultHeaders = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+  'X-Customer-Id': localStorage.getItem('customer_id') || '',
+  'X-Id-Token': localStorage.getItem('id_token') || ''
+};
+
 
 class ApiClient {
   private static instance: ApiClient;
   private accessToken: string | null = null;
   private idToken: string | null = null;
+  private csId: string | null = null;
 
   private constructor() {
     // Load tokens from localStorage if they exist
     if (typeof window !== 'undefined') {
       this.accessToken = localStorage.getItem('access_token');
-      this.idToken = localStorage.getItem('id_token');
+      this.idToken = localStorage.getItem('id_token');      this.csId = localStorage.getItem('customer_id');
     }
   }
 
@@ -39,6 +49,10 @@ class ApiClient {
 
     if (this.idToken) {
       headers.set('X-Id-Token', this.idToken);
+    }
+
+    if (this.csId) {
+      headers.set('X-Customer-Id', this.csId);
     }
 
     const config: RequestInit = {

@@ -40,8 +40,8 @@ export default function CallbackPage() {
           localStorage.setItem('all_customers', JSON.stringify(userInfoResponse.customers));
 
           // for debugging
-          console.log('user', userInfoResponse.user);
-          console.log('all_customers', userInfoResponse.customers);
+          console.log('user from backend', userInfoResponse.user);
+          console.log('all_customers from backend', userInfoResponse.customers);
 
           // if there is only one customer, select it
           if (userInfoResponse.customers && userInfoResponse.customers.length === 1) {
