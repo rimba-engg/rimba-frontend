@@ -17,10 +17,6 @@ export interface Customer {
 export interface UserInfoResponse {
   user: User;
   customers: Customer[];
-  tokens: {
-    access: string;
-    refresh: string;
-  };
 }
 
 export interface SelectCustomerResponse {
@@ -29,10 +25,6 @@ export interface SelectCustomerResponse {
   data?: {
     user: User;
     customer: Customer;
-    tokens: {
-      access: string;
-      refresh: string;
-    };
   };
 }
 

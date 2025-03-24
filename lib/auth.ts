@@ -25,8 +25,8 @@ export function getStoredCustomer(): Customer | null {
 
 export async function getUserInfo(): Promise<{ user: User | null; customers: Customer[] | null }> {
   try {
-    // make a get request to /v2/user/info/
-    const response = await api.get<UserInfoResponse>('/v2/user/info/');
+    // make a post request to /v2/user/info/
+    const response = await api.post<UserInfoResponse>('/v2/user/info/', {});
     
     if (response) {
       const { user, customers } = response;

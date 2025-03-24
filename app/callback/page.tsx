@@ -4,28 +4,48 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useRouter } from 'next/navigation';
 import { getUserInfo, selectCustomer } from '@/lib/auth';
 export default function CallbackPage() {
-  const { isLoading, isAuthenticated, error, getAccessTokenSilently } = useAuth0();
+  const { 
+      // Auth state:
+      error,
+      isAuthenticated,
+      isLoading,
+      user,
+      // Auth methods:
+      getAccessTokenSilently,
+  } = useAuth0();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       (async () => {
         try {
-          const token = await getAccessTokenSilently();
+          const response = await getAccessTokenSilently({detailedResponse: true});
+          const accessToken = response.access_token;
+          const idToken = response.id_token;
 
           // store the token in local storage
-          localStorage.setItem('access_token', token);
+          localStorage.setItem('access_token', accessToken);
+          localStorage.setItem('id_token', idToken);
+          
+          // for debugging
+          console.log('access_token', accessToken);
+          console.log('id_token', idToken);
+          console.log('user', user);
 
           // fetch user info from backend
-          const {user, customers} = await getUserInfo();
+          const userInfoResponse = await getUserInfo();
 
           // save user info in local storage
-          localStorage.setItem('user', JSON.stringify(user));
-          localStorage.setItem('all_customers', JSON.stringify(customers));
+          localStorage.setItem('user', JSON.stringify(userInfoResponse.user));
+          localStorage.setItem('all_customers', JSON.stringify(userInfoResponse.customers));
+
+          // for debugging
+          console.log('user', userInfoResponse.user);
+          console.log('all_customers', userInfoResponse.customers);
 
           // if there is only one customer, select it
-          if (customers && customers.length === 1) {
-            await selectCustomer(customers[0].id);
+          if (userInfoResponse.customers && userInfoResponse.customers.length === 1) {
+            await selectCustomer(userInfoResponse.customers[0].id);
           }
           router.push('/'); // redirect after processing
         } catch (err) {
@@ -33,7 +53,7 @@ export default function CallbackPage() {
         }
       })();
     }
-  }, [isLoading, isAuthenticated, getAccessTokenSilently, router]);
+  }, [user, isLoading, isAuthenticated, getAccessTokenSilently, router]);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;

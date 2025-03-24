@@ -6,13 +6,13 @@ export const BASE_URL = 'http://localhost:8000';
 class ApiClient {
   private static instance: ApiClient;
   private accessToken: string | null = null;
-  private refreshToken: string | null = null;
+  private idToken: string | null = null;
 
   private constructor() {
     // Load tokens from localStorage if they exist
     if (typeof window !== 'undefined') {
       this.accessToken = localStorage.getItem('access_token');
-      this.refreshToken = localStorage.getItem('refresh_token');
+      this.idToken = localStorage.getItem('id_token');
     }
   }
 
@@ -35,6 +35,10 @@ class ApiClient {
 
     if (this.accessToken) {
       headers.set('Authorization', `Bearer ${this.accessToken}`);
+    }
+
+    if (this.idToken) {
+      headers.set('X-Id-Token', this.idToken);
     }
 
     const config: RequestInit = {
@@ -76,13 +80,6 @@ class ApiClient {
         }
       );
 
-      if (response.status === 'success' && response.data?.tokens) {
-        this.setTokens(
-          response.data.tokens.access,
-          response.data.tokens.refresh
-        );
-      }
-
       return response;
     } catch (error) {
       return {
@@ -95,24 +92,15 @@ class ApiClient {
 
   public logout(): void {
     this.accessToken = null;
-    this.refreshToken = null;
+    this.idToken = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('id_token');
       localStorage.removeItem('selected_customer');
       localStorage.removeItem('user');
 
       // Redirect to root
       window.location.href = '/';
-    }
-  }
-
-  private setTokens(accessToken: string, refreshToken: string): void {
-    this.accessToken = accessToken;
-    this.refreshToken = refreshToken;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('access_token', accessToken);
-      localStorage.setItem('refresh_token', refreshToken);
     }
   }
 
