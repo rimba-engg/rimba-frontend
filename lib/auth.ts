@@ -1,7 +1,6 @@
 import { api, BASE_URL,defaultHeaders } from './api';
 import { User, Customer, SelectCustomerResponse, UserInfoResponse } from './types';
 
-
 export function getStoredUser(): User | null {
   if (typeof window === 'undefined') return null;
   const stored = localStorage.getItem('user');
@@ -25,19 +24,12 @@ export function getStoredCustomer(): Customer | null {
 }
 
 export async function getUserInfo(): Promise<{ user: User | null; customers: Customer[] | null }> {
-  try {
-    // make a post request to /v2/user/info/
-    const response = await api.post<UserInfoResponse>('/v2/user/info/', {});
-    
-    if (response) {
-      const { user, customers } = response;
-      return { user, customers };
-    }
-    return { user: null, customers: null };
-  } catch (error) {
-    console.error('User info error:', error);
-    return { user: null, customers: null };
+  const response = await api.post<UserInfoResponse>('/v2/user/info/', {});
+  if (response) {
+    const { user, customers } = response;
+    return { user, customers };
   }
+  return { user: null, customers: null };
 }
 
 export async function selectCustomer(customerId: string): Promise<SelectCustomerResponse> {
@@ -68,4 +60,5 @@ export function logout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('id_token');
   localStorage.removeItem('customer_id');
+  window.location.replace(window.location.origin);
 }

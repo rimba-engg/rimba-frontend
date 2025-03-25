@@ -13,6 +13,7 @@ export default function CallbackPage() {
       user,
       // Auth methods:
       getAccessTokenSilently,
+      logout,
   } = useAuth0();
   const router = useRouter();
 
@@ -35,20 +36,34 @@ export default function CallbackPage() {
           console.log('user', user);
 
           // fetch user info from backend
-          const userInfoResponse = await getUserInfo();
+          let userInfoResponse;
+          try {
+            userInfoResponse = await getUserInfo();
+            console.log('userInfoResponse', userInfoResponse);
+            console.log('getUserInfo call succeeded');
+          } catch (error) {
+            console.error('getUserInfo call failed:', error);
+            // Trigger logout on any error
+            api.logout();
+            logout({ logoutParams: { returnTo: window.location.origin } });
+            console.log('logging out from callback page');
+          }
 
           // save user info in local storage
-          localStorage.setItem('user', JSON.stringify(userInfoResponse.user));
-          localStorage.setItem('all_customers', JSON.stringify(userInfoResponse.customers));
+          if (userInfoResponse) {
+            localStorage.setItem('user', JSON.stringify(userInfoResponse.user));
+            localStorage.setItem('all_customers', JSON.stringify(userInfoResponse.customers));
+          }
 
           // for debugging
-          console.log('user from backend', userInfoResponse.user);
-          console.log('all_customers from backend', userInfoResponse.customers);
+          console.log('user from backend', userInfoResponse?.user);
+          console.log('all_customers from backend', userInfoResponse?.customers);
 
           // if there is only one customer, select it
-          if (userInfoResponse.customers && userInfoResponse.customers.length === 1) {
+          if (userInfoResponse?.customers && userInfoResponse.customers.length === 1) {
             await selectCustomer(userInfoResponse.customers[0].id);
           }
+          console.log('redirecting to home');
           router.push('/'); // redirect after processing
         } catch (err) {
           console.error('Error getting token:', err);
