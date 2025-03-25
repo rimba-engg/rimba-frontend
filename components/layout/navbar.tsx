@@ -64,7 +64,7 @@ export function Navbar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
               <img
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop"
+                src={userData?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop"}
                 alt="Profile"
                 className="w-8 h-8 rounded-full"
               />

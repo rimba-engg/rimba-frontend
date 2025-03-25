@@ -72,7 +72,63 @@ export default function CallbackPage() {
     }
   }, [user, isLoading, isAuthenticated, getAccessTokenSilently, router]);
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-  return <div>Processing callback...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="bg-white p-4 rounded shadow-md border border-green-500">
+          <div className="flex items-center">
+            <span className="ml-2">Loading...</span>
+            <div className="spinner ml-2"></div>
+          </div>
+        </div>
+        <style jsx>{`
+          .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color:rgb(15, 117, 64); /* Primary color */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+          }
+
+          @keyframes spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <div className="bg-white p-4 rounded shadow-md border border-green-500">
+        <div className="flex items-center">
+          <span className="ml-2">Processing callback...</span>
+          <div className="spinner ml-2"></div>
+        </div>
+      </div>
+      <style jsx>{`
+        .spinner {
+          border: 4px solid rgba(0, 0, 0, 0.1);
+          border-left-color:rgb(15, 117, 64); /* Primary color */
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+    </div>
+  );
 }
