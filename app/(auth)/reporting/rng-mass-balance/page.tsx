@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { DateTime } from 'luxon';
 import { type GasBalanceView } from './types';
 import {
   Select,
@@ -258,15 +259,20 @@ export default function RngMassBalancePage() {
               type="date" 
               className="w-full"
               onChange={(e) => {
-                const selectedDate = new Date(e.target.value);
                 // Set to 10 AM EST on selected date in EST
-                selectedDate.setHours(26,0,0,0);
-                setStartDate(selectedDate.toISOString().slice(0,16));
-                
+                let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'America/New_York' }).set({ hour: 10 });
+
                 // Set to 10 AM EST next day
-                const nextDay = new Date(selectedDate);
-                nextDay.setDate(nextDay.getDate() + 1);
-                setEndDate(nextDay.toISOString().slice(0,16));
+                let nextDay = selectedDate.plus({ days: 1 }).minus({ seconds: 1 });
+
+                // for debugging
+                console.log(e.target.value);
+                console.log(selectedDate.toISO());
+                console.log(nextDay.toISO());
+
+                // set start and end dates
+                setStartDate(selectedDate.toISO().slice(0, 16));
+                setEndDate(nextDay.toISO().slice(0, 16));
               }}
             />
 
