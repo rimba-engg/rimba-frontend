@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { type GasBalanceView } from './types';
 import {
@@ -42,12 +42,6 @@ interface MassBalanceResponse {
   chart_title: string;
   tax_credit: Record<string, any>;
 }
-
-// const defaultColDef = {
-//   flex: 1,
-//   minWidth: 200,
-//   resizable: true,
-// };
 
 // Define the row style based on whether the row is pinned
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
@@ -348,16 +342,6 @@ export default function RngMassBalancePage() {
         pinnedTopRowData={[viewAggregate]}
         getRowStyle={getRowStyle} // Apply row styles
       />
-      {/* <div className="ag-theme-alpine w-full h-[600px]">
-        <AgGridReact
-          ref={gridRef}
-          rowData={rowData}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          pinnedTopRowData={[viewAggregate]}
-          getRowStyle={getRowStyle} // Apply row styles
-        />
-      </div> */}
       <ToastContainer />
     </div>
   );
