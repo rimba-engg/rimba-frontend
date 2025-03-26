@@ -21,7 +21,16 @@ class ApiClient {
   private idToken: string | null = null;
   private csId: string | null = null;
 
-  
+  // Add private constructor to load initial state
+  private constructor() {
+    if (typeof window !== 'undefined') {
+      this.accessToken = localStorage.getItem('access_token');
+      this.idToken = localStorage.getItem('id_token');
+      this.csId = localStorage.getItem('customer_id');
+      this.updateDefaultHeaders();
+    }
+  }
+
   public static getInstance(): ApiClient {
     if (!ApiClient.instance) {
       ApiClient.instance = new ApiClient();
