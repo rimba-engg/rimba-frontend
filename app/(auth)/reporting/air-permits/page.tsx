@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ToastContainer, toast } from 'react-toastify';
 import { Download, Loader2 } from 'lucide-react'
-import { api, BASE_URL } from '@/lib/api' 
+import { api, BASE_URL, defaultHeaders } from '@/lib/api' 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
@@ -107,10 +107,7 @@ export default function AirPermitsPage() {
 
       const response = await fetch(`${BASE_URL}/reporting/v2/air-permits/download/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
+        headers: {...defaultHeaders},
         body: JSON.stringify(payload)
       });
 

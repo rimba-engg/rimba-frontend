@@ -2,16 +2,18 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStoredUser, getStoredCustomer } from '@/lib/auth';
+import { useAuth0 } from '@auth0/auth0-react';
+import { getStoredCustomer } from '@/lib/auth';
 
 export default function Home() {
   const router = useRouter();
+  const { loginWithRedirect, isAuthenticated } = useAuth0();
 
   useEffect(() => {
-    const user = getStoredUser();
-    const customer = getStoredCustomer();
-    if (user) {
-      console.log("user logged in", user);
+    if (!isAuthenticated) {
+      loginWithRedirect();
+    } else {
+      const customer = getStoredCustomer();
       if (customer) {
         console.log("customer selected", customer);
         if (customer.is_rng_customer)
@@ -22,11 +24,8 @@ export default function Home() {
         console.log('user needs to select a customer account');
         router.push('/select-customer');  
       }
-    } else {
-      console.log('no user logged in');
-      router.push('/login');
     }
-  }, [router]);
+  }, [router, loginWithRedirect, isAuthenticated]);
 
   // Return a loading state while checking auth
   return (

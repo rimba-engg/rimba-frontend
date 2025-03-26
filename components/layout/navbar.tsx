@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -16,12 +15,14 @@ import { Notifications } from './notifications';
 import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { type User, type Customer  } from '@/lib/types';
+import { useAuth0 } from '@auth0/auth0-react';
 
 export function Navbar() {
   const router = useRouter();
   const [userData, setUserData] = useState<User | null>(null);
   const [customerData, setCustomerData] = useState<Customer | null>(null);
-
+  const { logout } = useAuth0();
+  
   useEffect(() => {
     // Load user and customer data after component mounts to avoid hydration mismatch
     setUserData(getStoredUser());
@@ -30,7 +31,7 @@ export function Navbar() {
 
   const handleLogout = () => {
     api.logout();
-    router.push('/login');
+    logout({ logoutParams: { returnTo: window.location.origin } });
   };
 
   const handleProfile = () => {
@@ -63,7 +64,7 @@ export function Navbar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
               <img
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop"
+                src={userData?.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop"}
                 alt="Profile"
                 className="w-8 h-8 rounded-full"
               />
