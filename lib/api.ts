@@ -1,6 +1,9 @@
 import { SelectCustomerResponse } from './types';
 
-export const BASE_URL = 'https://app-v1.rimba.ai';
+const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV;
+console.log('APP_ENV', APP_ENV);
+export const BASE_URL = `https://app-${APP_ENV}.rimba.ai`;
+console.log('BASE_URL', BASE_URL);
 // export const BASE_URL = 'http://localhost:8000';
 
 
