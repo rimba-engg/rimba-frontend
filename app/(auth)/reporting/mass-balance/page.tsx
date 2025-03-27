@@ -19,7 +19,7 @@ import { WarehouseSelect } from '@/app/(auth)/reporting/mass-balance/components/
 import { MassBalanceStats } from '@/app/(auth)/reporting/mass-balance/components/MassBalanceStats';
 import { MassBalanceTable,MassBalanceData } from '@/app/(auth)/reporting/mass-balance/components/MassBalanceTable';
 import { ProductSelect } from '@/app/(auth)/reporting/mass-balance/components/ProductSelect';
-import { api,BASE_URL } from '@/lib/api';
+import { api,BASE_URL ,defaultHeaders} from '@/lib/api';
 
 interface MassBalanceResponse {
   status: string;
@@ -139,9 +139,7 @@ export default function MassBalancePage() {
 
       const response = await fetch(`${BASE_URL}/v2/mass-balance/download/?${params}`, { 
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
+        headers: {...defaultHeaders}
       });
 
       if (!response.ok) throw new Error('Export failed');

@@ -14,7 +14,7 @@ export default function DashboardGuard({
   useEffect(() => {
     const user = getStoredUser();
     if (!user) {
-      router.push('/login');
+      router.push('/');
     }
   }, [router]);
 

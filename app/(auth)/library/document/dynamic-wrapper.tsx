@@ -20,7 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import { api,defaultHeaders } from '@/lib/api';
 import { MONTHS } from '@/lib/constants';
 
 interface Comment {

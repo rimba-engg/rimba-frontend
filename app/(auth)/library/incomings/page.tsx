@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { api, BASE_URL } from '@/lib/api'; // Import the api module
+import { api, BASE_URL,defaultHeaders } from '@/lib/api'; // Import the api module
 import { Modal } from './components/modals/add_contract'; // Import the modal component
 import { ProductSelect } from "../../reporting/mass-balance/components/ProductSelect";
 import { Weight } from "lucide-react";
@@ -210,7 +210,7 @@ export default function IncomingContractsPage() {
       const response = await fetch(`${BASE_URL}/v2/contracts/incoming/download/`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          ...defaultHeaders
         }
       });
 
@@ -318,7 +318,7 @@ export default function IncomingContractsPage() {
       const response = await fetch(`${BASE_URL}/v2/contracts/bulk-upload/`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          ...defaultHeaders
         },
         body: formData
       });

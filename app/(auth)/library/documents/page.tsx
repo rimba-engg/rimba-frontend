@@ -6,7 +6,7 @@ import { FileText, Search, Filter, Download, Upload, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { YearMonthSelect } from '@/components/ui/year-month-select';
-import { api,BASE_URL } from '@/lib/api';
+import { api,BASE_URL, defaultHeaders } from '@/lib/api';
 import { MONTHS } from '@/lib/constants';
 import { getStoredCustomer } from '@/lib/auth';
 
@@ -149,8 +149,7 @@ export default function DocumentsPage() {
       const response = await fetch(`${BASE_URL}/v2/extractions/bulk/download/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          ...defaultHeaders
         },
         body: JSON.stringify({
           month: Number(selectedMonth) + 1,
@@ -190,7 +189,7 @@ export default function DocumentsPage() {
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          ...defaultHeaders
         }
       });
 

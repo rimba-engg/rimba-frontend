@@ -271,8 +271,8 @@ export default function RngMassBalancePage() {
                 console.log(nextDay.toISO());
 
                 // set start and end dates
-                setStartDate(selectedDate.toISO().slice(0, 16));
-                setEndDate(nextDay.toISO().slice(0, 16));
+                setStartDate(selectedDate.toISO()?.slice(0, 16) ?? '');
+                setEndDate(nextDay.toISO()?.slice(0, 16) ?? '');
               }}
             />
 

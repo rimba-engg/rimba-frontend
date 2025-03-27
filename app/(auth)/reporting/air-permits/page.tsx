@@ -1,19 +1,12 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { ToastContainer, toast } from 'react-toastify';
 import { Download, Loader2 } from 'lucide-react'
-import { api, BASE_URL } from '@/lib/api' 
+import { api, BASE_URL, defaultHeaders } from '@/lib/api' 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
-
-// removed as already defined in QueryTable 
-// const defaultColDef = {
-//   flex: 1,
-//   minWidth: 200,
-//   resizable: true,
-// };
 
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
@@ -44,9 +37,7 @@ export default function AirPermitsPage() {
   const [rowData, setRowData] = useState<any[]>([])
   const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([])
   const [viewAggregate, setViewAggregate] = useState<any[]>([])
-
-  // Initialize grid ref for accessing the grid API
-  // const gridRef = useRef<AgGridReact>(null);
+  const [useAverage, setUseAverage] = useState<boolean>(true)
 
   // Fetch data when view or dates change
   useEffect(() => {
@@ -96,7 +87,10 @@ export default function AirPermitsPage() {
     try {
       setLoading(true);
 
-      const payload: Record<string, any> = {};
+      const payload: Record<string, any> = {
+        use_average: useAverage
+      };
+
       // Only add dates to payload if they are set
       if (startDate) {
         payload.start_datetime = startDate;
@@ -107,10 +101,7 @@ export default function AirPermitsPage() {
 
       const response = await fetch(`${BASE_URL}/reporting/v2/air-permits/download/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
+        headers: {...defaultHeaders},
         body: JSON.stringify(payload)
       });
 
@@ -121,7 +112,7 @@ export default function AirPermitsPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `Air-Permits-Report.xlsx`)
+      link.setAttribute('download', `Air-Permits-Report-${useAverage ? 'Average' : 'Sum'}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -188,18 +179,28 @@ export default function AirPermitsPage() {
           }}
         />
 
-        <button
-          onClick={downloadReport}
-          className="text-primary-foreground bg-primary px-4 py-2 rounded"
-        >
-          <div className="flex flex-row items-center gap-2">
-            <Download size={20} />
-            <span>Download Raw Data</span>
-          </div>
-        </button>
+        <div className="px-4 py-2 flex items-center gap-2 bg-white rounded-lg shadow">
+          <button
+            onClick={downloadReport}
+            className="text-primary-foreground bg-primary px-4 py-2 rounded"
+          >
+            <div className="flex flex-row items-center gap-2">
+              <Download size={20} />
+              <span>Download</span>
+            </div>
+          </button>
+          <h3 className="font-semibold text-base">{useAverage ? 'Average' : 'Sum'}</h3>
+          <button 
+            onClick={() => setUseAverage(!useAverage)} 
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useAverage ? 'bg-blue-500' : 'bg-gray-200'}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useAverage ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
+        
       </div>
 
-      {/* AG Grid Table */}
       <div className="ag-theme-alpine w-full h-[800px]">
         <QueryTable
           initialRowData={rowData}
@@ -207,14 +208,6 @@ export default function AirPermitsPage() {
           pinnedTopRowData={[viewAggregate]}
           getRowStyle={getRowStyle} // Apply row styles
         />
-        {/* <AgGridReact
-          ref={gridRef}
-          rowData={rowData}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          pinnedTopRowData={[viewAggregate]}
-          getRowStyle={getRowStyle} // Apply row styles
-        /> */}
       </div>
       <ToastContainer />
     </div>

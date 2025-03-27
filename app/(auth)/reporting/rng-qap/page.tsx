@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button'
 import { ToastContainer, toast } from 'react-toastify';
 import { Download } from 'lucide-react'
-import { BASE_URL } from '@/lib/api' 
+import { BASE_URL, defaultHeaders } from '@/lib/api' 
 
 const months = [
   { value: '01', label: 'January' },
@@ -38,10 +38,7 @@ export default function QAPReportPage() {
             
       const response = await fetch(`${BASE_URL}/reporting/v2/rng-qap/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
+        headers: {...defaultHeaders},
         body: JSON.stringify({
           month: selectedMonth,
           year: selectedYear,

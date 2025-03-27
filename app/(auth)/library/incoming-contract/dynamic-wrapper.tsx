@@ -39,7 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { api, BASE_URL } from "@/lib/api";
+import { api, BASE_URL, defaultHeaders } from "@/lib/api";
 import { useToast,toast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -320,8 +320,7 @@ export default function ContractDetails() {
         const response = await fetch(`${BASE_URL}/v2/contracts/incoming/download-extractions/`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            ...defaultHeaders,
           },
           body: JSON.stringify({ document_ids: documentIds })
         });

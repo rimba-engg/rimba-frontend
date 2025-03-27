@@ -14,22 +14,9 @@ export interface Customer {
   is_rng_customer: boolean;
 }
 
-export interface LoginResponse {
-  status: 'success' | 'error';
-  message: string;
-  data?: {
-    user: {
-      id: string;
-      email: string;
-      first_name: string;
-      last_name: string;
-    };
-    customers: Customer[];
-    tokens: {
-      access: string;
-      refresh: string;
-    };
-  };
+export interface UserInfoResponse {
+  user: User;
+  customers: Customer[];
 }
 
 export interface SelectCustomerResponse {
@@ -38,10 +25,6 @@ export interface SelectCustomerResponse {
   data?: {
     user: User;
     customer: Customer;
-    tokens: {
-      access: string;
-      refresh: string;
-    };
   };
 }
 
