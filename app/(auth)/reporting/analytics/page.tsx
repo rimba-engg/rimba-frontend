@@ -47,7 +47,11 @@ interface AnalyticsResponse {
 
 export default function AnalyticsPage() {
     const [chartConfig, setChartConfig] = useState<any>(null);
+    const [chartConfigManureData, setChartConfigManureData] = useState<any>(null);
+  
     const [loading, setLoading] = useState(true);
+    const [loadingManureData, setLoadingManureData] = useState(true);
+
     const [startDate, setStartDate] = useState<string>(DateTime.now().setZone('America/New_York').minus({ weeks: 1 }).toISO()?.slice(0, 10) ?? '');
     const [endDate, setEndDate] = useState<string>(DateTime.now().setZone('America/New_York').toISO()?.slice(0, 10) ?? '');
     const [rowData, setRowData] = useState<any>([]);
@@ -56,6 +60,7 @@ export default function AnalyticsPage() {
     
     useEffect(() => {
         fetchAnalytics();
+        fetchAnalyticsManureData();
     }, [startDate, endDate]);
 
     const fetchAnalytics = () => {
@@ -83,6 +88,22 @@ export default function AnalyticsPage() {
             .finally(() => setLoading(false));
     };
 
+    const fetchAnalyticsManureData = () => {
+      setLoadingManureData(true);
+      api.post<AnalyticsResponse>('/reporting/v2/rng/analytics/manure-flow/', {
+          start_date: startDate,
+          end_date: endDate
+      })
+          .then(data => {
+              setChartConfigManureData(data.chart_config);
+          })
+          .catch(error => {
+              console.error('Error fetching manure flow data:', error);
+              toast.error('Error fetching manure flow data');
+          })
+          .finally(() => setLoadingManureData(false));
+  };
+
     if (loading) {
         return (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -98,8 +119,8 @@ export default function AnalyticsPage() {
       <div className='space-y-4'>
         <div className='text-2xl font-bold'>Analytics</div>
 
-        <div className="flex gap-6">
-          <div className="flex flex-col p-4 gap-4 w-1/4">
+        <div className="flex gap-4">
+          <div className="flex flex-col py-4 gap-4 w-1/4">
             <div className="flex flex-row gap-4">
               <FloatingLabelInput
                 label="Start Day (EST)"
@@ -169,6 +190,17 @@ export default function AnalyticsPage() {
 
           <div className="w-3/4 h-[300px]">
             <Line options={options} data={chartConfig} />
+            <ToastContainer />
+          </div>
+          <div className="w-3/4 h-[300px]">
+            {loadingManureData ? (
+              <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
+                <Loader2 className="animate-spin" size={24} />
+                <div className="text-lg font-medium">Loading manure flow data...</div>
+              </div>
+            ) : (
+              <Line options={options} data={chartConfigManureData} />
+            )}
             <ToastContainer />
           </div>
         </div>
