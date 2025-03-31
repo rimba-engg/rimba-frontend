@@ -7,6 +7,7 @@ import { api, BASE_URL, defaultHeaders } from '@/lib/api'
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
+import { DateTime } from 'luxon';
 
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
@@ -163,23 +164,76 @@ export default function AirPermitsPage() {
         </div>
 
         <FloatingLabelInput
-          label="Single Day (EST)"
+          label="Gas Day (EST)"
           type="date" 
           className="w-full"
           onChange={(e) => {
-            const selectedDate = new Date(e.target.value);
             // Set to 10 AM EST on selected date in EST
-            selectedDate.setHours(26,0,0,0);
-            setStartDate(selectedDate.toISOString().slice(0,16));
-            
+            let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'America/New_York' }).set({ hour: 10 });
+
             // Set to 10 AM EST next day
-            const nextDay = new Date(selectedDate);
-            nextDay.setDate(nextDay.getDate() + 1);
-            setEndDate(nextDay.toISOString().slice(0,16));
+            let nextDay = selectedDate.plus({ days: 1 }).minus({ seconds: 1 });
+
+            // for debugging
+            console.log(e.target.value);
+            console.log(selectedDate.toISO());
+            console.log(nextDay.toISO());
+
+            // set start and end dates
+            setStartDate(selectedDate.toISO()?.slice(0, 16) ?? '');
+            setEndDate(nextDay.toISO()?.slice(0, 16) ?? '');
           }}
         />
 
-        <div className="px-4 py-2 flex items-center gap-2 bg-white rounded-lg shadow">
+        <div className="flex justify-center">
+          <span>OR</span>
+        </div>
+
+        <div>
+          <select 
+            className="px-4 py-2 border rounded"
+            onChange={(e) => {
+              const [unit, amount] = e.target.value.split('-');
+              const now = DateTime.now().setZone('America/New_York');
+              let start;
+              let end = now;
+
+              switch(unit) {
+                case 'day':
+                  start = now.minus({ days: parseInt(amount) });
+                  break;
+                case 'week':
+                  start = now.minus({ weeks: parseInt(amount) });
+                  break;
+                case 'month':
+                  start = now.minus({ months: parseInt(amount) });
+                  break;
+              }
+
+              setStartDate(start?.toISO()?.slice(0, 16) ?? '');
+              setEndDate(end?.toISO()?.slice(0, 16) ?? '');
+            }}
+          >
+            <option value="">Select Date Range</option>
+            <optgroup label="Days">
+              {[1,2,3,4,5,6].map(n => (
+                <option key={`day-${n}`} value={`day-${n}`}>Last {n} day{n > 1 ? 's' : ''}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Weeks">
+              {[1,2,3,4].map(n => (
+                <option key={`week-${n}`} value={`week-${n}`}>Last {n} week{n > 1 ? 's' : ''}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Months">
+              {[1,2,3].map(n => (
+                <option key={`month-${n}`} value={`month-${n}`}>Last {n} month{n > 1 ? 's' : ''}</option>
+              ))}
+            </optgroup>
+          </select>
+        </div>
+
+        <div className="px-4 py-2 flex items-center gap-2">
           <button
             onClick={downloadReport}
             className="text-primary-foreground bg-primary px-4 py-2 rounded"
