@@ -79,9 +79,8 @@ export default function AirPermitsPage() {
       const response = await api.post<AirPermitsResponse>(`/reporting/v2/air-permits/`, payload);
       setRowData(response.summary_data);
       setViewAggregate(response.aggregated_data);
-      let so2Inputs = response.aggregated_data ? Object.entries(response.aggregated_data).map(([label, value]) => ({ label, value: Number(value) })) : []
-      console.log(so2Inputs.slice(1))
-      setSo2Inputs(so2Inputs.slice(1))
+      let aggegratedList = response.aggregated_data ? Object.entries(response.aggregated_data).map(([label, value]) => ({ label, value: Number(value) })) : []
+      setSo2Inputs(aggegratedList)
     } catch (error) {
       console.error('Error fetching air permits data:', error); 
       toast.error('Failed to fetch air permits data. Please try again.')
