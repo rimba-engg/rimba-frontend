@@ -63,7 +63,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       label: 'Reporting',
       items: [
         { icon: Scale, label: 'Gas Balance', href: '/reporting/rng-mass-balance' },
-        { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
+        // { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
       ],
