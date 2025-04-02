@@ -97,7 +97,7 @@ export function Sidebar() {
     setCustomerData(customer);
   }, []);
 
-  const isAdmin = customerData?.role === 'ADMIN';
+  const isAdmin = customerData?.role === 'ADMIN' || customerData?.role === 'SUPER_ADMIN';
   const isRNGCustomer = customerData?.is_rng_customer ?? false;
   const menuItems = getMenuItems(isAdmin, isRNGCustomer, customerData);
 
