@@ -313,13 +313,15 @@ export default function IncomingContractsPage() {
     const formData = new FormData();
     formData.append('file', uploadFile);
     formData.append('contract_type', "incoming");
+    const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
+    // For multipart/form-data, we should remove the Content-Type
+    // and let the browser set it with the correct boundary
+    delete uploadHeaders['Content-Type'];
 
     try {
       const response = await fetch(`${BASE_URL}/v2/contracts/bulk-upload/`, {
         method: 'POST',
-        headers: {
-          ...defaultHeaders
-        },
+        headers: uploadHeaders,
         body: formData
       });
 

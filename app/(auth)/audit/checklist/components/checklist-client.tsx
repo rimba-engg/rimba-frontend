@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, ChevronRight, Grid } from 'lucide-react';
+import { Plus, ChevronRight, Grid, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TaskTable } from './task-table';
@@ -11,7 +11,7 @@ import { TaskFormModal } from './task-form-modal';
 import { AssignModal } from './modals/assign-modal';
 import { AddColumnModal } from './add-column-modal';
 import { TaskStatus, type ChecklistItem, type FormData, type User, type Checklist, type ColumnSchema } from '@/lib/types';
-import { api } from '@/lib/api';
+import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { getStoredUser } from '@/lib/auth';
 
 interface ApiResponse {
@@ -39,6 +39,9 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
   const [users, setUsers] = useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = {
     completion: {
@@ -83,16 +86,6 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
         });
 
         if (response.status === 200 && response.data) {
-          // const newItem: ChecklistItem = {
-          //   ...formData,
-          //   id: response.data.id,
-          //   status: TaskStatus.NOT_STARTED,
-          //   comments: [],
-          //   documents: [],
-          //   column_data: {},
-          // };
-          // setChecklistItems(prev => [...prev, newItem]);
-          
           setShowAddModal(false);
           refreshChecklist();
         } else {
@@ -104,6 +97,49 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
     } finally {
       setIsSubmitting(false);
       setFormData(initialFormData);
+    }
+  };
+
+  const handleBulkUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setUploadError(null);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('checklist_id', checklistData.id);
+      
+      // Create a new headers object instead of modifying the default one
+      const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
+      // For multipart/form-data, we should remove the Content-Type
+      // and let the browser set it with the correct boundary
+      delete uploadHeaders['Content-Type'];
+      
+      const response = await fetch(`${BASE_URL}/audit/v2/add_checklist_item/bulk/`, {
+        method: 'POST',
+        body: formData,
+        headers: uploadHeaders,
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        refreshChecklist();
+      } else {
+        throw new Error(responseData.message || 'Failed to upload checklist items');
+      }
+    } catch (error) {
+      console.error('Error uploading checklist items:', error);
+      setUploadError(error instanceof Error ? error.message : 'Failed to upload checklist items');
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -258,10 +294,14 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
     }
   };
 
-  console.log(checklistItems.find(item => item.id === showTaskSidebar)!);
-
   return (
     <div className="max-w-[calc(100vw-16rem)] space-y-6">
+      {uploadError && (
+        <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg">
+          {uploadError}
+        </div>
+      )}
+      
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 text-sm">
           <Link
@@ -282,10 +322,38 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          {/* Hidden file input for bulk upload */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleBulkUpload}
+            className="hidden"
+            accept=".csv,.xlsx,.xls"
+          />
+          
+          <Button 
+            variant="outline" 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4 mr-2" />
+                Bulk Upload
+              </>
+            )}
+          </Button>
+          
           <Button onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Task
           </Button>
+          
           <Button variant="outline" onClick={() => setShowAddColumnModal(true)}>
             <Grid className="w-4 h-4 mr-2" />
             Add Column

@@ -7,7 +7,7 @@ import { AllChecklistTable } from './components/projects-table';
 import { DeleteModal } from './components/modals/delete-modal';
 import { ProjectFormModal } from './components/modals/project-form-modal';
 import { AddColumnModal } from './components/modals/add-column-modal';
-import { api } from '@/lib/api';
+import { api, BASE_URL ,defaultHeaders} from '@/lib/api';
 import { type ColumnSchema, type Checklist } from '@/lib/types';
 import { AllChecklistSidebar } from './components/checklist-sidebar';
 
@@ -56,6 +56,7 @@ export default function ProjectsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [columns, setColumns] = useState<ColumnSchema[]>(defaultColumns);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchChecklists();
@@ -168,6 +169,49 @@ export default function ProjectsPage() {
     }
   };
 
+  const handleBulkUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Create a new headers object instead of modifying the default one
+      const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
+      // For multipart/form-data, we should actually remove the Content-Type
+      // and let the browser set it with the correct boundary
+      delete uploadHeaders['Content-Type'];
+      
+      const response = await fetch(`${BASE_URL}/audit/v2/checklist/create/bulk/`, {
+        method: 'POST',
+        body: formData,
+        headers: uploadHeaders,
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        await fetchChecklists();
+        setSuccessMessage('Checklists uploaded successfully');
+        successTimeoutRef.current = setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
+      } else {
+        throw new Error(responseData.message || 'Failed to upload checklists');
+      }
+    } catch (error) {
+      console.error('Error uploading checklists:', error);
+      setError('Failed to upload checklists');
+    } finally {
+      setIsSubmitting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   return (
     <div className="max-w-[calc(100vw-16rem)] mx-auto">
@@ -188,6 +232,21 @@ export default function ProjectsPage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-800">All Checklists</h2>
             <div className="flex gap-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleBulkUpload}
+                className="hidden"
+                accept=".csv,.xlsx,.xls"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
+                disabled={isSubmitting}
+              >
+                <RefreshCw size={16} className={isSubmitting ? "animate-spin" : ""} />
+                Bulk Upload Checklist
+              </button>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
