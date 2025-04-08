@@ -64,11 +64,15 @@ export default function DocumentUploadModal({
       formData.append("is_sample", "true");
       // You can either use the docType prop here (if it represents the correct ID), or use a hard-coded value.
       formData.append("document_type", docType.id);
+      const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
+      // For multipart/form-data, we should remove the Content-Type
+      // and let the browser set it with the correct boundary
+      delete uploadHeaders['Content-Type'];
 
       // Set up the request options.
       const requestOptions = {
         method: "POST",
-        headers: defaultHeaders,
+        headers: uploadHeaders,
         body: formData,
         redirect: "follow" as RequestRedirect,
       };

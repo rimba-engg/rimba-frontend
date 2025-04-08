@@ -184,13 +184,15 @@ export default function DocumentsPage() {
         formData.append('documents', files[i]);
       }
       formData.append('current_month', (selectedMonth + 1).toString());
+      const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
+      // For multipart/form-data, we should remove the Content-Type
+      // and let the browser set it with the correct boundary
+      delete uploadHeaders['Content-Type'];
 
       const response = await fetch(`${BASE_URL}/v2/document/upload/`, {
         method: 'POST',
         body: formData,
-        headers: {
-          ...defaultHeaders
-        }
+        headers: uploadHeaders,
       });
 
       if (!response.ok) throw new Error('Upload failed');
