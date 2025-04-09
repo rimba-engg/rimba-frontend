@@ -105,7 +105,7 @@ export default function RegsQAPage() {
 
     try {
       // Call the API using the api client
-      const response = await api.post<APIResponse>('/regsqa/regsqa/', {
+      const response = await api.post<APIResponse>('/regsqa/v2/assistant/', {
         user_input: input.trim()
       });
 
