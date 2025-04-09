@@ -81,3 +81,60 @@
     @apply bg-background text-foreground;
   }
 }
+@layer components {
+  .markdown-content {
+    @apply max-w-none;
+
+    h1, h2, h3 {
+      @apply font-normal mt-6 mb-2;
+    }
+
+    h1 {
+      @apply text-2xl;
+    }
+
+    h2 {
+      @apply text-xl;
+    }
+
+    h3 {
+      @apply text-lg;
+    }
+
+    p {
+      @apply mb-4;
+    }
+
+    ul, ol {
+      @apply ml-6 mb-4;
+    }
+
+    ul {
+      @apply list-disc;
+    }
+
+    ol {
+      @apply list-decimal;
+    }
+
+    a {
+      @apply text-primary underline;
+    }
+
+    blockquote {
+      @apply pl-4 border-l-4 border-muted text-muted-foreground mb-4;
+    }
+
+    code {
+      @apply bg-muted px-1.5 py-0.5 rounded text-sm;
+    }
+
+    pre {
+      @apply bg-muted p-4 rounded-lg overflow-x-auto mb-4;
+
+      code {
+        @apply bg-transparent p-0;
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { CitationTooltip } from '@/app/components/CitationTooltip';
 import { CitationList } from '@/app/components/CitationList';
 import { CitationPreviewCard } from '@/app/components/CitationPreviewCard';
+import { MessageContent } from '@/app/components/MessageContent';
 
 interface Citation {
   id: number;
@@ -165,63 +166,12 @@ export default function RegsQAPage() {
 
   // Function to render message content with citation markers
   const renderMessageContent = (message: Message, handleShowCitation: (url: string) => void) => {
-    if (!message.citations || message.citations.length === 0) {
-      return <div className="whitespace-pre-wrap">{message.content}</div>;
-    }
-
-    // Replace citation markers in the content with clickable elements
-    let content = message.content;
-    const citationRegex = /\[(\d+)\]/g;
-    const parts: React.ReactNode[] = [];
-    
-    let lastIndex = 0;
-    let match;
-    
-    while ((match = citationRegex.exec(content)) !== null) {
-      // Add the text before the citation
-      if (match.index > lastIndex) {
-        parts.push(content.substring(lastIndex, match.index));
-      }
-      
-      // Extract the citation number
-      const citationNum = parseInt(match[1]) - 1;
-      
-      // Add the citation marker if it's valid
-      if (citationNum >= 0 && citationNum < message.citations.length) {
-        parts.push(
-          <CitationTooltip 
-            key={`citation-${match.index}`}
-            url={message.citations[citationNum]}
-            onSelect={() => handleShowCitation(message.citations![citationNum])}
-          >
-            <button 
-              className="inline-flex items-center px-1 py-0.5 text-xs bg-primary/10 text-primary rounded hover:bg-primary/20"
-            >
-              <BookOpen className="w-3 h-3 mr-1" />
-              [{match[1]}]
-            </button>
-          </CitationTooltip>
-        );
-      } else {
-        parts.push(match[0]);
-      }
-      
-      lastIndex = match.index + match[0].length;
-    }
-    
-    // Add any remaining text
-    if (lastIndex < content.length) {
-      parts.push(content.substring(lastIndex));
-    }
-    
     return (
-      <div className="space-y-4">
-        <div className="whitespace-pre-wrap">{parts}</div>
-        <CitationList 
+      <MessageContent 
+        content={message.content}
           citations={message.citations} 
-          onSelectCitation={handleShowCitation} 
+        onCitationClick={handleShowCitation}
         />
-      </div>
     );
   };
 
