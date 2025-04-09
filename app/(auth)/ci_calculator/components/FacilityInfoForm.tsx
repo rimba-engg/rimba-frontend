@@ -2,12 +2,13 @@
 
 import React from "react";
 import { Info } from "lucide-react";
-import { FacilityInfo, months } from "../page";
+import { FacilityInfo } from "../page";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { MONTHS } from "@/lib/constants";
 
 interface FacilityInfoFormProps {
   facilityInfo: FacilityInfo;
@@ -98,7 +99,7 @@ const FacilityInfoForm: React.FC<FacilityInfoFormProps> = ({ facilityInfo, onCha
                 <SelectValue placeholder="Select month" />
               </SelectTrigger>
               <SelectContent>
-                {months.map((month) => (
+                {MONTHS.map((month) => (
                   <SelectItem key={month} value={month}>
                     {month}
                   </SelectItem>
