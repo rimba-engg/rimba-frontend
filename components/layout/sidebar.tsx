@@ -25,6 +25,7 @@ import {
   GitGraph,
   Shield,
   Calculator,
+  CloudCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -84,8 +85,15 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
   ]),
   { icon: Brain, label: 'AI Extractor', href: '/ai-extractor' },
   { icon: ScrollText, label: 'RegsQA', href: '/regsqa' },
-  { icon: Calculator, label: 'CI Calculator', href: '/ci_calculator' },
+  {
+    icon: Calculator,
+    label: 'GHG',
+    items: [
+      { icon: CloudCog, label: 'RNG CI', href: '/ci_calculator' },
+    ],
+  },
 ];
+
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
