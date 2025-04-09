@@ -1,16 +1,35 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, BookOpen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { CitationTooltip } from '@/app/components/CitationTooltip';
+import { CitationList } from '@/app/components/CitationList';
+import { CitationPreviewCard } from '@/app/components/CitationPreviewCard';
+
+interface Citation {
+  id: number;
+  url: string;
+}
 
 interface Message {
   id: string;
   type: 'user' | 'bot';
   content: string;
   timestamp: Date;
+  citations?: string[]; // Add citations array to store citation URLs
+}
+
+interface APIResponse {
+  status: string;
+  data: {
+    text: string;
+    citation: string[];
+  };
+  message: string;
 }
 
 const initialMessages: Message[] = [
@@ -58,6 +77,7 @@ export default function RegsQAPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -82,47 +102,127 @@ export default function RegsQAPage() {
     setInput('');
     setIsTyping(true);
 
-    // Simulate API response delay
-    setTimeout(() => {
-      const botResponse: Message = {
+    try {
+      // Call the API using the api client
+      const response = await api.post<APIResponse>('/regsqa/regsqa/', {
+        user_input: input.trim()
+      });
+
+      if (response.status === 'success' && response.data) {
+        const botResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'bot',
+          content: response.data.text,
+          timestamp: new Date(),
+          citations: response.data.citation
+        };
+
+        setMessages(prev => [...prev, botResponse]);
+      } else {
+        // Handle error response
+        const errorResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'bot',
+          content: 'Sorry, I encountered an error processing your request. Please try again.',
+          timestamp: new Date(),
+        };
+        
+        setMessages(prev => [...prev, errorResponse]);
+      }
+    } catch (error) {
+      console.error('API error:', error);
+      
+      // Add error message
+      const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: getBotResponse(input.trim()),
+        content: 'Sorry, I could not connect to the service. Please try again later.',
         timestamp: new Date(),
       };
-
-      setMessages(prev => [...prev, botResponse]);
+      
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSuggestedQuestion = (question: string) => {
     setInput(question);
   };
 
-  const getBotResponse = (question: string): string => {
-    // Dummy responses based on keywords
-    if (question.toLowerCase().includes('rfs')) {
-      return 'For RFS compliance in 2024:\n\n1. RIN generation requirements have been updated\n2. New pathway verification protocols are in place\n3. Quarterly RIN activity reports must be submitted\n4. Annual compliance reports are due March 31\n\nWould you like specific details about any of these requirements?';
-    }
-    
-    if (question.toLowerCase().includes('verification')) {
-      return 'Verification statement submissions require:\n\n1. Third-party verifier accreditation\n2. Complete operational data records\n3. Site visit documentation\n4. Material balance calculations\n5. Final verification report\n\nThe verification must be completed by an approved verification body. Need more details about the verification process?';
-    }
-    
-    if (question.toLowerCase().includes('pathway')) {
-      return 'For pathway applications, you need:\n\n1. Detailed process flow diagrams\n2. Energy consumption data\n3. Mass balance calculations\n4. Transportation records\n5. Feedstock procurement documentation\n6. CI calculation spreadsheets\n\nWould you like a template for any of these documents?';
-    }
-    
-    if (question.toLowerCase().includes('credit')) {
-      return 'The credit generation process involves:\n\n1. Quarterly fuel pathway reporting\n2. Credit calculation based on CI reduction\n3. Verification of reported volumes\n4. Credit issuance by regulatory body\n\nCredits are typically issued within 45 days of report acceptance. Need more information about credit trading?';
-    }
-    
-    if (question.toLowerCase().includes('record') || question.toLowerCase().includes('documentation')) {
-      return 'Recordkeeping requirements include:\n\n1. Minimum 5-year retention period\n2. Electronic and physical copies\n3. Required documents:\n   - Production records\n   - Lab analysis reports\n   - Chain of custody documentation\n   - Transaction records\n   - Verification reports\n\nWould you like details about our document management system?';
+  // Replace the dummy getBotResponse with a function to show citations
+  const handleShowCitation = (url: string) => {
+    const newCitation: Citation = {
+      id: Date.now(),
+      url
+    };
+    setActiveCitations(prev => [...prev, newCitation]);
+  };
+
+  const handleCloseCitation = (id: number) => {
+    setActiveCitations(prev => prev.filter(citation => citation.id !== id));
+  };
+
+  // Function to render message content with citation markers
+  const renderMessageContent = (message: Message, handleShowCitation: (url: string) => void) => {
+    if (!message.citations || message.citations.length === 0) {
+      return <div className="whitespace-pre-wrap">{message.content}</div>;
     }
 
-    return 'I understand you\'re asking about compliance requirements. Could you please provide more specific details about your question? For example:\n\n- Which regulation are you interested in?\n- What aspect of compliance do you need help with?\n- Are you looking for reporting deadlines or requirements?';
+    // Replace citation markers in the content with clickable elements
+    let content = message.content;
+    const citationRegex = /\[(\d+)\]/g;
+    const parts: React.ReactNode[] = [];
+    
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = citationRegex.exec(content)) !== null) {
+      // Add the text before the citation
+      if (match.index > lastIndex) {
+        parts.push(content.substring(lastIndex, match.index));
+      }
+      
+      // Extract the citation number
+      const citationNum = parseInt(match[1]) - 1;
+      
+      // Add the citation marker if it's valid
+      if (citationNum >= 0 && citationNum < message.citations.length) {
+        parts.push(
+          <CitationTooltip 
+            key={`citation-${match.index}`}
+            url={message.citations[citationNum]}
+            onSelect={() => handleShowCitation(message.citations![citationNum])}
+          >
+            <button 
+              className="inline-flex items-center px-1 py-0.5 text-xs bg-primary/10 text-primary rounded hover:bg-primary/20"
+            >
+              <BookOpen className="w-3 h-3 mr-1" />
+              [{match[1]}]
+            </button>
+          </CitationTooltip>
+        );
+      } else {
+        parts.push(match[0]);
+      }
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add any remaining text
+    if (lastIndex < content.length) {
+      parts.push(content.substring(lastIndex));
+    }
+    
+    return (
+      <div className="space-y-4">
+        <div className="whitespace-pre-wrap">{parts}</div>
+        <CitationList 
+          citations={message.citations} 
+          onSelectCitation={handleShowCitation} 
+        />
+      </div>
+    );
   };
 
   return (
@@ -150,7 +250,10 @@ export default function RegsQAPage() {
                     : 'bg-muted'
                 )}
               >
-                <div className="whitespace-pre-wrap">{message.content}</div>
+                {message.type === 'bot' 
+                  ? renderMessageContent(message, handleShowCitation) 
+                  : <div className="whitespace-pre-wrap">{message.content}</div>
+                }
                 <div
                   className={cn(
                     'text-xs mt-2',
@@ -181,6 +284,31 @@ export default function RegsQAPage() {
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Citation viewer */}
+        {activeCitations.length > 0 && (
+          <div className="border-t p-4 bg-muted/20">
+            <div className="text-sm font-medium mb-2">References:</div>
+            <div className="space-y-2">
+              {activeCitations.map((citation) => (
+                <div key={citation.id} className="flex items-start gap-2 bg-background p-3 rounded-md">
+                  <CitationPreviewCard 
+                    url={citation.url} 
+                    className="flex-1 shadow-none border-none cursor-default"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleCloseCitation(citation.id)}
+                    className="h-6 w-6 p-0 self-start mt-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="p-4 border-t bg-background">
           <div className="mb-4">
