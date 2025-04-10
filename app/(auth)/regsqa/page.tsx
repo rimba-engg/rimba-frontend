@@ -92,9 +92,9 @@ export default function RegsQAPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -363,8 +363,14 @@ export default function RegsQAPage() {
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="w-5 h-5 text-primary" />
               </div>
-              <div className="bg-muted rounded-lg p-4">
-                <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="bg-muted rounded-lg p-4 min-w-[100px]">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="h-2 w-2 bg-green-500 rounded-full  animate-ping" style={{animationDelay: '0.1s'}} />
+                    <span className="h-2 w-2 bg-green-500 rounded-full  animate-ping" style={{animationDelay: '0.2s'}} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -398,7 +404,7 @@ export default function RegsQAPage() {
 
         <div className="p-4 border-t bg-background">
           <div className="mb-4">
-            <div className="text-sm font-medium mb-2">Suggested Questions:</div>
+            {/* <div className="text-sm font-medium mb-2">Suggested Questions:</div> */}
             <div className="flex flex-wrap gap-2">
               {suggestedQuestions.map((question) => (
                 <button
