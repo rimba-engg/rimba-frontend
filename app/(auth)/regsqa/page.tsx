@@ -44,31 +44,7 @@ const initialMessages: Message[] = [
     type: 'bot',
     content: 'Hello! I\'m your regulatory compliance assistant. How can I help you today?',
     timestamp: new Date(),
-  },
-  // {
-  //   id: '2',
-  //   type: 'user',
-  //   content: 'What are the key requirements for LCFS reporting?',
-  //   timestamp: new Date(Date.now() - 1000 * 60 * 5),
-  // },
-  // {
-  //   id: '3',
-  //   type: 'bot',
-  //   content: 'For LCFS reporting, the key requirements include:\n\n1. Quarterly reports must be submitted within 45 days of the end of each quarter\n2. Annual verification reports are due by August 31\n3. You need to track and report:\n   - Fuel pathways and volumes\n   - Carbon intensity values\n   - Transaction types\n   - Business partner information\n\nWould you like more specific information about any of these requirements?',
-  //   timestamp: new Date(Date.now() - 1000 * 60 * 4),
-  // },
-  // {
-  //   id: '4',
-  //   type: 'user',
-  //   content: 'What happens if we miss a reporting deadline?',
-  //   timestamp: new Date(Date.now() - 1000 * 60 * 3),
-  // },
-  // {
-  //   id: '5',
-  //   type: 'bot',
-  //   content: 'Missing LCFS reporting deadlines can have serious consequences:\n\n1. Immediate non-compliance status\n2. Potential financial penalties up to $1000 per day\n3. Possible suspension of LCFS credits trading privileges\n4. Required corrective action plan submission\n\nIt\'s crucial to maintain timely reporting. Would you like to know about deadline extension requests or remediation steps?',
-  //   timestamp: new Date(Date.now() - 1000 * 60 * 2),
-  // }
+  }
 ];
 
 const suggestedQuestions = [

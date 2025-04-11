@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, Upload, Users, Factory, Store, MapPin, FileText } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { api } from '@/lib/api';
 
 const programs = [
   { id: 'rfs', name: 'RFS - Renewable Fuel Standard', description: 'Federal program requiring renewable fuel to be blended into transportation fuel' },
@@ -18,7 +19,38 @@ const programs = [
 ];
 
 export default function OnboardingPage() {
+  type CustomerData = {
+    description: string;
+    websites: string[];
+    name: string;
+  };
+
+  type CustomerResponse = {
+    message: string;
+    data: CustomerData;
+    status: string;
+  };
+
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
+  const [description, setDescription] = useState('');
+  const [websites, setWebsites] = useState<string[]>([]);
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    async function fetchCustomer() {
+      try {
+        const response = await api.get<CustomerResponse>('/v2/customer/');
+        if (response?.data) {
+          setDescription(response.data.description || '');
+          setWebsites(response.data.websites || []);
+          setName(response.data.name || '');
+        }
+      } catch (error) {
+        console.error('Error fetching customer data:', error);
+      }
+    }
+    fetchCustomer();
+  }, []);
 
   const handleProgramToggle = (programId: string) => {
     setSelectedPrograms(prev =>
@@ -28,9 +60,15 @@ export default function OnboardingPage() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
+    try {
+      const response = await api.post('/v2/customer/', { description, websites });
+      console.log('Customer updated successfully:', response);
+      // Additional success handling can be done here
+    } catch (error) {
+      console.error('Error updating customer:', error);
+    }
   };
 
   return (
@@ -50,17 +88,18 @@ export default function OnboardingPage() {
                 id="companyName"
                 placeholder="Enter your company name"
                 required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="address">Company Address</Label>
               <Input
                 id="address"
                 placeholder="Enter company address"
-                required
               />
-            </div>
+            </div> */}
           </div>
 
           <div className="space-y-2">
@@ -69,8 +108,38 @@ export default function OnboardingPage() {
               id="description"
               placeholder="Describe your company's operations and sustainability goals"
               className="h-32"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Websites</Label>
+            {websites.map((website, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  id={`website-${index}`}
+                  placeholder="Enter website URL"
+                  value={website}
+                  onChange={(e) => {
+                    const updatedWebsites = [...websites];
+                    updatedWebsites[index] = e.target.value;
+                    setWebsites(updatedWebsites);
+                  }}
+                />
+                <Button
+                  variant="destructive"
+                  type="button"
+                  onClick={() => setWebsites(websites.filter((_, i) => i !== index))}
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <Button onClick={() => setWebsites([...websites, ''])} type="button">
+              Add Website
+            </Button>
           </div>
         </div>
 
