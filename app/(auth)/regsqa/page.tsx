@@ -48,11 +48,13 @@ const initialMessages: Message[] = [
 ];
 
 const suggestedQuestions = [
-  'What are the RFS compliance requirements for 2024?',
-  'How do we handle verification statement submissions?',
-  'What documentation is needed for pathway applications?',
-  'Explain the credit generation process',
-  'What are the recordkeeping requirements?'
+
+  "What federal agencies do we need to register with for our RNG production facilities?",
+  "How do we register our RNG production facilities with the Environmental Protection Agency (EPA)?",
+  "What are the requirements for obtaining Renewable Identification Numbers (RINs) for our RNG production?",
+  "How do we register with the EPA's Central Data Exchange (CDX) for RIN generation?",
+  "What are the current Renewable Fuel Standard (RFS) requirements that apply to our RNG production?",
+  "Are there any state-specific regulations we need to comply with for our RNG projects in different states?",
 ];
 
 export default function RegsQAPage() {
