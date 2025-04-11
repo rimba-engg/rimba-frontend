@@ -5,11 +5,9 @@ import { Send, Bot, User, Loader2, BookOpen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
-import { CitationTooltip } from '@/app/components/CitationTooltip';
-import { CitationList } from '@/app/components/CitationList';
-import { CitationPreviewCard } from '@/app/components/CitationPreviewCard';
-import { MessageContent } from '@/app/components/MessageContent';
+import { api, BASE_URL } from '@/lib/api';
+import { CitationPreviewCard } from '@/app/(auth)/regsqa/components/CitationPreviewCard';
+import { MessageContent } from '@/app/(auth)/regsqa/components/MessageContent';
 
 interface Citation {
   id: number;
@@ -33,36 +31,19 @@ interface APIResponse {
   message: string;
 }
 
+interface StreamingAPIResponse {
+  content?: string;
+  citation?: string;
+  citations_summary?: string[];
+  done?: boolean;
+}
+
 const initialMessages: Message[] = [
   {
     id: '1',
     type: 'bot',
     content: 'Hello! I\'m your regulatory compliance assistant. How can I help you today?',
     timestamp: new Date(),
-  },
-  {
-    id: '2',
-    type: 'user',
-    content: 'What are the key requirements for LCFS reporting?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5),
-  },
-  {
-    id: '3',
-    type: 'bot',
-    content: 'For LCFS reporting, the key requirements include:\n\n1. Quarterly reports must be submitted within 45 days of the end of each quarter\n2. Annual verification reports are due by August 31\n3. You need to track and report:\n   - Fuel pathways and volumes\n   - Carbon intensity values\n   - Transaction types\n   - Business partner information\n\nWould you like more specific information about any of these requirements?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 4),
-  },
-  {
-    id: '4',
-    type: 'user',
-    content: 'What happens if we miss a reporting deadline?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 3),
-  },
-  {
-    id: '5',
-    type: 'bot',
-    content: 'Missing LCFS reporting deadlines can have serious consequences:\n\n1. Immediate non-compliance status\n2. Potential financial penalties up to $1000 per day\n3. Possible suspension of LCFS credits trading privileges\n4. Required corrective action plan submission\n\nIt\'s crucial to maintain timely reporting. Would you like to know about deadline extension requests or remediation steps?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 2),
   }
 ];
 
@@ -79,15 +60,17 @@ export default function RegsQAPage() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
+  const [streamedContent, setStreamedContent] = useState('');
+  const [streamedCitations, setStreamedCitations] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -102,46 +85,175 @@ export default function RegsQAPage() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
+    setStreamedContent('');
+    setStreamedCitations([]);
+
+    // Add temporary bot message for streaming content
+    const tempBotMessageId = (Date.now() + 1).toString();
+    const tempBotMessage: Message = {
+      id: tempBotMessageId,
+      type: 'bot',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, tempBotMessage]);
 
     try {
-      // Call the API using the api client
-      const response = await api.post<APIResponse>('/regsqa/v2/assistant/', {
-        user_input: input.trim()
+      // Use streaming API endpoint
+      const response = await fetch(`${BASE_URL}/regsqa/v2/assistant/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+          'X-Customer-Id': localStorage.getItem('customer_id') || '',
+          'X-Id-Token': localStorage.getItem('id_token') || ''
+        },
+        body: JSON.stringify({
+          user_input: input.trim(),
+          stream: true
+        })
       });
 
-      if (response.status === 'success' && response.data) {
-        const botResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: response.data.text,
-          timestamp: new Date(),
-          citations: response.data.citation
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Check if response is streaming (text/event-stream)
+      const contentType = response.headers.get('content-type') || '';
+      const isStreamingResponse = contentType.includes('text/event-stream');
+      
+      if (isStreamingResponse) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('ReadableStream not supported');
+        }
+
+        let accumulatedContent = '';
+        let accumulatedCitations: string[] = [];
+
+        // Process the stream
+        const processStream = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // Convert the chunk to text
+            const chunk = new TextDecoder().decode(value);
+            
+            // Process each line (each SSE event)
+            const lines = chunk.split('\n\n');
+            for (const line of lines) {
+              if (line.startsWith('data:')) {
+                try {
+                  const data = JSON.parse(line.substring(5).trim()) as StreamingAPIResponse;
+                  
+                  if (data.content) {
+                    accumulatedContent += data.content;
+                    
+                    // Update the message in state with the latest content
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempBotMessageId 
+                          ? { ...msg, content: accumulatedContent }
+                          : msg
+                      )
+                    );
+                  }
+                  
+                  if (data.citation) {
+                    if (!accumulatedCitations.includes(data.citation)) {
+                      accumulatedCitations.push(data.citation);
+                      
+                      // Update citations in the streamed message
+                      setMessages(prev => 
+                        prev.map(msg => 
+                          msg.id === tempBotMessageId 
+                            ? { ...msg, citations: [...accumulatedCitations] }
+                            : msg
+                        )
+                      );
+                    }
+                  }
+                  
+                  if (data.citations_summary) {
+                    // Merge any new citations from the summary that weren't already included
+                    const newCitations = data.citations_summary.filter(
+                      url => !accumulatedCitations.includes(url)
+                    );
+                    
+                    if (newCitations.length > 0) {
+                      accumulatedCitations = [...accumulatedCitations, ...newCitations];
+                      
+                      // Update citations in the streamed message
+                      setMessages(prev => 
+                        prev.map(msg => 
+                          msg.id === tempBotMessageId 
+                            ? { ...msg, citations: accumulatedCitations }
+                            : msg
+                        )
+                      );
+                    }
+                  }
+                  
+                  if (data.done) {
+                    break;
+                  }
+                } catch (e) {
+                  console.error('Error parsing SSE data:', e);
+                }
+              }
+            }
+          }
         };
 
-        setMessages(prev => [...prev, botResponse]);
-      } else {
-        // Handle error response
-        const errorResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: 'Sorry, I encountered an error processing your request. Please try again.',
-          timestamp: new Date(),
-        };
+        await processStream();
         
-        setMessages(prev => [...prev, errorResponse]);
+        // Final message update is already done through the streaming process
+      } else {
+        // Fallback to non-streaming response
+        const data = await response.json() as APIResponse;
+        
+        if (data.status === 'success' && data.data) {
+          // Update the temporary bot message with the complete response
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === tempBotMessageId
+                ? {
+                    ...msg,
+                    content: data.data.text,
+                    citations: data.data.citation
+                  }
+                : msg
+            )
+          );
+        } else {
+          // Handle error response
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === tempBotMessageId
+                ? {
+                    ...msg,
+                    content: 'Sorry, I encountered an error processing your request. Please try again.'
+                  }
+                : msg
+            )
+          );
+        }
       }
     } catch (error) {
       console.error('API error:', error);
       
-      // Add error message
-      const errorResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: 'Sorry, I could not connect to the service. Please try again later.',
-        timestamp: new Date(),
-      };
-      
-      setMessages(prev => [...prev, errorResponse]);
+      // Replace the streaming message with an error message
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempBotMessageId 
+            ? {
+                ...msg,
+                content: 'Sorry, I could not connect to the service. Please try again later.'
+              }
+            : msg
+        )
+      );
     } finally {
       setIsTyping(false);
     }
@@ -169,9 +281,9 @@ export default function RegsQAPage() {
     return (
       <MessageContent 
         content={message.content}
-          citations={message.citations} 
+        citations={message.citations}
         onCitationClick={handleShowCitation}
-        />
+      />
     );
   };
 
@@ -227,8 +339,14 @@ export default function RegsQAPage() {
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="w-5 h-5 text-primary" />
               </div>
-              <div className="bg-muted rounded-lg p-4">
-                <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="bg-muted rounded-lg p-4 min-w-[100px]">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="h-2 w-2 bg-green-500 rounded-full  animate-ping" style={{animationDelay: '0.1s'}} />
+                    <span className="h-2 w-2 bg-green-500 rounded-full  animate-ping" style={{animationDelay: '0.2s'}} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -262,7 +380,7 @@ export default function RegsQAPage() {
 
         <div className="p-4 border-t bg-background">
           <div className="mb-4">
-            <div className="text-sm font-medium mb-2">Suggested Questions:</div>
+            {/* <div className="text-sm font-medium mb-2">Suggested Questions:</div> */}
             <div className="flex flex-wrap gap-2">
               {suggestedQuestions.map((question) => (
                 <button
