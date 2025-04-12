@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Building2, Upload, Users, Factory, Store, MapPin, FileText } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { api } from '@/lib/api';
+import { Loader } from '@/components/ui/loader';
 
 const programs = [
   { id: 'rfs', name: 'RFS - Renewable Fuel Standard', description: 'Federal program requiring renewable fuel to be blended into transportation fuel' },
@@ -35,20 +36,22 @@ export default function OnboardingPage() {
   const [description, setDescription] = useState('');
   const [websites, setWebsites] = useState<string[]>([]);
   const [name, setName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchCustomer = async () => {
+    try {
+      const response = await api.get<CustomerResponse>('/v2/customer/');
+      if (response?.data) {
+        setDescription(response.data.description || '');
+        setWebsites(response.data.websites || []);
+        setName(response.data.name || '');
+      }
+    } catch (error) {
+      console.error('Error fetching customer data:', error);
+    }
+  };
 
   useEffect(() => {
-    async function fetchCustomer() {
-      try {
-        const response = await api.get<CustomerResponse>('/v2/customer/');
-        if (response?.data) {
-          setDescription(response.data.description || '');
-          setWebsites(response.data.websites || []);
-          setName(response.data.name || '');
-        }
-      } catch (error) {
-        console.error('Error fetching customer data:', error);
-      }
-    }
     fetchCustomer();
   }, []);
 
@@ -62,12 +65,15 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const response = await api.post('/v2/customer/', { description, websites });
       console.log('Customer updated successfully:', response);
-      // Additional success handling can be done here
+      await fetchCustomer();
     } catch (error) {
       console.error('Error updating customer:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -187,9 +193,13 @@ export default function OnboardingPage() {
         </div>
 
         <div className="flex justify-end gap-4">
-          <Button type="submit">
-            Save
-          </Button>
+          {isSaving ? (
+            <Loader size="sm" text="Saving..." className="px-6 py-2" />
+          ) : (
+            <Button type="submit">
+              Save
+            </Button>
+          )}
         </div>
       </form>
     </div>
