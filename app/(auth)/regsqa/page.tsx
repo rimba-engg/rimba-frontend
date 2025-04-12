@@ -38,6 +38,13 @@ interface StreamingAPIResponse {
   done?: boolean;
 }
 
+// Define a type for the API response
+interface SuggestedQuestionsResponse {
+  status: string;
+  data: string[];
+  message: string;
+}
+
 const initialMessages: Message[] = [
   {
     id: '1',
@@ -47,15 +54,7 @@ const initialMessages: Message[] = [
   }
 ];
 
-const suggestedQuestions = [
-
-  "What federal agencies do we need to register with for our RNG production facilities?",
-  "How do we register our RNG production facilities with the Environmental Protection Agency (EPA)?",
-  "What are the requirements for obtaining Renewable Identification Numbers (RINs) for our RNG production?",
-  "How do we register with the EPA's Central Data Exchange (CDX) for RIN generation?",
-  "What are the current Renewable Fuel Standard (RFS) requirements that apply to our RNG production?",
-  "Are there any state-specific regulations we need to comply with for our RNG projects in different states?",
-];
+const suggestedQuestions = [];
 
 export default function RegsQAPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -64,15 +63,32 @@ export default function RegsQAPage() {
   const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
   const [streamedContent, setStreamedContent] = useState('');
   const [streamedCitations, setStreamedCitations] = useState<string[]>([]);
+  const [questions, setQuestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function fetchSuggestedQuestions() {
+      try {
+        const response = await api.get<SuggestedQuestionsResponse>('/regsqa/v2/suggested-questions/');
+        // The API client automatically returns the JSON body of the response
+        if (response && response.status === 'success' && Array.isArray(response.data)) {
+          setQuestions(response.data);
+        } else if (response && response.status === 'error' && Array.isArray(response.data)) {
+          // If error but default questions were returned
+          setQuestions(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching suggested questions:', error);
+        // Fallback to empty array
+        setQuestions([]);
+      }
+    }
+    fetchSuggestedQuestions();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  // useEffect(() => {
-  //   scrollToBottom();
-  // }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -112,7 +128,9 @@ export default function RegsQAPage() {
         },
         body: JSON.stringify({
           user_input: input.trim(),
-          stream: true
+          stream: true,
+          // delay: 0.05,
+          // response_length:"short"
         })
       });
 
@@ -382,9 +400,8 @@ export default function RegsQAPage() {
 
         <div className="p-4 border-t bg-background">
           <div className="mb-4">
-            {/* <div className="text-sm font-medium mb-2">Suggested Questions:</div> */}
             <div className="flex flex-wrap gap-2">
-              {suggestedQuestions.map((question) => (
+              {questions.map((question) => (
                 <button
                   key={question}
                   onClick={() => handleSuggestedQuestion(question)}
