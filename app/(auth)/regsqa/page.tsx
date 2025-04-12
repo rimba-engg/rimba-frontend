@@ -1,16 +1,48 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Loader2, BookOpen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { api, BASE_URL } from '@/lib/api';
+import { CitationPreviewCard } from '@/app/(auth)/regsqa/components/CitationPreviewCard';
+import { MessageContent } from '@/app/(auth)/regsqa/components/MessageContent';
+
+interface Citation {
+  id: number;
+  url: string;
+}
 
 interface Message {
   id: string;
   type: 'user' | 'bot';
   content: string;
   timestamp: Date;
+  citations?: string[]; // Add citations array to store citation URLs
+}
+
+interface APIResponse {
+  status: string;
+  data: {
+    text: string;
+    citation: string[];
+  };
+  message: string;
+}
+
+interface StreamingAPIResponse {
+  content?: string;
+  citation?: string;
+  citations_summary?: string[];
+  done?: boolean;
+}
+
+// Define a type for the API response
+interface SuggestedQuestionsResponse {
+  status: string;
+  data: string[];
+  message: string;
 }
 
 const initialMessages: Message[] = [
@@ -19,54 +51,44 @@ const initialMessages: Message[] = [
     type: 'bot',
     content: 'Hello! I\'m your regulatory compliance assistant. How can I help you today?',
     timestamp: new Date(),
-  },
-  {
-    id: '2',
-    type: 'user',
-    content: 'What are the key requirements for LCFS reporting?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5),
-  },
-  {
-    id: '3',
-    type: 'bot',
-    content: 'For LCFS reporting, the key requirements include:\n\n1. Quarterly reports must be submitted within 45 days of the end of each quarter\n2. Annual verification reports are due by August 31\n3. You need to track and report:\n   - Fuel pathways and volumes\n   - Carbon intensity values\n   - Transaction types\n   - Business partner information\n\nWould you like more specific information about any of these requirements?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 4),
-  },
-  {
-    id: '4',
-    type: 'user',
-    content: 'What happens if we miss a reporting deadline?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 3),
-  },
-  {
-    id: '5',
-    type: 'bot',
-    content: 'Missing LCFS reporting deadlines can have serious consequences:\n\n1. Immediate non-compliance status\n2. Potential financial penalties up to $1000 per day\n3. Possible suspension of LCFS credits trading privileges\n4. Required corrective action plan submission\n\nIt\'s crucial to maintain timely reporting. Would you like to know about deadline extension requests or remediation steps?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 2),
   }
 ];
 
-const suggestedQuestions = [
-  'What are the RFS compliance requirements for 2024?',
-  'How do we handle verification statement submissions?',
-  'What documentation is needed for pathway applications?',
-  'Explain the credit generation process',
-  'What are the recordkeeping requirements?'
-];
+const suggestedQuestions = [];
 
 export default function RegsQAPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [activeCitations, setActiveCitations] = useState<Citation[]>([]);
+  const [streamedContent, setStreamedContent] = useState('');
+  const [streamedCitations, setStreamedCitations] = useState<string[]>([]);
+  const [questions, setQuestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function fetchSuggestedQuestions() {
+      try {
+        const response = await api.get<SuggestedQuestionsResponse>('/regsqa/v2/suggested-questions/');
+        // The API client automatically returns the JSON body of the response
+        if (response && response.status === 'success' && Array.isArray(response.data)) {
+          setQuestions(response.data);
+        } else if (response && response.status === 'error' && Array.isArray(response.data)) {
+          // If error but default questions were returned
+          setQuestions(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching suggested questions:', error);
+        // Fallback to empty array
+        setQuestions([]);
+      }
+    }
+    fetchSuggestedQuestions();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -81,48 +103,208 @@ export default function RegsQAPage() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
+    setStreamedContent('');
+    setStreamedCitations([]);
 
-    // Simulate API response delay
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: getBotResponse(input.trim()),
-        timestamp: new Date(),
-      };
+    // Add temporary bot message for streaming content
+    const tempBotMessageId = (Date.now() + 1).toString();
+    const tempBotMessage: Message = {
+      id: tempBotMessageId,
+      type: 'bot',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, tempBotMessage]);
 
-      setMessages(prev => [...prev, botResponse]);
+    try {
+      // Use streaming API endpoint
+      const response = await fetch(`${BASE_URL}/regsqa/v2/assistant/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+          'X-Customer-Id': localStorage.getItem('customer_id') || '',
+          'X-Id-Token': localStorage.getItem('id_token') || ''
+        },
+        body: JSON.stringify({
+          user_input: input.trim(),
+          stream: true,
+          // delay: 0.05,
+          // response_length:"short"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Check if response is streaming (text/event-stream)
+      const contentType = response.headers.get('content-type') || '';
+      const isStreamingResponse = contentType.includes('text/event-stream');
+      
+      if (isStreamingResponse) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('ReadableStream not supported');
+        }
+
+        let accumulatedContent = '';
+        let accumulatedCitations: string[] = [];
+
+        // Process the stream
+        const processStream = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // Convert the chunk to text
+            const chunk = new TextDecoder().decode(value);
+            
+            // Process each line (each SSE event)
+            const lines = chunk.split('\n\n');
+            for (const line of lines) {
+              if (line.startsWith('data:')) {
+                try {
+                  const data = JSON.parse(line.substring(5).trim()) as StreamingAPIResponse;
+                  
+                  if (data.content) {
+                    accumulatedContent += data.content;
+                    
+                    // Update the message in state with the latest content
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempBotMessageId 
+                          ? { ...msg, content: accumulatedContent }
+                          : msg
+                      )
+                    );
+                  }
+                  
+                  if (data.citation) {
+                    if (!accumulatedCitations.includes(data.citation)) {
+                      accumulatedCitations.push(data.citation);
+                      
+                      // Update citations in the streamed message
+                      setMessages(prev => 
+                        prev.map(msg => 
+                          msg.id === tempBotMessageId 
+                            ? { ...msg, citations: [...accumulatedCitations] }
+                            : msg
+                        )
+                      );
+                    }
+                  }
+                  
+                  if (data.citations_summary) {
+                    // Merge any new citations from the summary that weren't already included
+                    const newCitations = data.citations_summary.filter(
+                      url => !accumulatedCitations.includes(url)
+                    );
+                    
+                    if (newCitations.length > 0) {
+                      accumulatedCitations = [...accumulatedCitations, ...newCitations];
+                      
+                      // Update citations in the streamed message
+                      setMessages(prev => 
+                        prev.map(msg => 
+                          msg.id === tempBotMessageId 
+                            ? { ...msg, citations: accumulatedCitations }
+                            : msg
+                        )
+                      );
+                    }
+                  }
+                  
+                  if (data.done) {
+                    break;
+                  }
+                } catch (e) {
+                  console.error('Error parsing SSE data:', e);
+                }
+              }
+            }
+          }
+        };
+
+        await processStream();
+        
+        // Final message update is already done through the streaming process
+      } else {
+        // Fallback to non-streaming response
+        const data = await response.json() as APIResponse;
+        
+        if (data.status === 'success' && data.data) {
+          // Update the temporary bot message with the complete response
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === tempBotMessageId
+                ? {
+                    ...msg,
+                    content: data.data.text,
+                    citations: data.data.citation
+                  }
+                : msg
+            )
+          );
+        } else {
+          // Handle error response
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === tempBotMessageId
+                ? {
+                    ...msg,
+                    content: 'Sorry, I encountered an error processing your request. Please try again.'
+                  }
+                : msg
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('API error:', error);
+      
+      // Replace the streaming message with an error message
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempBotMessageId 
+            ? {
+                ...msg,
+                content: 'Sorry, I could not connect to the service. Please try again later.'
+              }
+            : msg
+        )
+      );
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleSuggestedQuestion = (question: string) => {
     setInput(question);
   };
 
-  const getBotResponse = (question: string): string => {
-    // Dummy responses based on keywords
-    if (question.toLowerCase().includes('rfs')) {
-      return 'For RFS compliance in 2024:\n\n1. RIN generation requirements have been updated\n2. New pathway verification protocols are in place\n3. Quarterly RIN activity reports must be submitted\n4. Annual compliance reports are due March 31\n\nWould you like specific details about any of these requirements?';
-    }
-    
-    if (question.toLowerCase().includes('verification')) {
-      return 'Verification statement submissions require:\n\n1. Third-party verifier accreditation\n2. Complete operational data records\n3. Site visit documentation\n4. Material balance calculations\n5. Final verification report\n\nThe verification must be completed by an approved verification body. Need more details about the verification process?';
-    }
-    
-    if (question.toLowerCase().includes('pathway')) {
-      return 'For pathway applications, you need:\n\n1. Detailed process flow diagrams\n2. Energy consumption data\n3. Mass balance calculations\n4. Transportation records\n5. Feedstock procurement documentation\n6. CI calculation spreadsheets\n\nWould you like a template for any of these documents?';
-    }
-    
-    if (question.toLowerCase().includes('credit')) {
-      return 'The credit generation process involves:\n\n1. Quarterly fuel pathway reporting\n2. Credit calculation based on CI reduction\n3. Verification of reported volumes\n4. Credit issuance by regulatory body\n\nCredits are typically issued within 45 days of report acceptance. Need more information about credit trading?';
-    }
-    
-    if (question.toLowerCase().includes('record') || question.toLowerCase().includes('documentation')) {
-      return 'Recordkeeping requirements include:\n\n1. Minimum 5-year retention period\n2. Electronic and physical copies\n3. Required documents:\n   - Production records\n   - Lab analysis reports\n   - Chain of custody documentation\n   - Transaction records\n   - Verification reports\n\nWould you like details about our document management system?';
-    }
+  // Replace the dummy getBotResponse with a function to show citations
+  const handleShowCitation = (url: string) => {
+    const newCitation: Citation = {
+      id: Date.now(),
+      url
+    };
+    setActiveCitations(prev => [...prev, newCitation]);
+  };
 
-    return 'I understand you\'re asking about compliance requirements. Could you please provide more specific details about your question? For example:\n\n- Which regulation are you interested in?\n- What aspect of compliance do you need help with?\n- Are you looking for reporting deadlines or requirements?';
+  const handleCloseCitation = (id: number) => {
+    setActiveCitations(prev => prev.filter(citation => citation.id !== id));
+  };
+
+  // Function to render message content with citation markers
+  const renderMessageContent = (message: Message, handleShowCitation: (url: string) => void) => {
+    return (
+      <MessageContent 
+        content={message.content}
+        citations={message.citations}
+        onCitationClick={handleShowCitation}
+      />
+    );
   };
 
   return (
@@ -150,7 +332,10 @@ export default function RegsQAPage() {
                     : 'bg-muted'
                 )}
               >
-                <div className="whitespace-pre-wrap">{message.content}</div>
+                {message.type === 'bot' 
+                  ? renderMessageContent(message, handleShowCitation) 
+                  : <div className="whitespace-pre-wrap">{message.content}</div>
+                }
                 <div
                   className={cn(
                     'text-xs mt-2',
@@ -174,19 +359,49 @@ export default function RegsQAPage() {
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Bot className="w-5 h-5 text-primary" />
               </div>
-              <div className="bg-muted rounded-lg p-4">
-                <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="bg-muted rounded-lg p-4 min-w-[100px]">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="h-2 w-2 bg-green-500 rounded-full  animate-ping" style={{animationDelay: '0.1s'}} />
+                    <span className="h-2 w-2 bg-green-500 rounded-full  animate-ping" style={{animationDelay: '0.2s'}} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Citation viewer */}
+        {activeCitations.length > 0 && (
+          <div className="border-t p-4 bg-muted/20">
+            <div className="text-sm font-medium mb-2">References:</div>
+            <div className="space-y-2">
+              {activeCitations.map((citation) => (
+                <div key={citation.id} className="flex items-start gap-2 bg-background p-3 rounded-md">
+                  <CitationPreviewCard 
+                    url={citation.url} 
+                    className="flex-1 shadow-none border-none cursor-default"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleCloseCitation(citation.id)}
+                    className="h-6 w-6 p-0 self-start mt-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="p-4 border-t bg-background">
           <div className="mb-4">
-            <div className="text-sm font-medium mb-2">Suggested Questions:</div>
             <div className="flex flex-wrap gap-2">
-              {suggestedQuestions.map((question) => (
+              {questions.map((question) => (
                 <button
                   key={question}
                   onClick={() => handleSuggestedQuestion(question)}
