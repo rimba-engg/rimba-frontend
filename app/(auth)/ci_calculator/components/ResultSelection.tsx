@@ -1,12 +1,10 @@
 
-"use client";
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import CalculationResults from "./CalculationResults";
 import TaxCreditResults from "./TaxCreditResults";
 import ResultsCharts from "./ResultsCharts";
-import { CalculationResults as CalculationResultsType } from "../page";
+import { CalculationResults as CalculationResultsType } from "./lib/calculator-types";
 
 interface ResultsSectionProps {
   results: CalculationResultsType | null;
