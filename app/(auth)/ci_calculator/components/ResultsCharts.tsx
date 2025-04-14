@@ -1,8 +1,7 @@
-"use client";
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalculationResults } from "../page";
+import { CalculationResults } from "./lib/calculator-types";
 import { 
   ChartContainer,
   ChartTooltip,

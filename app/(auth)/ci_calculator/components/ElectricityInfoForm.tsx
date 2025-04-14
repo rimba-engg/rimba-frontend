@@ -1,12 +1,12 @@
-"use client";
+
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { ElectricityInfo } from "../page";
+import { ElectricityInfo, electricityMixOptions } from "./lib/calculator-types";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { electricityMixOptions } from "./lib/constants";
+
 interface ElectricityInfoFormProps {
   electricityInfo: ElectricityInfo;
   onChange: (electricityInfo: ElectricityInfo) => void;

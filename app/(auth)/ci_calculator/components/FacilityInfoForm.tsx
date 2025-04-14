@@ -1,14 +1,12 @@
-"use client";
 
 import React from "react";
-import { Info } from "lucide-react";
-import { FacilityInfo } from "../page";
-import { Card } from "@/components/ui/card";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { MONTHS } from "@/lib/constants";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
+import { FacilityInfo, months } from "./lib/calculator-types";   
+import { Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FacilityInfoFormProps {
   facilityInfo: FacilityInfo;
@@ -23,7 +21,7 @@ const FacilityInfoForm: React.FC<FacilityInfoFormProps> = ({ facilityInfo, onCha
   return (
     <Card className="calculator-step">
       <div className="calculator-step-title">
-        <span className="step-indicator">1</span>
+        <span className="step-indicator"></span>
         Applicant & Facility Information
       </div>
       
@@ -99,7 +97,7 @@ const FacilityInfoForm: React.FC<FacilityInfoFormProps> = ({ facilityInfo, onCha
                 <SelectValue placeholder="Select month" />
               </SelectTrigger>
               <SelectContent>
-                {MONTHS.map((month) => (
+                {months.map((month) => (
                   <SelectItem key={month} value={month}>
                     {month}
                   </SelectItem>
