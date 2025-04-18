@@ -75,7 +75,7 @@ export default function CICalculatorPage() {
     setIsDownloading(true);
     try {
       // Fixed double slash in URL and use api utility with default headers
-      const url = `${BASE_URL}/v2/ci-calculator/download/?start_date=${format(startDate, "yyyy-MM-dd")}&end_date=${format(endDate, "yyyy-MM-dd")}`;
+      const url = `${BASE_URL}/v2/ci-calculator/download/`;
       const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
       // For multipart/form-data, we should remove the Content-Type
       // and let the browser set it with the correct boundary
@@ -86,6 +86,10 @@ export default function CICalculatorPage() {
       const response = await fetch(url, {
         method: 'POST',
         headers: uploadHeaders,
+        body: JSON.stringify({
+          start_date: format(startDate, "yyyy-MM-dd"),
+          end_date: format(endDate, "yyyy-MM-dd"),
+        }),
       });
       
       if (!response.ok) {
