@@ -84,7 +84,7 @@ export default function CICalculatorPage() {
       
       // Use fetch with default headers
       const response = await fetch(url, {
-        method: 'GET',
+        method: 'POST',
         headers: uploadHeaders,
       });
       
