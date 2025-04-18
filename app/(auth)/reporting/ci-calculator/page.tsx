@@ -77,12 +77,10 @@ export default function CICalculatorPage() {
       // Fixed double slash in URL and use api utility with default headers
       const url = `${BASE_URL}/v2/ci-calculator/download/`;
       const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
-      // For multipart/form-data, we should remove the Content-Type
-      // and let the browser set it with the correct boundary
-      delete uploadHeaders['Content-Type'];
-
+      // Set the correct Content-Type for JSON data
+      uploadHeaders['Content-Type'] = 'application/json';
       
-      // Use fetch with default headers
+      // Use fetch with proper headers
       const response = await fetch(url, {
         method: 'POST',
         headers: uploadHeaders,
