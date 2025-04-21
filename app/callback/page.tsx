@@ -24,12 +24,16 @@ export default function CallbackPage() {
           const response = await getAccessTokenSilently({detailedResponse: true});
           const accessToken = response.access_token;
           const idToken = response.id_token;
+          const customerId = localStorage.getItem('customer_id') || '';
+          if (!customerId) {
+            router.push('/select-customer');
+          }
 
           // store the token in local storage
           localStorage.setItem('access_token', accessToken);
           localStorage.setItem('id_token', idToken);
           console.log('access_token', accessToken);
-          api.setTokens(accessToken, idToken, '');
+          api.setTokens(accessToken, idToken, customerId);
           // for debugging
           console.log('access_token', accessToken);
           console.log('id_token', idToken);
