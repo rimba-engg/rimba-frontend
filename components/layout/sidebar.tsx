@@ -68,6 +68,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
         // { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
+        { icon: FileText, label: 'CI Calculator', href: '/reporting/ci-calculator' },
       ],
     },
   ] : [

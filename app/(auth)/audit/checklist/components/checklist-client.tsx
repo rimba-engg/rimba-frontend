@@ -312,14 +312,14 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
           </Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
           <span className="text-muted-foreground">{checklistData.name}</span>
-          <div className="flex gap-2 ml-4">
+          {/* <div className="flex gap-2 ml-4">
             <Badge variant="secondary" className="rounded-full">
               Year: 2024
             </Badge>
             <Badge variant="secondary" className="rounded-full">
               AFP Round: 1st
             </Badge>
-          </div>
+          </div> */}
         </div>
         <div className="flex items-center space-x-2">
           {/* Hidden file input for bulk upload */}
