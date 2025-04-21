@@ -172,12 +172,14 @@ export function TaskSidebar({
       Array.from(files).forEach(file => {
         formData.append('documents', file);
       });
+      const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
+      delete uploadHeaders['Content-Type'];
 
       const response = await fetch(`${BASE_URL}/audit/v2/checklist/item/file/upload/`, {
         method: 'POST',
         body: formData,
         headers: {
-          ...defaultHeaders
+          ...uploadHeaders
         }
       });
 
