@@ -57,6 +57,14 @@ export function TaskSidebar({
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [isAddingComment, setIsAddingComment] = useState(false);
+  const [editingCommentIndex, setEditingCommentIndex] = useState<number | null>(null);
+  const [editedCommentText, setEditedCommentText] = useState('');
+  const [isUpdatingComment, setIsUpdatingComment] = useState(false);
+  const [isDeletingComment, setIsDeletingComment] = useState(false);
+  const [editCommentCursorPosition, setEditCommentCursorPosition] = useState<number | null>(null);
+  const [showEditUserSuggestions, setShowEditUserSuggestions] = useState(false);
+  const [editUserQuery, setEditUserQuery] = useState('');
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const customer = getStoredCustomer();
     setCustomerData(customer);
@@ -357,6 +365,129 @@ export function TaskSidebar({
 
   console.log(users);
 
+  const handleEditCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    setEditedCommentText(value);
+    setEditCommentCursorPosition(cursorPos);
+
+    // Check if we should show user suggestions
+    const lastAtSymbol = value.lastIndexOf('@', cursorPos);
+    if (lastAtSymbol !== -1 && lastAtSymbol < cursorPos) {
+      const query = value.slice(lastAtSymbol + 1, cursorPos);
+      setEditUserQuery(query);
+      setShowEditUserSuggestions(true);
+    } else {
+      setShowEditUserSuggestions(false);
+    }
+  };
+
+  const insertEditMention = (user: User) => {
+    if (!editCommentCursorPosition) return;
+
+    const beforeMention = editedCommentText.slice(0, editCommentCursorPosition - editUserQuery.length - 1);
+    const afterMention = editedCommentText.slice(editCommentCursorPosition);
+    const mention = `@${user.first_name} ${user.last_name}`;
+    
+    const newValue = `${beforeMention}${mention}${afterMention}`;
+    setEditedCommentText(newValue);
+    setShowEditUserSuggestions(false);
+    
+    // Focus back on textarea
+    if (editTextareaRef.current) {
+      editTextareaRef.current.focus();
+      const newCursorPos = beforeMention.length + mention.length;
+      editTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+    }
+  };
+
+  const handleUpdateComment = async () => {
+    if (editingCommentIndex === null || !editedCommentText.trim()) return;
+    
+    // Check if the current user is the author of the comment
+    const commentToUpdate = task.comments[editingCommentIndex];
+    const currentUserData = JSON.parse(localStorage.getItem('user') || '{}') ;
+    
+    const commentAuthorFullName = `${commentToUpdate.user.first_name} ${commentToUpdate.user.last_name}`;
+    const currentUserFullName = `${currentUserData.first_name} ${currentUserData.last_name}`;
+    console.log(commentAuthorFullName, currentUserFullName);
+    
+    if (commentAuthorFullName !== currentUserFullName) {
+      console.log(commentAuthorFullName, currentUserFullName);
+      alert("You cannot edit comments created by other users.");
+      setEditingCommentIndex(null);
+      setEditedCommentText('');
+      return;
+    }
+    
+    setIsUpdatingComment(true);
+    try {
+      await api.post('/audit/v2/update_checklist_comment/', {
+        checklist_item_id: task.id,
+        comment_index: editingCommentIndex,
+        comment_text: editedCommentText
+      });
+      
+      // Update the comment locally to show changes immediately
+      const updatedComment = {
+        ...task.comments[editingCommentIndex],
+        comment: editedCommentText
+      };
+      
+      // Create a new array with the updated comment
+      const updatedComments = [...task.comments];
+      updatedComments[editingCommentIndex] = updatedComment;
+      
+      // Update the task with the new comments array
+      const updatedTask = {
+        ...task,
+        comments: updatedComments
+      };
+      
+      // Refresh comments through parent component
+      onAddComment(task.id);
+      
+      // Reset editing state
+      setEditingCommentIndex(null);
+      setEditedCommentText('');
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    } finally {
+      setIsUpdatingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (index: number) => {
+    // Check if the current user is the author of the comment
+    const commentToDelete = task.comments[index];
+    const currentUserData = JSON.parse(localStorage.getItem('user') || '{}') as User;
+    
+    const commentAuthorFullName = `${commentToDelete.user.first_name} ${commentToDelete.user.last_name}`;
+    const currentUserFullName = `${currentUserData.first_name} ${currentUserData.last_name}`;
+    
+    if (commentAuthorFullName !== currentUserFullName) {
+      alert("You cannot delete comments created by other users.");
+      return;
+    }
+    
+    if (confirm('Are you sure you want to delete this comment?')) {
+      setIsDeletingComment(true);
+      try {
+        await api.post('/audit/v2/delete_checklist_comment/', {
+          checklist_item_id: task.id,
+          comment_index: index
+        });
+        
+        // Refresh comments through parent component
+        onAddComment(task.id);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+      } finally {
+        setIsDeletingComment(false);
+      }
+    }
+  };
+
   return (
     <div className="!mt-0 fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col">
       {/* Fixed Header */}
@@ -522,20 +653,113 @@ export function TaskSidebar({
             <div className="mt-2 space-y-4">
               {task.comments.map((comment, index) => (
                 <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <img
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop"
-                      alt={comment.user.first_name + ' ' + comment.user.last_name}
-                      className="w-6 h-6 rounded-full"
-                    />
-                    <span className="font-medium">
-                      {comment.user.first_name + ' ' + comment.user.last_name}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {new Date(comment.created_at).toLocaleDateString()}
-                    </span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop"
+                        alt={comment.user.first_name + ' ' + comment.user.last_name}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <span className="font-medium">
+                        {comment.user.first_name + ' ' + comment.user.last_name}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(comment.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6"
+                        onClick={() => {
+                          setEditingCommentIndex(index);
+                          setEditedCommentText(comment.comment);
+                        }}
+                        disabled={isDeletingComment || isUpdatingComment}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil">
+                          <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                          <path d="m15 5 4 4"/>
+                        </svg>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-red-600"
+                        onClick={() => handleDeleteComment(index)}
+                        disabled={isDeletingComment || isUpdatingComment}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-700">{comment.comment}</p>
+                  
+                  {editingCommentIndex === index ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Textarea
+                          ref={editTextareaRef}
+                          value={editedCommentText}
+                          onChange={handleEditCommentChange}
+                          className="w-full"
+                          rows={3}
+                        />
+                        
+                        {/* User Suggestions Dropdown for Edit */}
+                        {showEditUserSuggestions && (
+                          <div className="absolute bottom-full left-0 w-full bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+                            {users
+                              .filter(user => 
+                                `${user.first_name} ${user.last_name}`
+                                  .toLowerCase()
+                                  .includes(editUserQuery.toLowerCase())
+                              )
+                              .map(user => (
+                                <button
+                                  key={user.id}
+                                  onClick={() => insertEditMention(user)}
+                                  className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                  <img
+                                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.first_name + ' ' + user.last_name)}&background=random`}
+                                    alt={`${user.first_name} ${user.last_name}`}
+                                    className="w-6 h-6 rounded-full"
+                                  />
+                                  <span>{user.first_name} {user.last_name}</span>
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setEditingCommentIndex(null)}
+                          disabled={isUpdatingComment}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={handleUpdateComment}
+                          disabled={isUpdatingComment}
+                        >
+                          {isUpdatingComment ? (
+                            <>
+                              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save"
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-700">{comment.comment}</p>
+                  )}
                 </div>
               ))}
               <div className="relative">
