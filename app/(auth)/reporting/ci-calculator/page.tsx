@@ -50,9 +50,16 @@ export default function CICalculatorPage() {
       return;
     }
 
+    // Check if date range is at least 3 months
+    const threeMonthsInMs = 3 * 30 * 24 * 60 * 60 * 1000; // Approximate 3 months in milliseconds
+    if (endDate.getTime() - startDate.getTime() < threeMonthsInMs) {
+      alert("Please select a date range of at least 3 months");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await api.post<ApiResponse>('v2/ci-calculator/', {
+      const response = await api.post<ApiResponse>('/v2/ci-calculator/', {
         start_date: format(startDate, "yyyy-MM-dd"),
         end_date: format(endDate, "yyyy-MM-dd"),
       });
@@ -68,7 +75,14 @@ export default function CICalculatorPage() {
 
   const downloadCalculator = async () => {
     if (!startDate || !endDate) {
-      alert("Please calculate CI data before downloading");
+      alert("Please select a date range before downloading");
+      return;
+    }
+
+    // Check if date range is at least 3 months
+    const threeMonthsInMs = 3 * 30 * 24 * 60 * 60 * 1000; // Approximate 3 months in milliseconds
+    if (endDate.getTime() - startDate.getTime() < threeMonthsInMs) {
+      alert("Please select a date range of at least 3 months");
       return;
     }
 
