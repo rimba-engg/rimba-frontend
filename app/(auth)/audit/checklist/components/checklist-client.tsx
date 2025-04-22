@@ -41,6 +41,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showUploadNote, setShowUploadNote] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = {
@@ -294,6 +295,14 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
     }
   };
 
+  const handleUploadClick = () => {
+    setShowUploadNote(true);
+    setTimeout(() => {
+      setShowUploadNote(false);
+      fileInputRef.current?.click();
+    }, 2000); // Show the note for 3 seconds before opening the file dialog
+  };
+
   return (
     <div className="max-w-[calc(100vw-16rem)] space-y-6">
       {uploadError && (
@@ -322,18 +331,24 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
           </div> */}
         </div>
         <div className="flex items-center space-x-2">
+          {showUploadNote && (
+            <div className="bg-red-500/10 text-info px-4 py-2 rounded-lg">
+              Please ensure the file is in .xlsx or .xls format and must contains a "Description" column for Task Name.
+            </div>
+          )}
+          
           {/* Hidden file input for bulk upload */}
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleBulkUpload}
             className="hidden"
-            accept=".csv,.xlsx,.xls"
+            accept=".xlsx,.xls"
           />
           
           <Button 
             variant="outline" 
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleUploadClick}
             disabled={isUploading}
           >
             {isUploading ? (
