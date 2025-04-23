@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { type Checklist, type ColumnSchema } from '@/lib/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -24,10 +24,47 @@ export function AllChecklistTable({
 }: AllChecklistTableProps) {
   // state to track custom columns that have been hidden or deleted
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  
+  // Add state for column ordering
+  const [columnOrder, setColumnOrder] = useState<string[]>([]);
+  
+  // State for drag operation
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
 
-  // Only allow the custom columns (columns.slice(4)) to be hidden/deleted
-  const customColumns = columns.slice(4);
-  const visibleCustomColumns = customColumns.filter(column => !hiddenColumns.has(column.name));
+  // Memoize customColumns to prevent infinite rendering
+  const customColumns = React.useMemo(() => columns.slice(4), [columns]);
+  
+  // Initialize column order from columns when component mounts or columns change
+  useEffect(() => {
+    setColumnOrder(prevOrder => {
+      // Only update if the columns have changed
+      const currentColumnNames = customColumns.map(column => column.name);
+      const hasNewColumns = currentColumnNames.some(name => !prevOrder.includes(name));
+      const hasMissingColumns = prevOrder.some(name => 
+        !currentColumnNames.includes(name) && !hiddenColumns.has(name)
+      );
+      
+      if (hasNewColumns || hasMissingColumns) {
+        return currentColumnNames;
+      }
+      return prevOrder;
+    });
+  }, [customColumns, hiddenColumns]);
+
+  // Get visible custom columns and sort them according to columnOrder
+  const visibleCustomColumns = React.useMemo(() => {
+    // Filter out hidden columns
+    const filtered = customColumns.filter(column => !hiddenColumns.has(column.name));
+    
+    // Sort them according to columnOrder
+    return filtered.sort((a, b) => {
+      const aIndex = columnOrder.indexOf(a.name);
+      const bIndex = columnOrder.indexOf(b.name);
+      // If a column is not in the order array, place it at the end
+      return (aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex) - 
+             (bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex);
+    });
+  }, [customColumns, hiddenColumns, columnOrder]);
 
   // Functions to hide and delete a column
   const handleHideColumn = (columnName: string) => {
@@ -57,9 +94,78 @@ export function AllChecklistTable({
       console.error('Error deleting column:', error);
     }
   };
+  
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, columnName: string) => {
+    setDraggedColumn(columnName);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a custom class to style the dragged element
+    e.currentTarget.classList.add('dragging');
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, columnName: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    // Only proceed if we're dragging a column and it's not over itself
+    if (!draggedColumn || draggedColumn === columnName) return;
+    
+    // Add visual indicator for drop target
+    e.currentTarget.classList.add('drop-target');
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    // Remove visual indicator when drag leaves
+    e.currentTarget.classList.remove('drop-target');
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetColumnName: string) => {
+    e.preventDefault();
+    // Remove visual indicators
+    e.currentTarget.classList.remove('drop-target');
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    
+    if (!draggedColumn || draggedColumn === targetColumnName) return;
+    
+    // Reorder columns
+    setColumnOrder(prevOrder => {
+      const newOrder = [...prevOrder];
+      const draggedIdx = newOrder.indexOf(draggedColumn);
+      const targetIdx = newOrder.indexOf(targetColumnName);
+      
+      if (draggedIdx !== -1 && targetIdx !== -1) {
+        // Remove the dragged column
+        newOrder.splice(draggedIdx, 1);
+        // Insert it at the target position
+        newOrder.splice(targetIdx, 0, draggedColumn);
+      }
+      
+      return newOrder;
+    });
+    
+    setDraggedColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    // Clean up any remaining visual indicators
+    document.querySelectorAll('.dragging, .drop-target').forEach(el => {
+      el.classList.remove('dragging');
+      el.classList.remove('drop-target');
+    });
+    setDraggedColumn(null);
+  };
 
   return (
     <div className="overflow-x-auto">
+      {/* Add styles for drag and drop visual feedback */}
+      <style jsx global>{`
+        .dragging {
+          opacity: 0.5;
+        }
+        .drop-target {
+          border-left: 2px dashed #666;
+          border-right: 2px dashed #666;
+        }
+      `}</style>
       <div className="inline-block min-w-full align-middle">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -83,8 +189,16 @@ export function AllChecklistTable({
                   key={column.name}
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  <div className="flex items-center justify-between">
-                    <span>{column.name}</span>
+                  <div 
+                    className="flex items-center justify-between"
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, column.name)}
+                    onDragOver={(e) => handleDragOver(e, column.name)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, column.name)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <span className="cursor-grab">{column.name}</span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="p-0">

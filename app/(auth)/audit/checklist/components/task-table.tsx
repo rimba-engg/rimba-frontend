@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { getStoredCustomer } from '@/lib/auth';
+
 interface TaskTableProps {
   checklistId: string;
   checklist_items: ChecklistItem[];
@@ -39,12 +40,24 @@ export function TaskTable({
     const customer = getStoredCustomer();
     setCustomerData(customer);
   }, []);
+  
   // State for sorting
   console.log(`checklistId: ${checklistId}`);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ columnName: null, direction: 'asc' });
   
   // State for hidden columns
   const [hiddenColumns, setHiddenColumns] = React.useState<Set<string>>(new Set());
+  
+  // Add state for column ordering
+  const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
+  
+  // State for drag operation
+  const [draggedColumn, setDraggedColumn] = React.useState<string | null>(null);
+
+  // Initialize column order from schema when component mounts or schema changes
+  useEffect(() => {
+    setColumnOrder(schema.map(column => column.name));
+  }, [schema]);
 
   // Column management functions
   const handleHideColumn = (columnName: string) => {
@@ -83,10 +96,79 @@ export function TaskTable({
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, columnName: string) => {
+    setDraggedColumn(columnName);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a custom class to style the dragged element
+    e.currentTarget.classList.add('dragging');
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, columnName: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    // Only proceed if we're dragging a column and it's not over itself
+    if (!draggedColumn || draggedColumn === columnName) return;
+    
+    // Add visual indicator for drop target
+    e.currentTarget.classList.add('drop-target');
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    // Remove visual indicator when drag leaves
+    e.currentTarget.classList.remove('drop-target');
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetColumnName: string) => {
+    e.preventDefault();
+    // Remove visual indicators
+    e.currentTarget.classList.remove('drop-target');
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    
+    if (!draggedColumn || draggedColumn === targetColumnName) return;
+    
+    // Reorder columns
+    setColumnOrder(prevOrder => {
+      const newOrder = [...prevOrder];
+      const draggedIdx = newOrder.indexOf(draggedColumn);
+      const targetIdx = newOrder.indexOf(targetColumnName);
+      
+      if (draggedIdx !== -1 && targetIdx !== -1) {
+        // Remove the dragged column
+        newOrder.splice(draggedIdx, 1);
+        // Insert it at the target position
+        newOrder.splice(targetIdx, 0, draggedColumn);
+      }
+      
+      return newOrder;
+    });
+    
+    setDraggedColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    // Clean up any remaining visual indicators
+    document.querySelectorAll('.dragging, .drop-target').forEach(el => {
+      el.classList.remove('dragging');
+      el.classList.remove('drop-target');
+    });
+    setDraggedColumn(null);
+  };
+
   // Get visible columns
   const visibleColumns = React.useMemo(() => {
-    return schema.filter(column => !hiddenColumns.has(column.name));
-  }, [schema, hiddenColumns]);
+    // Filter out hidden columns
+    const filteredColumns = schema.filter(column => !hiddenColumns.has(column.name));
+    
+    // Sort them according to columnOrder
+    return filteredColumns.sort((a, b) => {
+      const aIndex = columnOrder.indexOf(a.name);
+      const bIndex = columnOrder.indexOf(b.name);
+      // If a column is not in the order array, place it at the end
+      return (aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex) - 
+             (bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex);
+    });
+  }, [schema, hiddenColumns, columnOrder]);
 
   // Sorting handler
   const handleSort = (columnName: string) => {
@@ -242,17 +324,35 @@ export function TaskTable({
 
   return (
     <div className="relative w-full">
+      {/* Add some basic styles for drag and drop visual feedback */}
+      <style jsx global>{`
+        .dragging {
+          opacity: 0.5;
+        }
+        .drop-target {
+          border-left: 2px dashed #666;
+          border-right: 2px dashed #666;
+        }
+      `}</style>
       <table className="w-full border-collapse min-w-[1200px]">
         <thead>
           <tr className="bg-muted/50">
             <th className="text-left py-3 px-4">#</th>
             {visibleColumns.map(column => (
               <th key={column.name} className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                <div className="flex items-center justify-between">
+                <div 
+                  className="flex items-center justify-between"
+                  draggable={true}
+                  onDragStart={(e) => handleDragStart(e, column.name)}
+                  onDragOver={(e) => handleDragOver(e, column.name)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, column.name)}
+                  onDragEnd={handleDragEnd}
+                >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort(column.name)}
-                    className="flex items-center gap-1 hover:bg-transparent"
+                    className="flex items-center gap-1 hover:bg-transparent cursor-grab"
                   >
                     {column.name}
                     <ArrowUpDown className="w-4 h-4 ml-1" />
