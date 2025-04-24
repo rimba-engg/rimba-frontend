@@ -119,7 +119,7 @@ export function TaskTable({
     e.currentTarget.classList.remove('drop-target');
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetColumnName: string) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetColumnName: string) => {
     e.preventDefault();
     // Remove visual indicators
     e.currentTarget.classList.remove('drop-target');
@@ -128,20 +128,38 @@ export function TaskTable({
     if (!draggedColumn || draggedColumn === targetColumnName) return;
     
     // Reorder columns
-    setColumnOrder(prevOrder => {
-      const newOrder = [...prevOrder];
-      const draggedIdx = newOrder.indexOf(draggedColumn);
-      const targetIdx = newOrder.indexOf(targetColumnName);
+    const newColumnOrder = [...columnOrder];
+    const draggedIdx = newColumnOrder.indexOf(draggedColumn);
+    const targetIdx = newColumnOrder.indexOf(targetColumnName);
+    
+    if (draggedIdx !== -1 && targetIdx !== -1) {
+      // Remove the dragged column
+      newColumnOrder.splice(draggedIdx, 1);
+      // Insert it at the target position
+      newColumnOrder.splice(targetIdx, 0, draggedColumn);
       
-      if (draggedIdx !== -1 && targetIdx !== -1) {
-        // Remove the dragged column
-        newOrder.splice(draggedIdx, 1);
-        // Insert it at the target position
-        newOrder.splice(targetIdx, 0, draggedColumn);
+      // Update local state
+      setColumnOrder(newColumnOrder);
+      
+      try {
+        // Create a new schema array with the updated order
+        const updatedSchema = newColumnOrder.map(colName => 
+          schema.find(col => col.name === colName)
+        ).filter(Boolean);
+        
+        // Save the updated schema to the server
+        await api.post('/audit/v2/checklist/item/schema/reorder/', {
+          checklist_id: checklistId,
+          schema: updatedSchema
+        });
+        
+        console.log('Column order updated successfully on the server');
+      } catch (error) {
+        console.error('Error updating column order:', error);
+        // Optionally revert back to previous order on error
+        setColumnOrder(columnOrder);
       }
-      
-      return newOrder;
-    });
+    }
     
     setDraggedColumn(null);
   };

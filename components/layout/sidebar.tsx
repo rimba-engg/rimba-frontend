@@ -26,6 +26,8 @@ import {
   Shield,
   Calculator,
   CloudCog,
+  Settings,
+  Puzzle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -93,6 +95,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       { icon: CloudCog, label: 'RNG CI', href: '/ci_calculator' },
     ],
   },
+  { icon: Puzzle, label: 'Integrations', href: '/integrations' },
 ];
 
 
