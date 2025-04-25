@@ -5,7 +5,7 @@ import { Bookmark } from 'lucide-react';
 
 interface IntegrationCardProps {
   title: string;
-  icon: string;
+  imageSource: string;
   features: string[];
   isPartner?: boolean;
   isComingSoon?: boolean;
@@ -14,7 +14,7 @@ interface IntegrationCardProps {
 
 const IntegrationCard: React.FC<IntegrationCardProps> = ({
   title,
-  icon,
+  imageSource,
   features,
   isPartner = false,
   isComingSoon = false,
@@ -27,7 +27,7 @@ const IntegrationCard: React.FC<IntegrationCardProps> = ({
       </button>
       
       <div className="flex items-center gap-4 mb-6">
-        <img src={icon} alt={title} className="w-10 h-10 object-contain" />
+        <img src={imageSource} alt={title} className="w-16 h-16 object-contain" />
         <h3 className="text-lg font-semibold">{title}</h3>
       </div>
 
