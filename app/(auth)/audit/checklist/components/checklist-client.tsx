@@ -296,11 +296,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
   };
 
   const handleUploadClick = () => {
-    setShowUploadNote(true);
-    setTimeout(() => {
-      setShowUploadNote(false);
-      fileInputRef.current?.click();
-    }, 2000); // Show the note for 3 seconds before opening the file dialog
+    fileInputRef.current?.click();
   };
 
   return (
@@ -333,7 +329,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
         <div className="flex items-center space-x-2">
           {showUploadNote && (
             <div className="bg-red-500/10 text-info px-4 py-2 rounded-lg">
-              Please ensure the file is in .xlsx or .xls format and must contains a "Description" column for Task Name.
+              {/* Please ensure the file is in .xlsx or .xls format and must contains a "Description" column for Task Name. */}
             </div>
           )}
           

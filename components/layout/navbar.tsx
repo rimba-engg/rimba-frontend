@@ -22,11 +22,32 @@ export function Navbar() {
   const [userData, setUserData] = useState<User | null>(null);
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const { logout } = useAuth0();
+  const [sites, setSites] = useState([
+    { name: 'West Branch' },
+    { name: 'Red Leaf' }
+  ]);
+  const [selectedSite, setSelectedSite] = useState(sites[0]);
+  
+  // Define the Site type based on our state structure
+  interface Site {
+    name: string;
+  }
   
   useEffect(() => {
     // Load user and customer data after component mounts to avoid hydration mismatch
     setUserData(getStoredUser());
     setCustomerData(getStoredCustomer());
+    
+    // Load selected site from local storage if available
+    const storedSite = localStorage.getItem('selected_site');
+    if (storedSite) {
+      const parsedSite = JSON.parse(storedSite);
+      // Find the site in our sites array
+      const siteExists = sites.find(site => site.name === parsedSite.name);
+      if (siteExists) {
+        setSelectedSite(siteExists);
+      }
+    }
   }, []);
 
   const handleLogout = () => {
@@ -44,6 +65,14 @@ export function Navbar() {
     router.push('/select-customer');
   };
 
+  const handleSiteChange = (site: Site) => {
+    setSelectedSite(site);
+    // Store the selected site in local storage
+    localStorage.setItem('selected_site', JSON.stringify(site));
+    console.log(`Switched to site: ${site.name}`);
+    // Here you would typically update site context or fetch site-specific data
+  };
+
   return (
     <header className="h-14 border-b bg-card px-4 flex items-center justify-between">
       <div className="flex-1 max-w-xl relative">
@@ -58,6 +87,31 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center gap-2">
+        {
+          customerData?.is_rng_customer && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors">
+              <span className="text-sm font-medium">{selectedSite.name}</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            {sites.map((site) => (
+              <DropdownMenuItem 
+                key={site.name} 
+                onClick={() => handleSiteChange(site)}
+                className={selectedSite.name === site.name ? "bg-muted" : ""}
+              >
+                {site.name}
+              </DropdownMenuItem>
+            ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        }
         <Notifications />
 
         <DropdownMenu>
