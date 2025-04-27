@@ -17,14 +17,15 @@ import { api } from '@/lib/api';
 import { type User, type Customer  } from '@/lib/types';
 import { useAuth0 } from '@auth0/auth0-react';
 
+
+
 export function Navbar() {
   const router = useRouter();
   const [userData, setUserData] = useState<User | null>(null);
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const { logout } = useAuth0();
   const [sites, setSites] = useState([
-    { name: 'West Branch' },
-    { name: 'Red Leaf' }
+    { name: 'Default' },
   ]);
   const [selectedSite, setSelectedSite] = useState(sites[0]);
   
@@ -50,6 +51,24 @@ export function Navbar() {
     }
   }, []);
 
+  useEffect(() => {
+    console.log('customerData', customerData);
+    if (customerData?.name === 'Novilla') {
+      
+      setSites([
+        { name: 'West Branch' },
+        { name: 'Buck Horn' }
+      ]);
+      var current_site = localStorage.getItem('selected_site');
+      if (current_site) {
+        setSelectedSite(JSON.parse(current_site));
+      } else {
+        setSelectedSite({ name: 'West Branch' });
+        localStorage.setItem('selected_site', JSON.stringify({ name: 'West Branch' }));
+      }
+    }
+  }, [customerData]);
+
   const handleLogout = () => {
     api.logout();
     logout({ logoutParams: { returnTo: window.location.origin } });
@@ -70,6 +89,13 @@ export function Navbar() {
     // Store the selected site in local storage
     localStorage.setItem('selected_site', JSON.stringify(site));
     console.log(`Switched to site: ${site.name}`);
+    
+    // Emit a custom event for site change
+    const siteChangeEvent = new CustomEvent('siteChange', { 
+      detail: { site } 
+    });
+    window.dispatchEvent(siteChangeEvent);
+    
     // Here you would typically update site context or fetch site-specific data
   };
 
