@@ -489,11 +489,16 @@ export function TaskSidebar({
   };
 
   return (
-    <div className="!mt-0 fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col">
+    <div className="!mt-0 fixed inset-y-0 right-0 w-[550px] bg-white shadow-xl transform transition-transform duration-200 ease-in-out flex flex-col">
       {/* Fixed Header */}
-      <div className="flex justify-end items-center p-1 border-b">
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X size={16} />
+      <div className="flex justify-end items-center p-3 border-b">
+        <Button 
+          variant="secondary" 
+          className="bg-red-100 hover:bg-gray-200 transition-colors gap-2" 
+          onClick={onClose}
+        >
+          <X size={18} />
+          <span>Close</span>
         </Button>
       </div>
 
