@@ -87,6 +87,7 @@ export default function RngMassBalancePage() {
   const [chartTitle, setChartTitle] = useState<string>('');
   const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
   const [showPrevailingWage, setShowPrevailingWage] = useState(true);
+  const [selectedSite, setSelectedSite] = useState<string>('');
 
 
   useEffect(() => {
@@ -105,7 +106,7 @@ export default function RngMassBalancePage() {
     if (selectedView) {
       fetchMassBalanceData();
     }
-  }, [selectedView, startDate, endDate]);
+  }, [selectedView, startDate, endDate, selectedSite]);
 
   // set column defs based on rowData
   useEffect(() => {
@@ -148,7 +149,9 @@ export default function RngMassBalancePage() {
       const payload: Record<string, any> = {
         view_name: selectedView.view_name,
       };
-
+      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      var site_name = selected_site.name;
+      payload.site_name = site_name;
       // Only add dates to payload if they are set
       if (startDate) {
         payload.start_datetime = startDate;
@@ -174,6 +177,22 @@ export default function RngMassBalancePage() {
       toast.success('Mass balance data loaded successfully');
     }
   };
+
+    // In any other component
+  useEffect(() => {
+    const handleSiteChange = (event: any) => {
+      const { site } = event.detail;
+      console.log('Site changed to:', site.name);
+      // Do something with the new site
+      setSelectedSite(site.name);
+    };
+    
+    window.addEventListener('siteChange', handleSiteChange);
+    
+    return () => {
+      window.removeEventListener('siteChange', handleSiteChange);
+    };
+  }, []);
 
   // Function to handle CSV export
   const handleDownloadCsv = () => {

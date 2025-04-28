@@ -42,11 +42,27 @@ export default function AirPermitsPage() {
   const [viewAggregate, setViewAggregate] = useState<any[]>([])
   const [useAverage, setUseAverage] = useState<boolean>(true)
   const [so2Inputs, setSo2Inputs] = useState<any[]>([])
+  const [selectedSite, setSelectedSite] = useState<string>('')
+
+  useEffect(() => {
+    const handleSiteChange = (event: any) => {
+      const { site } = event.detail;
+      console.log('Site changed to:', site.name);
+      // Do something with the new site
+      setSelectedSite(site.name);
+    };
+    
+    window.addEventListener('siteChange', handleSiteChange);
+    
+    return () => {
+      window.removeEventListener('siteChange', handleSiteChange);
+    };
+  }, []);
 
   // Fetch data when view or dates change
   useEffect(() => {
     fetchAirPermitsData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, selectedSite]);
 
   // set column defs based on rowData
   useEffect(() => {
@@ -75,6 +91,9 @@ export default function AirPermitsPage() {
       if (endDate) {
         payload.end_datetime = endDate;
       }
+      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      var site_name = selected_site.name;
+      payload.site_name = site_name;
 
       const response = await api.post<AirPermitsResponse>(`/reporting/v2/air-permits/`, payload);
       setRowData(response.summary_data);
@@ -104,6 +123,9 @@ export default function AirPermitsPage() {
       if (endDate) {
         payload.end_datetime = endDate;
       }
+      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      var site_name = selected_site.name;
+      payload.site_name = site_name;
 
       const response = await fetch(`${BASE_URL}/reporting/v2/air-permits/download/`, {
         method: 'POST',
@@ -118,7 +140,7 @@ export default function AirPermitsPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `Air-Permits-Report-${useAverage ? 'Average' : 'Sum'}.xlsx`)
+      link.setAttribute('download', `Air-Permits-Report-${useAverage ? 'Average' : 'Sum'}-${site_name}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()

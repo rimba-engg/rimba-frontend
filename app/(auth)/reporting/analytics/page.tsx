@@ -57,17 +57,36 @@ export default function AnalyticsPage() {
     const [rowData, setRowData] = useState<any>([]);
     const [columnDefs, setColumnDefs] = useState<any>([]);
     const [relative, setRelative] = useState('Select time range...');
+    const [selectedSite, setSelectedSite] = useState<string>('');
     
     useEffect(() => {
         fetchAnalytics();
         fetchAnalyticsManureData();
-    }, [startDate, endDate]);
+    }, [startDate, endDate, selectedSite]);
+
+    useEffect(() => {
+      const handleSiteChange = (event: any) => {
+        const { site } = event.detail;
+        console.log('Site changed to:', site.name);
+        // Do something with the new site
+        setSelectedSite(site.name);
+      };
+      
+      window.addEventListener('siteChange', handleSiteChange);
+      
+      return () => {
+        window.removeEventListener('siteChange', handleSiteChange);
+      };
+    }, []);
 
     const fetchAnalytics = () => {
         setLoading(true);
+        var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+        var site_name = selected_site.name;
         api.post<AnalyticsResponse>('/reporting/v2/rng/analytics/', {
             start_date: startDate,
-            end_date: endDate
+            end_date: endDate,
+            site_name: site_name
         })
             .then(data => {
                 setChartConfig(data.chart_config);
@@ -90,9 +109,12 @@ export default function AnalyticsPage() {
 
     const fetchAnalyticsManureData = () => {
       setLoadingManureData(true);
+      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      var site_name = selected_site.name;
       api.post<AnalyticsResponse>('/reporting/v2/rng/analytics/manure-flow/', {
           start_date: startDate,
-          end_date: endDate
+          end_date: endDate,
+          site_name: site_name
       })
           .then(data => {
               setChartConfigManureData(data.chart_config);

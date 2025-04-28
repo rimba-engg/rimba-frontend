@@ -113,7 +113,7 @@ export default function CallbackPage() {
     <div className="flex justify-center items-center h-screen">
       <div className="bg-white p-4 rounded shadow-md border border-green-500">
         <div className="flex items-center">
-          <span className="ml-2">Processing callback...</span>
+          <span className="ml-2">Udderly amazing fuel incoming...</span>
           <div className="spinner ml-2"></div>
         </div>
       </div>
