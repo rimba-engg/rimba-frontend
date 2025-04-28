@@ -123,6 +123,9 @@ export default function AirPermitsPage() {
       if (endDate) {
         payload.end_datetime = endDate;
       }
+      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      var site_name = selected_site.name;
+      payload.site_name = site_name;
 
       const response = await fetch(`${BASE_URL}/reporting/v2/air-permits/download/`, {
         method: 'POST',
@@ -137,7 +140,7 @@ export default function AirPermitsPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `Air-Permits-Report-${useAverage ? 'Average' : 'Sum'}.xlsx`)
+      link.setAttribute('download', `Air-Permits-Report-${useAverage ? 'Average' : 'Sum'}-${site_name}.xlsx`)
       document.body.appendChild(link)
       link.click()
       link.remove()
