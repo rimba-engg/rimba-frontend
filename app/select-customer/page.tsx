@@ -18,6 +18,7 @@ export default function SelectCustomerPage() {
       // router.push('/');
       return;
     }
+    localStorage.removeItem('selected_site');
 
     const allCustomers = localStorage.getItem('all_customers');
     if (allCustomers) {
