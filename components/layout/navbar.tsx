@@ -24,8 +24,9 @@ export function Navbar() {
   const [userData, setUserData] = useState<User | null>(null);
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const { logout } = useAuth0();
+
   const [sites, setSites] = useState([
-    { name: 'Default' },
+    { name: 'GreenFlame BioEnergy' },
   ]);
   const [selectedSite, setSelectedSite] = useState(sites[0]);
   
@@ -65,6 +66,18 @@ export function Navbar() {
       } else {
         setSelectedSite({ name: 'West Branch' });
         localStorage.setItem('selected_site', JSON.stringify({ name: 'West Branch' }));
+      }
+    }
+    else if (customerData?.name === 'Demo-RNG') {
+      setSites([
+        { name: 'GreenFlame BioEnergy' },
+      ]);
+      var current_site = localStorage.getItem('selected_site');
+      if (current_site) {
+        setSelectedSite(JSON.parse(current_site));
+      } else {
+        setSelectedSite({ name: 'GreenFlame BioEnergy' });
+        localStorage.setItem('selected_site', JSON.stringify({ name: 'GreenFlame BioEnergy' }));
       }
     }
   }, [customerData]);
