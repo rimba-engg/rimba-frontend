@@ -28,6 +28,7 @@ import {
   CloudCog,
   Settings,
   Puzzle,
+  Map,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -86,6 +87,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     ],
   },
   ]),
+  { icon: Map, label: 'Projects', href: '/projects' },
   { icon: Brain, label: 'AI Extractor', href: '/ai-extractor' },
   { icon: ScrollText, label: 'RegsQA', href: '/regsqa' },
   {
