@@ -10,7 +10,7 @@ export default function ProjectsClient() {
         <header>
           <h1 className="text-4xl font-bold text-primary">RNG Facilities Map</h1>
           <p className="text-xl text-gray-600 mt-2">
-            Interactive map of renewable natural gas facilities across North America
+            Interactive map of renewable natural gas facilities in the United States
           </p>
         </header>
         
