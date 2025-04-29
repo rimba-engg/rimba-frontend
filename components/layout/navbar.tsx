@@ -58,7 +58,9 @@ export function Navbar() {
       
       setSites([
         { name: 'West Branch' },
-        { name: 'Buck Horn' }
+        { name: 'Buck Horn' },
+        {name: 'Red Leaf'},
+        {name:'Three Petals'}
       ]);
       var current_site = localStorage.getItem('selected_site');
       if (current_site) {
@@ -78,6 +80,21 @@ export function Navbar() {
       } else {
         setSelectedSite({ name: 'GreenFlame BioEnergy' });
         localStorage.setItem('selected_site', JSON.stringify({ name: 'GreenFlame BioEnergy' }));
+      }
+    }
+    else if (customerData?.name === 'Kinder Morgan') {
+      setSites([
+        { name: 'Arlington RNG' },
+        {name: 'Autumn Hills RNG'},
+        {name: 'Hartland Landfill RNG'},
+        {name: 'Indy High BTU RNG'}
+      ]);
+      var current_site = localStorage.getItem('selected_site');
+      if (current_site) {
+        setSelectedSite(JSON.parse(current_site));
+      } else {
+        setSelectedSite({ name: 'Arlington RNG' });
+        localStorage.setItem('selected_site', JSON.stringify({ name: 'Arlington RNG' }));
       }
     }
   }, [customerData]);
