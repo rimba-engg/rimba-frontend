@@ -194,7 +194,7 @@ export default function CICalculatorPage() {
               </div>
               
               <div className="flex space-x-4 pt-4">
-                <Button 
+                {/* <Button 
                   onClick={fetchCalculatorData} 
                   disabled={isLoading || !startDate || !endDate}
                   className="flex-1"
@@ -207,13 +207,13 @@ export default function CICalculatorPage() {
                   ) : (
                     "Calculate CI"
                   )}
-                </Button>
+                </Button> */}
                 
                 <Button 
-                  variant="outline" 
+                  variant="default" 
                   onClick={downloadCalculator}
                   disabled={isDownloading || !startDate || !endDate}
-                  className="flex-1"
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                 >
                   {isDownloading ? (
                     <>
