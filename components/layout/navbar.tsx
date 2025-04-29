@@ -58,7 +58,9 @@ export function Navbar() {
       
       setSites([
         { name: 'West Branch' },
-        { name: 'Buck Horn' }
+        { name: 'Buck Horn' },
+        {name: 'Red Leaf'},
+        {name:'Three Petals'}
       ]);
       var current_site = localStorage.getItem('selected_site');
       if (current_site) {
