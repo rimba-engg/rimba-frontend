@@ -73,6 +73,7 @@ export function Navbar() {
     else if (customerData?.name === 'Demo-RNG') {
       setSites([
         { name: 'GreenFlame BioEnergy' },
+        {name: 'EcoMethane Hub'}
       ]);
       var current_site = localStorage.getItem('selected_site');
       if (current_site) {
