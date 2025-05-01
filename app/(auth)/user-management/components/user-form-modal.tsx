@@ -139,7 +139,7 @@ export function UserFormModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="project">Project</Label>
+            <Label htmlFor="project">Partner</Label>
             <Select
               value={formData.project}
               onValueChange={(value) => onChange('project', value)}
@@ -160,7 +160,7 @@ export function UserFormModal({
           </div>
 
           <div className="space-y-2">
-            <Label>Allowed Checklists</Label>
+            <Label>Allowed Projects Sites</Label>
             <div className="border rounded-lg p-4 space-y-2 max-h-[200px] overflow-y-auto">
               {checklists.map((checklist) => (
                 <div key={checklist.id} className="flex items-center space-x-2">

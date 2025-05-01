@@ -230,7 +230,7 @@ export default function ProjectsPage() {
       <div className="bg-white rounded-lg shadow">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">All Checklists</h2>
+            <h2 className="text-lg font-semibold text-gray-800">All Projects</h2>
             <div className="flex gap-3">
               <input
                 type="file"
@@ -245,14 +245,14 @@ export default function ProjectsPage() {
                 disabled={isSubmitting}
               >
                 <RefreshCw size={16} className={isSubmitting ? "animate-spin" : ""} />
-                Bulk Upload Checklist
+                Bulk Upload Projects
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
               >
                 <Plus size={16} />
-                New Checklist
+                New Project
               </button>
               {/* removing add column for demo as backend is not ready */}
               <button

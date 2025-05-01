@@ -74,6 +74,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
         { icon: FileText, label: 'CI Calculator', href: '/reporting/ci-calculator' },
       ],
     },
+    { icon: Map, label: 'Projects', href: '/projects' },
   ] : [
     // non RNG Case
     {
@@ -87,7 +88,6 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     ],
   },
   ]),
-  { icon: Map, label: 'Projects', href: '/projects' },
   { icon: Brain, label: 'AI Extractor', href: '/ai-extractor' },
   { icon: ScrollText, label: 'RegsQA', href: '/regsqa' },
   {
