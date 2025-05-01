@@ -100,8 +100,8 @@ export function Navbar() {
     }
   }, [customerData]);
 
-  const handleLogout = () => {
-    api.logout();
+  const handleLogout = async () => {
+    await api.logout();
     logout({ logoutParams: { returnTo: window.location.origin } });
   };
 
