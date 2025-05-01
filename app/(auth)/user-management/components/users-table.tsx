@@ -33,8 +33,8 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
           <tr className="border-b">
             <th className="text-left py-3 px-4">User</th>
             <th className="text-left py-3 px-4">Role</th>
-            <th className="text-left py-3 px-4">Project</th>
-            <th className="text-left py-3 px-4">Allowed Checklists</th>
+            <th className="text-left py-3 px-4">Partner</th> 
+            <th className="text-left py-3 px-4">Projects Sites</th>
             <th className="text-left py-3 px-4">Status</th>
             <th className="text-left py-3 px-4">Actions</th>
           </tr>
