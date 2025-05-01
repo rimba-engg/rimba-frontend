@@ -100,6 +100,33 @@ export function Navbar() {
     }
   }, [customerData]);
 
+  useEffect(() => {
+    // Function to handle the site change event from MapView
+    const handleNavbarSiteChange = (event: CustomEvent) => {
+      const siteName = event.detail.siteName;
+      // Find the site in the current sites array
+      const siteFound = sites.find(site => site.name === siteName);
+      
+      if (siteFound) {
+        // Update the selected site if found
+        setSelectedSite(siteFound);
+      } else if (sites.length > 0) {
+        // If site not found in the dropdown, select the first available site
+        setSelectedSite(sites[0]);
+        localStorage.setItem('selected_site', JSON.stringify({ name: sites[0].name }));
+        console.log(`Site ${siteName} not found, defaulting to ${sites[0].name}`);
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('navbarSiteChange', handleNavbarSiteChange as EventListener);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('navbarSiteChange', handleNavbarSiteChange as EventListener);
+    };
+  }, [sites]);
+
   const handleLogout = async () => {
     await api.logout();
     logout({ logoutParams: { returnTo: window.location.origin } });
@@ -115,19 +142,15 @@ export function Navbar() {
     router.push('/select-customer');
   };
 
-  const handleSiteChange = (site: Site) => {
+  const handleSiteChange = (site: { name: string }) => {
     setSelectedSite(site);
-    // Store the selected site in local storage
-    localStorage.setItem('selected_site', JSON.stringify(site));
-    console.log(`Switched to site: ${site.name}`);
+    localStorage.setItem('selected_site', JSON.stringify({ name: site.name }));
     
-    // Emit a custom event for site change
-    const siteChangeEvent = new CustomEvent('siteChange', { 
-      detail: { site } 
+    // Notify other components about the site change
+    const siteChangeEvent = new CustomEvent('siteChange', {
+      detail: { site: { plant_name: site.name } }
     });
     window.dispatchEvent(siteChangeEvent);
-    
-    // Here you would typically update site context or fetch site-specific data
   };
 
   return (

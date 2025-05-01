@@ -73,7 +73,7 @@ export const projectsData = [
     "customer": "Novilla",
     "sites": [
       {
-        "plant_name": "Three Petals RNG, LLC at Trillium Hill Farm",
+        "plant_name": "Three Petals",
         "city": "Wisconsin",
         "state": "WI",
         "latitude": 44.5,
@@ -82,7 +82,7 @@ export const projectsData = [
         "summary": "Located at Trillium Hill Farm in Wisconsin, Three Petals RNG began construction in July 2022 and started commercial operations in October 2023. The project captures biogas from dairy operations and upgrades it to renewable natural gas."
       },
       {
-        "plant_name": "Buckhorn RNG, LLC at Lynn Brothers Dairy",
+        "plant_name": "Buck Horn",
         "city": "Wisconsin",
         "state": "WI",
         "latitude": 44.5,
@@ -100,7 +100,7 @@ export const projectsData = [
         "summary": "Farmstead RNG project in Wisconsin is scheduled to start construction in August 2024, following a contract date of July 2024, focusing on upgrading dairy-derived biogas to renewable natural gas."
       },
       {
-        "plant_name": "Red Leaf RNG, LLC at Maple Row Dairy",
+        "plant_name": "Red Leaf",
         "city": "Michigan",
         "state": "MI",
         "latitude": 44.182205,
@@ -109,7 +109,7 @@ export const projectsData = [
         "summary": "Red Leaf RNG at Maple Row Dairy in Michigan started construction in August 2022 and began commercial operations in October 2023. The project upgrades dairy-derived biogas to renewable natural gas."
       },
       {
-        "plant_name": "West Branch RNG, LLC at Hoogland, Maassen, and Highland Dairy",
+        "plant_name": "West Branch",
         "city": "Iowa",
         "state": "IA",
         "latitude": 42.032974,
