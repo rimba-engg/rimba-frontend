@@ -66,8 +66,13 @@ export function Navbar() {
       if (current_site) {
         setSelectedSite(JSON.parse(current_site));
       } else {
-        setSelectedSite({ name: 'West Branch' });
         localStorage.setItem('selected_site', JSON.stringify({ name: 'West Branch' }));
+        setSelectedSite({ name: 'West Branch' });
+        // Emit a custom event for site change
+        const siteChangeEvent = new CustomEvent('siteChange', { 
+          detail: { site: { name: 'West Branch' } }
+        });
+        window.dispatchEvent(siteChangeEvent);
       }
     }
     else if (customerData?.name === 'Demo-RNG') {

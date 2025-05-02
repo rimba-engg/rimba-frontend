@@ -92,14 +92,14 @@ export default function RngMassBalancePage() {
 
   useEffect(() => {
     fetchViews();
-  }, []);
+  }, [selectedSite]);
 
-  useEffect(() => {
-    // Set the first view as default when views are loaded
-    if (views.length > 0 && !selectedView) {
-      setSelectedView(views[0]);
-    }
-  }, [views, selectedView]);
+  // useEffect(() => {
+  //   // Set the first view as default when views are loaded
+  //   if (views.length > 0 && !selectedView) {
+  //     setSelectedView(views[0]);
+  //   }
+  // }, [views, selectedView]);
 
   // Fetch data when view or dates change
   useEffect(() => {
@@ -127,8 +127,11 @@ export default function RngMassBalancePage() {
   const fetchViews = async () => {
     try {
       setLoading(true);
-      const response = await api.get<ViewsResponse>('/reporting/v2/views/');
+      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      var site_name = selected_site.name;
+      const response = await api.get<ViewsResponse>(`/reporting/v2/views/?site_name=${site_name}`);
       setViews(response.views);
+      setSelectedView(response.views[0]);
     } catch (err) {
       setError('Failed to load views');
       console.error('Error fetching views:', err);
@@ -183,8 +186,10 @@ export default function RngMassBalancePage() {
     const handleSiteChange = (event: any) => {
       const { site } = event.detail;
       console.log('Site changed to:', site.name);
-      // Do something with the new site
-      setSelectedSite(site.name);
+      
+      setLoading(true); // Show loading state while changing site
+      setSelectedView(null); // Clear the selected view
+      setSelectedSite(site.name); // Set the new site
     };
     
     window.addEventListener('siteChange', handleSiteChange);
