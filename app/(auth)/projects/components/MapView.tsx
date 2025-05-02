@@ -187,6 +187,9 @@ const MapView = () => {
           setSelectedSites([site]);
           setActiveIndex(0);
           toast(`Viewing ${site.plant_name}`);
+          
+          // Call handleSiteChange function when a site is selected
+          handleSiteChange(site);
         });
         
         // If this location has multiple sites and we haven't added a count indicator yet, add one
@@ -239,6 +242,25 @@ const MapView = () => {
     if (selectedSites.length > 1) {
       setActiveIndex((prev) => (prev - 1 + selectedSites.length) % selectedSites.length);
     }
+  };
+
+  // Add this function inside the MapView component
+  const handleSiteChange = (site: Site) => {
+    // Store only the site name in local storage
+    localStorage.setItem('selected_site', JSON.stringify({ name: site.plant_name }));
+    console.log(`Switched to site: ${site.plant_name}`);
+    
+    // Emit a custom event for site change
+    const siteChangeEvent = new CustomEvent('siteChange', { 
+      detail: { site } 
+    });
+    window.dispatchEvent(siteChangeEvent);
+    
+    // Trigger a dropdown selection event for the navbar
+    const navbarSiteChangeEvent = new CustomEvent('navbarSiteChange', {
+      detail: { siteName: site.plant_name }
+    });
+    window.dispatchEvent(navbarSiteChangeEvent);
   };
 
   return (

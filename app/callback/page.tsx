@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useRouter } from 'next/navigation';
-import { getUserInfo, selectCustomer } from '@/lib/auth';
+import { createUserSession, getUserInfo, selectCustomer } from '@/lib/auth';
 import { api } from '@/lib/api';
 export default function CallbackPage() {
   const { 
@@ -43,6 +43,8 @@ export default function CallbackPage() {
           let userInfoResponse;
           try {
             userInfoResponse = await getUserInfo();
+            const sessionResponse = await createUserSession();
+            console.log('sessionResponse', sessionResponse);
             console.log('userInfoResponse', userInfoResponse);
             console.log('getUserInfo call succeeded');
           } catch (error) {

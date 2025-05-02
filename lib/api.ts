@@ -109,18 +109,36 @@ class ApiClient {
     }
   }
 
-  public logout(): void {
+  public async logout(): Promise<void> {
+    // Get the session ID from localStorage
+    const sessionId = typeof window !== 'undefined' ? localStorage.getItem('session_id') : null;
+    
+    // Call the logout endpoint if session ID is available
+    if (sessionId) {
+      try {
+        console.log("logging out user session", {sessionId});
+        // Wait for the API call to complete before continuing
+        await this.post('/v2/user/session/logout/', { session_id: sessionId });
+      } catch (error) {
+        console.error("Error logging out session:", error);
+        // Continue with logout even if API call fails
+      }
+    }
+    
+    // Clear tokens and local storage
     this.accessToken = null;
     this.idToken = null;
     this.csId = null;
+    
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('id_token');
       localStorage.removeItem('selected_customer');
       localStorage.removeItem('user');
       localStorage.removeItem('customer_id');
+      localStorage.removeItem("session_id");
 
-      // Redirect to root
+      // Only redirect after everything else is done
       window.location.href = '/';
     }
   }
