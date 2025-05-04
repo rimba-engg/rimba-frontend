@@ -219,7 +219,7 @@ export default function DataSubstitutionPage() {
           <Card className="w-full">
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
-                <span>Missing Data Points</span>
+                <span>Data Validation Results</span>
                 {validationData.missing.length > 0 && (
                   <Button 
                     onClick={handleSubstituteAll}
@@ -231,10 +231,12 @@ export default function DataSubstitutionPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {validationData.missing.length === 0 ? (
+              {validationData.missing.length === 0 && 
+               (!validationData.out_of_range || validationData.out_of_range.length === 0) && 
+               (!validationData.duplicates || validationData.duplicates.length === 0) ? (
                 <div className="flex items-center justify-center p-6 bg-green-50 rounded-lg">
                   <CheckCircle2 className="mr-2 text-green-600" size={24} />
-                  <span className="text-green-800 font-medium">Hurray! No missing data points found in the selected time range</span>
+                  <span className="text-green-800 font-medium">Hurray! No data issues found in the selected time range</span>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -248,35 +250,107 @@ export default function DataSubstitutionPage() {
                     <span>{validationData.site_name}</span>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Missing Data Points:</span>
-                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
-                      {validationData.missing.length}
-                    </span>
+                  <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Missing:</span>
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
+                        {validationData.missing.length}
+                      </span>
+                    </div>
+                    
+                    {validationData.out_of_range && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Out of Range:</span>
+                        <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm">
+                          {validationData.out_of_range.length}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {validationData.duplicates && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Duplicates:</span>
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          {validationData.duplicates.length}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-4">
-                    <h3 className="text-lg font-medium mb-2 flex items-center">
-                      <ClockIcon className="mr-2 text-yellow-500" size={18} />
-                      Missing Timestamps
-                    </h3>
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                      {validationData.missing.map((timestamp) => (
-                        <div 
-                          key={timestamp} 
-                          className="bg-gray-50 p-3 rounded flex justify-between items-center"
-                        >
-                          <span>{timestamp}</span>
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleSubstitute(timestamp)}
+                  {validationData.missing.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-lg font-medium mb-2 flex items-center">
+                        <ClockIcon className="mr-2 text-yellow-500" size={18} />
+                        Missing Timestamps
+                      </h3>
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {validationData.missing.map((timestamp) => (
+                          <div 
+                            key={timestamp} 
+                            className="bg-gray-50 p-3 rounded flex justify-between items-center"
                           >
-                            Substitute
-                          </Button>
-                        </div>
-                      ))}
+                            <span>{timestamp}</span>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleSubstitute(timestamp)}
+                            >
+                              Substitute
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  
+                  {validationData.out_of_range && validationData.out_of_range.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-lg font-medium mb-2 flex items-center">
+                        <AlertTriangle className="mr-2 text-orange-500" size={18} />
+                        Out of Range Timestamps
+                      </h3>
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {validationData.out_of_range.map((timestamp) => (
+                          <div 
+                            key={timestamp} 
+                            className="bg-gray-50 p-3 rounded flex justify-between items-center"
+                          >
+                            <span>{timestamp}</span>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleSubstitute(timestamp)}
+                            >
+                              Substitute
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {validationData.duplicates && validationData.duplicates.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-lg font-medium mb-2 flex items-center">
+                        <AlertTriangle className="mr-2 text-blue-500" size={18} />
+                        Duplicate Timestamps
+                      </h3>
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {validationData.duplicates.map((timestamp) => (
+                          <div 
+                            key={timestamp} 
+                            className="bg-gray-50 p-3 rounded flex justify-between items-center"
+                          >
+                            <span>{timestamp}</span>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleSubstitute(timestamp)}
+                            >
+                              Substitute
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
