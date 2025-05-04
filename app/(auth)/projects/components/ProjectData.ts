@@ -82,7 +82,7 @@ export const projectsData = [
         "summary": "Located at Trillium Hill Farm in Wisconsin, Three Petals RNG began construction in July 2022 and started commercial operations in October 2023. The project captures biogas from dairy operations and upgrades it to renewable natural gas."
       },
       {
-        "plant_name": "Buck Horn",
+        "plant_name": "Buckhorn",
         "city": "Wisconsin",
         "state": "WI",
         "latitude": 44.5,
