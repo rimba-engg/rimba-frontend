@@ -58,7 +58,7 @@ export function Navbar() {
       
       setSites([
         { name: 'West Branch' },
-        { name: 'Buck Horn' },
+        { name: 'Buckhorn' },
         {name: 'Red Leaf'},
         {name:'Three Petals'}
       ]);
