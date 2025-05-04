@@ -103,7 +103,7 @@ export default function DataSubstitutionPage() {
         view_name: selectedView.view_name
       };
 
-      const response = await api.post<ValidationResponse>('/reporting/v2/time-series/validation/', payload);
+      const response = await api.post<ValidationResponse>('/reporting/v2/time-series/missing-data-validation/', payload);
       
       if (response.status === 'success') {
         setValidationData(response.data);
