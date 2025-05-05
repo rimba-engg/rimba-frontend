@@ -54,8 +54,6 @@ const initialMessages: Message[] = [
   }
 ];
 
-const suggestedQuestions = [];
-
 export default function RegsQAPage() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
@@ -86,12 +84,11 @@ export default function RegsQAPage() {
     fetchSuggestedQuestions();
   }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim()) {
+      console.log('no input: ', input);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -279,7 +276,10 @@ export default function RegsQAPage() {
     }
   };
 
-  const handleSuggestedQuestion = (question: string) => {
+  const handleSuggestedQuestion = async (question: string) => {
+    // remove suggestions
+    setQuestions([]);
+    // set input to suggested question
     setInput(question);
   };
 
@@ -310,20 +310,15 @@ export default function RegsQAPage() {
   return (
     <div className="flex h-[calc(100vh-8rem)]">
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 text-base">
           {messages.map((message) => (
             <div
               key={message.id}
               className={cn(
-                'flex gap-3 max-w-[80%]',
-                message.type === 'user' ? 'ml-auto' : ''
+                'flex gap-3',
+                message.type === 'user' ? 'justify-end' : 'justify-start'
               )}
             >
-              {message.type === 'bot' && (
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-primary" />
-                </div>
-              )}
               <div
                 className={cn(
                   'rounded-lg p-4',
@@ -336,22 +331,7 @@ export default function RegsQAPage() {
                   ? renderMessageContent(message, handleShowCitation) 
                   : <div className="whitespace-pre-wrap">{message.content}</div>
                 }
-                <div
-                  className={cn(
-                    'text-xs mt-2',
-                    message.type === 'user'
-                      ? 'text-primary-foreground/70'
-                      : 'text-muted-foreground'
-                  )}
-                >
-                  {new Date(message.timestamp).toLocaleTimeString()}
-                </div>
               </div>
-              {message.type === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-primary-foreground" />
-                </div>
-              )}
             </div>
           ))}
           {isTyping && (
@@ -398,7 +378,7 @@ export default function RegsQAPage() {
           </div>
         )}
 
-        <div className="p-4 border-t bg-background">
+        <div className="p-4 bg-background">
           <div className="mb-4">
             <div className="flex flex-wrap gap-2">
               {questions.map((question) => (
@@ -418,7 +398,7 @@ export default function RegsQAPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Type your question here..."
+              placeholder="Ask any question..."
               className="flex-1"
             />
             <Button onClick={handleSend} className="bg-primary hover:bg-primary/90">
