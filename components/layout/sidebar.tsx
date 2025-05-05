@@ -24,11 +24,14 @@ import {
   LineChart,
   GitGraph,
   Shield,
+  BookCheck,
+  ChartCandlestick,
+  Landmark,
   Calculator,
   CloudCog,
-  Settings,
   Puzzle,
   Map,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -38,27 +41,41 @@ interface MenuItem {
   icon: any;
   label: string;
   href: string;
+  border?: boolean;
 }
 
 interface MenuGroup {
   icon: any;
   label: string;
   items: MenuItem[];
+  border?: boolean;
 }
 
 const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Customer | null): (MenuItem | MenuGroup)[] => [
   { icon: Rocket, label: 'Onboarding', href: '/onboarding' },
-  { icon: ClipboardCheck, label: 'Audit Manager', href: '/audit/projects' },
+  { icon: Map, label: 'Projects', href: '/projects', },
+  { icon: ClipboardCheck, label: 'Log of Issues', href: '/audit/projects' },
+  {
+    icon: Landmark,
+    label: 'Compliance',
+    items: [
+      { icon: BookCheck, label: 'Standards', href: '/standards' },
+      { icon: ScrollText, label: 'Reg. Search', href: '/regsqa' },
+      { icon: Calendar, label: 'Calendar', href: '/compliance/calendar' },
+    ],
+    border: true,
+  },
+  
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management' }] : []),
   ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
   {
     icon: Library,
-    label: 'Library',
+    label: 'Assets',
     items: [
-      { icon: FileText, label: 'Documents', href: '/library/documents' },
+      { icon: FileText, label: 'Documents', href: '/library/documents' }, 
       { icon: FileText, label: 'Extractions', href: '/library/extractions' },
-      { icon: Download, label: 'Incoming', href: '/library/incomings' },
-      { icon: Upload, label: 'Outgoing', href: '/library/outgoings' },
+      { icon: Download, label: 'Inventory', href: '/library/incomings' },
+      { icon: Upload, label: 'Allocation', href: '/library/outgoings' },
     ],
   },
   ...(isRNGCustomer ? [
@@ -68,13 +85,13 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       label: 'Reporting',
       items: [
         { icon: Scale, label: 'Gas Balance', href: '/reporting/rng-mass-balance' },
+        { icon: FileText, label: 'Data Substitution', href: '/reporting/data-substitution' },
         // { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
         { icon: FileText, label: 'CI Calculator', href: '/reporting/ci-calculator' },
       ],
     },
-    { icon: Map, label: 'Projects', href: '/projects' },
   ] : [
     // non RNG Case
     {
@@ -88,8 +105,6 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     ],
   },
   ]),
-  { icon: Brain, label: 'AI Extractor', href: '/ai-extractor' },
-  { icon: ScrollText, label: 'RegsQA', href: '/regsqa' },
   {
     icon: Calculator,
     label: 'GHG',
@@ -97,7 +112,9 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       { icon: CloudCog, label: 'RNG CI', href: '/ci_calculator' },
     ],
   },
-  { icon: Puzzle, label: 'Integrations', href: '/integrations' },
+  { icon: ChartCandlestick, label: 'Registries', href: '/registries' },
+  { icon: Brain, label: 'AI Extractor', href: '/ai-extractor', border: true },
+  { icon: Puzzle, label: 'Integrations', href: '/integrations'},
 ];
 
 
@@ -125,6 +142,7 @@ export function Sidebar() {
 
   const renderMenuItem = (item: MenuItem | MenuGroup) => {
     if ('items' in item) {
+      // Group Submenu
       const isExpanded = expandedGroup === item.label;
       const isGroupActive = item.items.some(subItem => isItemActive(subItem.href));
       const Icon = item.icon;
@@ -134,25 +152,27 @@ export function Sidebar() {
           <button
             onClick={() => toggleGroup(item.label)}
             className={cn(
-              'w-full flex items-center gap-2 px-3 py-2 rounded-md mb-1 text-gray-600 hover:bg-gray-100 transition-colors',
+              'w-full flex items-center gap-2 px-3 py-2 rounded-md mb-1 text-gray-600 hover:bg-gray-100 transition-colors text-base',
               isGroupActive && 'text-primary',
-              collapsed ? 'justify-center' : ''
+              collapsed ? 'justify-center' : '',
+              item.border ? 'border-t' : ''
             )}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-4 h-4" />
             {!collapsed && (
-              <>
+              <div className="flex flex-row items-center justify-between w-full">
                 <span>{item.label}</span>
                 <ChevronRight className={cn(
                   'w-4 h-4 transition-transform',
                   isExpanded && 'transform rotate-90'
                 )} />
-              </>
+              </div>
             )}
           </button>
           {isExpanded && !collapsed && (
             <div className="ml-4 space-y-1">
               {item.items.map(subItem => {
+                // items in group submenu
                 const SubIcon = subItem.icon;
                 const isActive = isItemActive(subItem.href);
                 return (
@@ -165,7 +185,7 @@ export function Sidebar() {
                     )}
                   >
                     <SubIcon className="w-4 h-4" />
-                    <span>{subItem.label}</span>
+                    <span className="text-base">{subItem.label}</span>
                   </Link>
                 );
               })}
@@ -183,15 +203,23 @@ export function Sidebar() {
         key={item.href}
         href={item.href}
         className={cn(
-          'flex items-center gap-2 px-3 py-2 rounded-md mb-1 text-gray-600 hover:bg-gray-100 transition-colors',
+          'flex items-center gap-2 px-3 py-2 mb-1 text-gray-600 hover:bg-gray-100 transition-colors text-base',
           isActive && 'text-primary bg-primary/5',
-          collapsed ? 'justify-center' : ''
+          collapsed ? 'justify-center' : '',
+          item.border ? 'border-t' : ''
         )}
       >
-        <Icon className="w-5 h-5" />
+        <Icon className="w-4 h-4" />
         {!collapsed && <span>{item.label}</span>}
       </Link>
     );
+  };
+
+  const getLogo = () => {
+    if (!collapsed) 
+      return <a href="/">
+        <img src="https://cmlvdwcarxngwmualiyn.supabase.co/storage/v1/object/public/vertex-assets//logo-with-text-white.jpg" alt="Rimba Logo" className="h-8" />
+      </a>;
   };
 
   return (
@@ -202,9 +230,7 @@ export function Sidebar() {
       )}
     >
       <div className="p-2 flex items-center justify-between border-b">
-        {!collapsed && (
-          <p>{customerData?.name.toUpperCase()}</p>
-        )}
+        {getLogo()}
         <Button
           variant="ghost"
           size="icon"

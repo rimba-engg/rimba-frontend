@@ -180,7 +180,6 @@ export default function RngMassBalancePage() {
       toast.success('Mass balance data loaded successfully');
     }
   };
-
     // In any other component
   useEffect(() => {
     const handleSiteChange = (event: any) => {
@@ -205,7 +204,11 @@ export default function RngMassBalancePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${selectedView?.view_name}.csv`;
+    var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+    var site_name = selected_site.name;
+    var filename = `${selectedView?.view_name}_${site_name}_${startDate}_${endDate}.csv`;
+    console.log(filename);
+    a.download = filename;
     a.click();
   };
 
