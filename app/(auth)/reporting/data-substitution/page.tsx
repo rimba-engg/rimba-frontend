@@ -43,6 +43,8 @@ export default function DataSubstitutionPage() {
   const [endDate, setEndDate] = useState<string>('');
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [validationData, setValidationData] = useState<ValidationResponse['data'] | null>(null);
+  const [substituting, setSubstituting] = useState(false);
+  const [substitutingAll, setSubstitutingAll] = useState(false);
 
   useEffect(() => {
     fetchViews();
@@ -120,16 +122,100 @@ export default function DataSubstitutionPage() {
     }
   };
 
-  const handleSubstitute = (timestamp: string) => {
-    toast.info(`Substitution for ${timestamp} would happen here`);
-    // Implement actual substitution functionality here
+  const handleSubstitute = async (timestamp: string) => {
+    try {
+      setSubstituting(true);
+      
+      if (!selectedView) {
+        throw new Error('No view selected');
+      }
+
+      const payload = {
+        site_name: selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name,
+        view_name: selectedView.view_name,
+        timestamps: [timestamp]
+      };
+
+      const response = await api.post<{
+        status: string;
+        message?: string;
+        data: {
+          total_substituted: number;
+        }
+      }>('/reporting/v2/time-series/missing-data-validation/substitute/', payload);
+      
+      if (response.status === 'success') {
+        toast.success(response.message || `Successfully substituted data for ${timestamp}`);
+        
+        // Update validation data to remove the substituted timestamp
+        if (validationData && response.data.total_substituted > 0) {
+          setValidationData({
+            ...validationData,
+            missing: validationData.missing.filter(t => t !== timestamp)
+          });
+        }
+      } else {
+        throw new Error(response.message || 'Substitution failed');
+      }
+    } catch (err: any) {
+      console.error('Error substituting data:', err);
+      toast.error(err.message || 'Failed to substitute data');
+    } finally {
+      setSubstituting(false);
+    }
   };
 
-  const handleSubstituteAll = () => {
-    if (!validationData || validationData.missing.length === 0) return;
+  const handleSubstituteAll = async () => {
+    if (!validationData || validationData.missing.length === 0 || !selectedView) return;
     
-    toast.info(`Substituting all ${validationData.missing.length} missing data points`);
-    // Implement batch substitution functionality here
+    try {
+      setSubstitutingAll(true);
+      
+      const payload = {
+        site_name: selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name,
+        view_name: selectedView.view_name,
+        timestamps: validationData.missing
+      };
+
+      const response = await api.post<{
+        status: string;
+        message?: string;
+        data: {
+          total_substituted: number;
+          substituted_entries: string[];
+        }
+      }>('/reporting/v2/time-series/missing-data-validation/substitute/', payload);
+      
+      if ((response).status === 'success') {
+        toast.success((response).message || `Successfully substituted ${(response).data.total_substituted} data points`);
+        
+        // Update validation data based on what was actually substituted
+        if (validationData && (await response).data.total_substituted > 0) {
+          // If all were substituted or we have the complete list of substituted entries
+          if ((response).data.total_substituted === validationData.missing.length || 
+              (response).data.substituted_entries.length === validationData.missing.length) {
+            setValidationData({
+              ...validationData,
+              missing: []
+            });
+          } else {
+            // Remove only the entries that were substituted
+            const substitutedSet = new Set((response).data.substituted_entries);
+            setValidationData({
+              ...validationData,
+              missing: validationData.missing.filter(timestamp => !substitutedSet.has(timestamp))
+            });
+          }
+        }
+      } else {
+        throw new Error((await response).message || 'Batch substitution failed');
+      }
+    } catch (err: any) {
+      console.error('Error during batch substitution:', err);
+      toast.error(err.message || 'Failed to substitute all data points');
+    } finally {
+      setSubstitutingAll(false);
+    }
   };
 
   if (loading) {
@@ -224,8 +310,16 @@ export default function DataSubstitutionPage() {
                   <Button 
                     onClick={handleSubstituteAll}
                     variant="outline"
+                    disabled={substitutingAll}
                   >
-                    Substitute All
+                    {substitutingAll ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Substituting...
+                      </>
+                    ) : (
+                      'Substitute All'
+                    )}
                   </Button>
                 )}
               </CardTitle>
@@ -293,8 +387,13 @@ export default function DataSubstitutionPage() {
                             <Button 
                               size="sm" 
                               onClick={() => handleSubstitute(timestamp)}
+                              disabled={substituting}
                             >
-                              Substitute
+                              {substituting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                'Substitute'
+                              )}
                             </Button>
                           </div>
                         ))}
@@ -318,8 +417,13 @@ export default function DataSubstitutionPage() {
                             <Button 
                               size="sm" 
                               onClick={() => handleSubstitute(timestamp)}
+                              disabled={substituting}
                             >
-                              Substitute
+                              {substituting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                'Substitute'
+                              )}
                             </Button>
                           </div>
                         ))}
@@ -343,8 +447,13 @@ export default function DataSubstitutionPage() {
                             <Button 
                               size="sm" 
                               onClick={() => handleSubstitute(timestamp)}
+                              disabled={substituting}
                             >
-                              Substitute
+                              {substituting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                'Substitute'
+                              )}
                             </Button>
                           </div>
                         ))}
