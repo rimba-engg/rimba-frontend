@@ -43,7 +43,7 @@ const requirements: Requirement[] = [
     guidance: "Keep all LCFS records for 10 years and be able to hand them over within 20 days if CARB asks.",
     task: "☐ Central archive of LCFS docs (10‑year retention)\n☐ Written 20‑day retrieval SOP",
     owner: "",
-    officialLanguage: "Any record required to be maintained under this subarticle shall be retained for ten years. All data and calculations submitted by a regulated entity for demonstrating compliance, or generating credits or deficits are subject to inspection by the Executive Officer or a verification body accredited by the Executive Officer pursuant to section 95502, and must be made available within 20 days upon request of the Executive Officer."
+    officialLanguage: "Any record required to be maintained under this subarticle shall be retained for ten years. All data and calculations submitted by a regulated entity for demonstrating compliance, or generating credits or deficits are subject to inspection by the Executive Officer or a verification body accredited by the Executive Officer pursuant to section 95502, and must be made available within 20 days upon request of the Executive Officer.",
   },
   {
     section: "§ 95491.1(c)",
@@ -51,7 +51,7 @@ const requirements: Requirement[] = [
     guidance: "",
     task: "",
     owner: "",
-    officialLanguage: "(c) Monitoring Plan for Entities Required to Validate or Verify. Each entity responsible for obtaining a validation or verification statement under this subarticle must complete and retain for review by a verifier, or the Executive Officer, a written Monitoring Plan. Entities also reporting pursuant to MRR may use a single monitoring plan for both programs, so long as all of the following elements are included and clearly identified"
+    officialLanguage: "(c) Monitoring Plan for Entities Required to Validate or Verify. Each entity responsible for obtaining a validation or verification statement under this subarticle must complete and retain for review by a verifier, or the Executive Officer, a written Monitoring Plan. Entities also reporting pursuant to MRR may use a single monitoring plan for both programs, so long as all of the following elements are included and clearly identified",
   },
   {
     section: "§ 95491.1(c)(1)(A)",

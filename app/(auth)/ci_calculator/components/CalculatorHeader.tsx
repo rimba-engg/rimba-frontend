@@ -15,9 +15,9 @@ const CalculatorHeader: React.FC<CalculatorHeaderProps> = ({ onLoadSampleData })
       <CardHeader className="bg-green-50 border-b">
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle className="text-2xl text-green-800">CI Calculator</CardTitle>
+            <CardTitle className="text-2xl text-green-800">Carbon Intensity Analysis</CardTitle>
             <CardDescription className="text-green-700 mt-1">
-              Calculate the Carbon Intensity (CI) score for renewable energy projects
+              Simulate and calculate the Carbon Intensity (CI) score for renewable energy projects
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">

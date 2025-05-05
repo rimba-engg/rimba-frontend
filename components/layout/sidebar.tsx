@@ -28,6 +28,7 @@ import {
   ChartCandlestick,
   Landmark,
   Calculator,
+  RecycleIcon,
   CloudCog,
   Puzzle,
   Map,
@@ -86,7 +87,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
         // { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
-        { icon: FileText, label: 'CI Calculator', href: '/reporting/ci-calculator' },
+        { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
       ],
     },
   ] : [
@@ -97,15 +98,14 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     items: [
       { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
       { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
-      { icon: LineChart, label: 'Vertex', href: '/reporting/vertex' },
     ],
   },
   ]),
   {
-    icon: Calculator,
+    icon: RecycleIcon,
     label: 'GHG',
     items: [
-      { icon: CloudCog, label: 'RNG CI', href: '/ci_calculator' },
+      { icon: CloudCog, label: 'CI Optimizer', href: '/ci_calculator' },
       { icon: GitGraph, label: 'Scope 2', href: '/reporting/emission-scope-2' }
     ],
   },
