@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const FormulaExplanation: React.FC = () => {
   return (
-    <Card className="calculator-step">
+    <Card className="p-4">
       <CardHeader>
         <CardTitle className="text-xl text-green-700">Calculation Methodology</CardTitle>
       </CardHeader>

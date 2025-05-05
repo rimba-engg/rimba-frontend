@@ -79,10 +79,10 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     // RNG Case
     {
       icon: BarChart3,
-      label: 'Reporting',
+      label: 'Reports',
       items: [
         { icon: Scale, label: 'Gas Balance', href: '/reporting/rng-mass-balance' },
-        { icon: FileText, label: 'Data Substitution', href: '/reporting/data-substitution' },
+        { icon: FileText, label: 'Missing Data', href: '/reporting/data-substitution' },
         // { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
@@ -98,7 +98,6 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
       { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
       { icon: LineChart, label: 'Vertex', href: '/reporting/vertex' },
-      ...(customerData?.name === 'Demo SB-253' ? [{ icon: GitGraph, label: 'Scope 2 Emissions', href: '/reporting/emission-scope-2' }] : []),
     ],
   },
   ]),
@@ -107,6 +106,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     label: 'GHG',
     items: [
       { icon: CloudCog, label: 'RNG CI', href: '/ci_calculator' },
+      { icon: GitGraph, label: 'Scope 2', href: '/reporting/emission-scope-2' }
     ],
   },
   { icon: ChartCandlestick, label: 'Registries', href: '/registries' },

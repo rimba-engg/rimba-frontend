@@ -18,9 +18,9 @@ const FuelProducedForm: React.FC<FuelProducedFormProps> = ({ fuelProduced, onCha
   };
 
   return (
-    <Card className="calculator-step">
-      <div className="calculator-step-title">
-        <span className="step-indicator">6</span>
+    <Card className="p-4">
+      <div className="font-medium text-green-800 text-xl mb-4">
+        
         Final Fuel Produced
       </div>
       

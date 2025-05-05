@@ -8,7 +8,7 @@ export default function ProjectsClient() {
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
-          <h1 className="text-4xl font-bold text-gray-950">All Projects</h1>
+          <h1 className="text-4xl font-bold text-gray-950">Project Map</h1>
         </header>
         
         <MapView />

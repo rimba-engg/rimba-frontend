@@ -1,24 +1,21 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Database } from "lucide-react";
+import { Database, DatabaseBackup } from "lucide-react";
 
 interface CalculatorHeaderProps {
   onLoadSampleData: (version: string) => void;
 }
-
-const cardHeaderStyle = "bg-green-50 border-b";
-const cardTitleStyle = "text-2xl text-green-800";
 
 const CalculatorHeader: React.FC<CalculatorHeaderProps> = ({ onLoadSampleData }) => {
   const [version, setVersion] = useState("3.0");
   
   return (
     <Card className="mb-6">
-      <CardHeader className={cardHeaderStyle}>
+      <CardHeader className="bg-green-50 border-b">
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle className={cardTitleStyle}>Carbon Intensity Calculator</CardTitle>
+            <CardTitle className="text-2xl text-green-800">CI Calculator</CardTitle>
             <CardDescription className="text-green-700 mt-1">
               Calculate the Carbon Intensity (CI) score for renewable energy projects
             </CardDescription>
@@ -29,8 +26,8 @@ const CalculatorHeader: React.FC<CalculatorHeaderProps> = ({ onLoadSampleData })
               value={version}
               onChange={(e) => setVersion(e.target.value)}
             >
-              <option value="3.0">Version 3.0</option>
-              <option value="4.0">Version 4.0</option>
+              <option value="3.0">CA GREET 3.0</option>
+              <option value="4.0">CA GREET 4.0</option>
             </select>
             <Button 
               variant="outline" 
@@ -40,15 +37,17 @@ const CalculatorHeader: React.FC<CalculatorHeaderProps> = ({ onLoadSampleData })
               <Database className="h-4 w-4" />
               Load Sample Data
             </Button>
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2 bg-white" 
+              onClick={() => {alert('Coming Soon')}}
+            >
+              <DatabaseBackup className="h-4 w-4" />
+              Load Excel
+            </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        <p className="text-muted-foreground">
-          This calculator helps determine the carbon intensity of renewable energy projects 
-          by analyzing various operational parameters. Complete all sections to generate a detailed CI result.
-        </p>
-      </CardContent>
     </Card>
   );
 };

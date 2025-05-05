@@ -49,9 +49,9 @@ const LivestockDataForm: React.FC<LivestockDataFormProps> = ({ livestockData, on
   };
 
   return (
-    <Card className="calculator-step">
-      <div className="calculator-step-title">
-        <span className="step-indicator">3</span>
+    <Card className="p-4">
+      <div className="font-medium text-green-800 text-xl mb-4">
+        
         Livestock & Feedstock Data
       </div>
       

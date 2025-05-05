@@ -20,7 +20,7 @@ const TaxCreditResults: React.FC<TaxCreditResultsProps> = ({ results, biomethane
 
   if (!results) {
     return (
-      <Card className="calculator-step">
+      <Card className="p-4">
         <CardHeader>
           <CardTitle className="text-xl text-green-700">Tax Credit Calculation</CardTitle>
         </CardHeader>
@@ -56,7 +56,7 @@ const TaxCreditResults: React.FC<TaxCreditResultsProps> = ({ results, biomethane
   const totalCredit = creditPerMMBtu * biomethaneProduced;
 
   return (
-    <Card className="calculator-step">
+    <Card className="p-4">
       <CardHeader>
         <CardTitle className="text-xl text-green-700">Inflation Reduction Act Tax Credit</CardTitle>
       </CardHeader>
