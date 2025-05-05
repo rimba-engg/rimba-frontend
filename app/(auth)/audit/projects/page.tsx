@@ -10,6 +10,7 @@ import { AddColumnModal } from './components/modals/add-column-modal';
 import { api, BASE_URL ,defaultHeaders} from '@/lib/api';
 import { type ColumnSchema, type Checklist } from '@/lib/types';
 import { AllChecklistSidebar } from './components/checklist-sidebar';
+import { getStoredCustomer } from '@/lib/auth';
 
 interface ChecklistResponse {
   data: {
@@ -57,6 +58,8 @@ export default function ProjectsPage() {
   const [columns, setColumns] = useState<ColumnSchema[]>(defaultColumns);
   const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const customer = getStoredCustomer();
+  const isBrightMark = customer?.name === "Brightmark";
 
   useEffect(() => {
     fetchChecklists();
@@ -239,14 +242,14 @@ export default function ProjectsPage() {
                 className="hidden"
                 accept=".csv,.xlsx,.xls"
               />
-              <button
+              {/* <button
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
                 disabled={isSubmitting}
               >
                 <RefreshCw size={16} className={isSubmitting ? "animate-spin" : ""} />
                 Bulk Upload Projects
-              </button>
+              </button> */}
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"

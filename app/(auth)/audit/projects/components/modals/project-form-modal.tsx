@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { type Checklist } from '@/lib/types';
 import { api } from '@/lib/api';
+import { getStoredCustomer } from '@/lib/auth';
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -31,6 +32,8 @@ export function ProjectFormModal({
   >([]);
   // A state to track the loading status during submission.
   const [loading, setLoading] = useState(false);
+  const customer = getStoredCustomer();
+  const isBrightMark = customer?.name === "Brightmark";
 
   // Fetch available projects when the modal is open and in "create" mode.
   useEffect(() => {
@@ -100,7 +103,9 @@ export function ProjectFormModal({
             </div>
           </div>
 
-          {/* Dropdown for project selection (only in create mode) */}
+          {isBrightMark && (
+            <>
+            {/* Dropdown for project selection (only in create mode) */}
           {mode === 'create' && (
             <div className="space-y-2">
               <Label htmlFor="projectSelect">Project</Label>
@@ -118,6 +123,8 @@ export function ProjectFormModal({
                 ))}
               </select>
             </div>
+          )}
+          </>
           )}
 
           {mode === 'edit' && (

@@ -14,7 +14,7 @@ interface UsersTableProps {
 export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
   const customer = getStoredCustomer();
   const customerName = customer?.name;
-
+  const isBrightMark = customerName === "Brightmark";
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'ADMIN':
@@ -33,8 +33,12 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
           <tr className="border-b">
             <th className="text-left py-3 px-4">User</th>
             <th className="text-left py-3 px-4">Role</th>
-            <th className="text-left py-3 px-4">Partner</th> 
-            <th className="text-left py-3 px-4">Projects Sites</th>
+            {isBrightMark && (
+              <>
+                <th className="text-left py-3 px-4">Partner</th> 
+                <th className="text-left py-3 px-4">Projects Sites</th>
+              </>
+            )}
             <th className="text-left py-3 px-4">Status</th>
             <th className="text-left py-3 px-4">Actions</th>
           </tr>
@@ -60,9 +64,11 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
                   {user.role}
                 </span>
               </td>
-              <td className="py-3 px-4">
-                {user.role === 'ADMIN' && customerName === 'Brightmark' ? (
-                  <div className="flex flex-wrap gap-1">
+              {isBrightMark && (
+                <>
+                  <td className="py-3 px-4">
+                    {user.role === 'ADMIN' && customerName === 'Brightmark' ? (
+                      <div className="flex flex-wrap gap-1">
                     {['US GAIN', 'CHEVRON'].map((project, index) => (
                       <span
                         key={index}
@@ -90,6 +96,8 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
                   ))}
                 </div>
               </td>
+              </>
+              )}
               <td className="py-3 px-4">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
