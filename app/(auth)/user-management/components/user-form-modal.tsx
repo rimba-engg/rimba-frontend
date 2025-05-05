@@ -14,6 +14,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { type UserFormData, type Project } from '../types';
 import { type Checklist } from '@/lib/types';
+import { getStoredCustomer } from '@/lib/auth';
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -38,6 +39,10 @@ export function UserFormModal({
 }: UserFormModalProps) {
   if (!isOpen) return null;
 
+  const customer = getStoredCustomer();
+  console.log(customer?.name);
+  const isBrightMark = customer?.name === "Brightmark";
+  
   console.log(formData);
 
   const handleChecklistToggle = (checklistId: string, checklistName: string) => {
@@ -138,26 +143,29 @@ export function UserFormModal({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="project">Partner</Label>
-            <Select
-              value={formData.project}
-              onValueChange={(value) => onChange('project', value)}
-            >
-              <SelectTrigger id="project">
-                <SelectValue placeholder="Select project">
-                  {formData.project}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.name} value={project.name}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isBrightMark && (
+            <>
+            <div className="space-y-2">
+              <Label htmlFor="project">Partner</Label>
+              <Select
+                value={formData.project}
+                onValueChange={(value) => onChange('project', value)}
+              >
+                <SelectTrigger id="project">
+                  <SelectValue placeholder="Select project">
+                    {formData.project}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.name} value={project.name}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+         
 
           <div className="space-y-2">
             <Label>Allowed Projects Sites</Label>
@@ -179,6 +187,9 @@ export function UserFormModal({
               ))}
             </div>
           </div>
+          </>
+
+            )}
 
           <div className="flex justify-end gap-3 mt-6">
             <Button
