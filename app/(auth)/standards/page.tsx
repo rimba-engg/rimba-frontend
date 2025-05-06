@@ -94,6 +94,76 @@ const standards: Standard[] = [
     },
     imageUrl: "https://cmlvdwcarxngwmualiyn.supabase.co/storage/v1/object/public/rimba-website-assets//Canada_clean_fuels.webp",
     officialLink: "https://www.canada.ca/en/environment-climate-change/services/managing-pollution/energy-production/fuel-regulations/clean-fuel-regulations.html"
+  },
+  {
+    name: "Cap-and-Trade Program",
+    description: "California's market-based approach to reducing greenhouse gas emissions across multiple sectors.",
+    progress: 0,
+    target: "2025",
+    status: "on-track",
+    isActive: false,
+    metadata: {
+      type: "Climate Program",
+      region: "California"
+    },
+    imageUrl: "https://cmlvdwcarxngwmualiyn.supabase.co/storage/v1/object/public/rimba-website-assets//CARB.png",
+    officialLink: "https://ww2.arb.ca.gov/our-work/programs/cap-and-trade-program"
+  },
+  {
+    name: "Advanced Clean Cars Program",
+    description: "A suite of standards to reduce smog-forming emissions and greenhouse gases from cars and light trucks.",
+    progress: 0,
+    target: "2025",
+    status: "on-track",
+    isActive: false,
+    metadata: {
+      type: "Vehicle Standard",
+      region: "California"
+    },
+    imageUrl: "https://cmlvdwcarxngwmualiyn.supabase.co/storage/v1/object/public/rimba-website-assets//CARB.png",
+    officialLink: "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-cars-program"
+  },
+  {
+    name: "Advanced Clean Trucks",
+    description: "Regulation to transition medium- and heavy-duty trucks to zero-emission vehicles.",
+    progress: 0,
+    target: "2025",
+    status: "on-track",
+    isActive: false,
+    metadata: {
+      type: "Vehicle Standard",
+      region: "California"
+    },
+    imageUrl: "https://cmlvdwcarxngwmualiyn.supabase.co/storage/v1/object/public/rimba-website-assets//CARB.png",
+    officialLink: "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-trucks"
+  },
+  {
+    name: "Advanced Clean Fleets",
+    description: "Aims to accelerate the adoption of zero-emission vehicles in public and private fleets.",
+    progress: 0,
+    target: "2025",
+    status: "on-track",
+    isActive: false,
+    metadata: {
+      type: "Fleet Program",
+      region: "California"
+    },
+    imageUrl: "https://cmlvdwcarxngwmualiyn.supabase.co/storage/v1/object/public/rimba-website-assets//CARB.png",
+    officialLink: "https://ww2.arb.ca.gov/our-work/programs/advanced-clean-fleets"
+  },
+  {
+    name: "SB 375",
+    description: "Sustainable Communities and Climate Protection Act to reduce greenhouse gas emissions through coordinated transportation and land use planning.",
+    progress: 0,
+    target: "2025",
+    status: "on-track",
+    isActive: false,
+    metadata: {
+      type: "Climate Program",
+      region: "California"
+    },
+    imageUrl: "https://cmlvdwcarxngwmualiyn.supabase.co/storage/v1/object/public/rimba-website-assets//CARB.png",
+    officialLink: "https://ww2.arb.ca.gov/our-work/programs/sustainable-communities-climate-protection-program"
   }
 ];
 
@@ -109,11 +179,11 @@ export default function StandardsPage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Compliance Standards</h1>
+    <div className="container mx-auto py-4">
+      <h1 className="text-3xl font-bold">Regulatory Credit Programs</h1>
       
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="mb-8">
+        <TabsList className="my-4">
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="available">Available</TabsTrigger>
         </TabsList>
