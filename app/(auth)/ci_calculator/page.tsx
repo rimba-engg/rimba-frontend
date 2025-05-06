@@ -136,7 +136,7 @@ const CICalculator: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto p-4">
       <CalculatorHeader onLoadSampleData={loadSampleData} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

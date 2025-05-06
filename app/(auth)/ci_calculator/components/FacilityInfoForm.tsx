@@ -19,8 +19,8 @@ const FacilityInfoForm: React.FC<FacilityInfoFormProps> = ({ facilityInfo, onCha
   };
 
   return (
-    <Card className="calculator-step">
-      <div className="calculator-step-title">
+    <Card className="p-4">
+      <div className="font-medium text-green-800 text-xl mb-4">
         <span className="step-indicator"></span>
         Applicant & Facility Information
       </div>

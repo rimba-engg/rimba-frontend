@@ -18,39 +18,94 @@ interface ImportantDate {
 
 // Dummy data for important dates
 const importantDates: ImportantDate[] = [
+  // Jan – Mar
   {
     id: '1',
-    title: 'LCFS Q1 Report Due',
-    date: new Date(2024, 3, 30), // April 30, 2024
+    title: 'LCFS Q4 final; AFPR deadline; RFS Q4 reports',
+    date: new Date(new Date().getFullYear(), 2, 31), // Mar 31
     type: 'deadline',
-    description: 'Quarterly report submission deadline for LCFS compliance'
+    description: 'LCFS Q4 final, AFPR deadline, and RFS Q4 reports due.'
   },
+  // Apr – Jun
   {
     id: '2',
-    title: 'Annual Verification',
-    date: new Date(2024, 5, 15), // June 15, 2024
-    type: 'event',
-    description: 'Annual verification audit for LCFS compliance'
+    title: 'LCFS Annual Compliance & MCON',
+    date: new Date(new Date().getFullYear(), 3, 30), // Apr 30
+    type: 'deadline',
+    description: 'LCFS Annual Compliance and MCON due.'
   },
   {
     id: '3',
-    title: 'EPA GHG Report Due',
-    date: new Date(2024, 2, 31), // March 31, 2024
+    title: 'LCFS Q1 upload',
+    date: new Date(new Date().getFullYear(), 4, 15), // May 15
     type: 'deadline',
-    description: 'Annual greenhouse gas report submission deadline'
+    description: 'LCFS Q1 upload deadline.'
   },
   {
     id: '4',
-    title: 'Compliance Training',
-    date: new Date(2024, 4, 20), // May 20, 2024
-    type: 'reminder',
-    description: 'Annual compliance training session for staff'
-  }
+    title: 'RFS Q1 due; CCM list',
+    date: new Date(new Date().getFullYear(), 5, 1), // Jun 1
+    type: 'deadline',
+    description: 'RFS Q1 due and CCM list deadline.'
+  },
+  {
+    id: '5',
+    title: 'RFS Attest & Outlook',
+    date: new Date(new Date().getFullYear(), 5, 1), // Jun 1
+    type: 'deadline',
+    description: 'RFS Attest and Outlook deadline.'
+  },
+  // Jul – Sep
+  {
+    id: '6',
+    title: 'CCM closes',
+    date: new Date(new Date().getFullYear(), 6, 31), // Jul 31
+    type: 'event',
+    description: 'CCM closes.'
+  },
+  {
+    id: '7',
+    title: 'LCFS Q2 upload',
+    date: new Date(new Date().getFullYear(), 7, 14), // Aug 14
+    type: 'deadline',
+    description: 'LCFS Q2 upload deadline.'
+  },
+  {
+    id: '8',
+    title: 'LCFS verification statements',
+    date: new Date(new Date().getFullYear(), 7, 31), // Aug 31
+    type: 'event',
+    description: 'LCFS verification statements due.'
+  },
+  // Oct – Dec
+  {
+    id: '9',
+    title: 'LCFS Q2 final',
+    date: new Date(new Date().getFullYear(), 8, 30), // Sep 30
+    type: 'deadline',
+    description: 'LCFS Q2 final deadline.'
+  },
+  {
+    id: '10',
+    title: 'RFS Q3 due',
+    date: new Date(new Date().getFullYear(), 11, 1), // Dec 1
+    type: 'deadline',
+    description: 'RFS Q3 due.'
+  },
+  {
+    id: '11',
+    title: 'LCFS Q3 final',
+    date: new Date(new Date().getFullYear(), 11, 31), // Dec 31
+    type: 'deadline',
+    description: 'LCFS Q3 final deadline.'
+  },
 ];
 
 export default function CalendarPage() {
   const today = new Date();
   const [monthOffset, setMonthOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const nextEvent = importantDates
     .filter(date => date.date > today)
@@ -81,21 +136,51 @@ export default function CalendarPage() {
     }
   };
 
-  // Function to check if a date has an event
-  const hasEvent = (date: Date) => {
-    return importantDates.some(event => isSameDay(event.date, date));
-  };
-
   // Function to get events for a specific date
   const getEventsForDate = (date: Date) => {
-    return importantDates.filter(event => isSameDay(event.date, date));
+    return importantDates.filter(event => isSameDay(new Date(event.date), new Date(date)));
   };
+
+  // Helper to get events for the selected date
+  const selectedEvents = selectedDate ? getEventsForDate(selectedDate) : [];
 
   return (
     <div className="container mx-auto py-8">
+      {/* Centered Popover/Modal for important dates */}
+      {popoverOpen && selectedDate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30"
+          onClick={() => setPopoverOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={() => setPopoverOpen(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <div className="space-y-4">
+              {selectedEvents.length > 0 ? (
+                selectedEvents.map((event) => (
+                  <div key={event.id}>
+                    <div className="font-semibold">{format(event.date, 'MMMM d, yyyy')}</div>
+                    <div className="text-sm text-gray-600">{event.description}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-gray-500">No events for this date.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Calendar Section */}
         <div className="md:col-span-2">
+          {/* Calendar Section */}
           <Card>
             <CardHeader>
               <CardTitle>Compliance Calendar</CardTitle>
@@ -112,18 +197,25 @@ export default function CalendarPage() {
                     components={{
                       DayContent: ({ date }) => {
                         const events = getEventsForDate(date);
+                        const hasEvent = events.length > 0;
+                        const eventColor = hasEvent ? getEventColor(events[0].type) : '';
+                        if (hasEvent) {
+                          return (
+                            <span
+                              className={cn(
+                                `cursor-pointer border-4 ${eventColor} rounded-full px-2 py-0.5 text-base font-bold transition-colors duration-150`)
+                              }
+                              onClick={() => {
+                                setSelectedDate(date);
+                                setPopoverOpen(true);
+                              }}
+                            >
+                              {format(date, 'd')}
+                            </span>
+                          );
+                        }
                         return (
-                          <div className="relative">
-                            <span>{format(date, 'd')}</span>
-                            {events.length > 0 && (
-                              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-                                <div className={cn(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  getEventColor(events[0].type)
-                                )} />
-                              </div>
-                            )}
-                          </div>
+                          <span className="text-base">{format(date, 'd')}</span>
                         );
                       },
                     }}
@@ -147,12 +239,9 @@ export default function CalendarPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Important Dates Section */}
-        <div className="space-y-6">
           {/* Next Event Countdown */}
-          <Card>
+          <Card className="mt-4 w-fit">
             <CardHeader>
               <CardTitle>Next Event</CardTitle>
             </CardHeader>
@@ -177,14 +266,17 @@ export default function CalendarPage() {
               )}
             </CardContent>
           </Card>
+        </div>
 
+        {/* Important Dates Section */}
+        <div className="space-y-6">
           {/* Important Dates List */}
           <Card>
             <CardHeader>
               <CardTitle>Important Dates</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[70vh]">
                 <div className="space-y-4">
                   {importantDates.map((date) => (
                     <div

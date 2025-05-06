@@ -19,9 +19,9 @@ const EnergyDataForm: React.FC<EnergyDataFormProps> = ({ energyData, onChange })
   };
 
   return (
-    <Card className="calculator-step">
-      <div className="calculator-step-title">
-        <span className="step-indicator">5</span>
+    <Card className="p-4">
+      <div className="font-medium text-green-800 text-xl mb-4">
+        
         Energy & Fuel Inputs
       </div>
       

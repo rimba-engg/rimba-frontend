@@ -66,7 +66,7 @@ const ResultsCharts: React.FC<ResultsChartsProps> = ({ results }) => {
   };
 
   return (
-    <Card className="calculator-step">
+    <Card className="p-4">
       <CardHeader>
         <CardTitle className="text-xl text-green-700">Visualization Charts</CardTitle>
       </CardHeader>

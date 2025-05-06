@@ -11,7 +11,7 @@ interface CalculationResultsProps {
 const CalculationResults: React.FC<CalculationResultsProps> = ({ results }) => {
   if (!results) {
     return (
-      <Card className="calculator-step">
+      <Card className="p-4">
         <CardHeader>
           <CardTitle className="text-xl text-green-700">Results</CardTitle>
         </CardHeader>
@@ -25,7 +25,7 @@ const CalculationResults: React.FC<CalculationResultsProps> = ({ results }) => {
   }
 
   return (
-    <Card className="calculator-step">
+    <Card className="p-4">
       <CardHeader>
         <CardTitle className="text-xl text-green-700">Carbon Intensity Results</CardTitle>
       </CardHeader>

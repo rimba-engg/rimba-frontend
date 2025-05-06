@@ -18,9 +18,9 @@ const BiogasDataForm: React.FC<BiogasDataFormProps> = ({ biogasData, onChange })
   };
 
   return (
-    <Card className="calculator-step">
-      <div className="calculator-step-title">
-        <span className="step-indicator">4</span>
+    <Card className="p-4">
+      <div className="font-medium text-green-800 text-xl mb-4">
+        
         Biogas & Upgrading Inputs
       </div>
       

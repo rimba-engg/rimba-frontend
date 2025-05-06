@@ -75,6 +75,7 @@ const MapView = () => {
     
     console.log("filteredSites", filteredSites);
     setCustomerSites(filteredSites);
+    setSelectedSites(filteredSites.slice(0, 1));
   }, []);
 
   // Helper function to find a customer by name
@@ -266,7 +267,6 @@ const MapView = () => {
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Interactive Map</h2>
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full">
             Total Sites: {customerSites.length}

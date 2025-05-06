@@ -28,6 +28,7 @@ import {
   ChartCandlestick,
   Landmark,
   Calculator,
+  RecycleIcon,
   CloudCog,
   Puzzle,
   Map,
@@ -65,9 +66,6 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     ],
     border: true,
   },
-  
-  ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management' }] : []),
-  ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
   {
     icon: Library,
     label: 'Assets',
@@ -75,21 +73,21 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       { icon: FileText, label: 'Documents', href: '/library/documents' }, 
       { icon: FileText, label: 'Extractions', href: '/library/extractions' },
       { icon: Download, label: 'Inventory', href: '/library/incomings' },
-      { icon: Upload, label: 'Allocation', href: '/library/outgoings' },
+      { icon: Upload, label: 'Dispensing', href: '/library/outgoings' },
     ],
   },
   ...(isRNGCustomer ? [
     // RNG Case
     {
       icon: BarChart3,
-      label: 'Reporting',
+      label: 'Reports',
       items: [
         { icon: Scale, label: 'Gas Balance', href: '/reporting/rng-mass-balance' },
-        { icon: FileText, label: 'Data Substitution', href: '/reporting/data-substitution' },
+        { icon: FileText, label: 'Missing Data', href: '/reporting/data-substitution' },
         // { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
-        { icon: FileText, label: 'CI Calculator', href: '/reporting/ci-calculator' },
+        { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
       ],
     },
   ] : [
@@ -100,20 +98,21 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     items: [
       { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
       { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
-      { icon: LineChart, label: 'Vertex', href: '/reporting/vertex' },
-      ...(customerData?.name === 'Demo SB-253' ? [{ icon: GitGraph, label: 'Scope 2 Emissions', href: '/reporting/emission-scope-2' }] : []),
     ],
   },
   ]),
   {
-    icon: Calculator,
+    icon: RecycleIcon,
     label: 'GHG',
     items: [
-      { icon: CloudCog, label: 'RNG CI', href: '/ci_calculator' },
+      { icon: CloudCog, label: 'CI Optimizer', href: '/ci_calculator' },
+      { icon: GitGraph, label: 'Scope 2', href: '/reporting/emission-scope-2' }
     ],
   },
   { icon: ChartCandlestick, label: 'Registries', href: '/registries' },
   { icon: Brain, label: 'AI Extractor', href: '/ai-extractor', border: true },
+  ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management'}] : []),
+  ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
   { icon: Puzzle, label: 'Integrations', href: '/integrations'},
 ];
 

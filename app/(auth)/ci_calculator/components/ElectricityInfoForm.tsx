@@ -25,9 +25,9 @@ const ElectricityInfoForm: React.FC<ElectricityInfoFormProps> = ({ electricityIn
   };
 
   return (
-    <Card className="calculator-step">
-      <div className="calculator-step-title">
-        <span className="step-indicator">2</span>
+    <Card className="p-4">
+      <div className="font-medium text-green-800 text-xl mb-4">
+        
         Electricity Mix Selection
       </div>
       
