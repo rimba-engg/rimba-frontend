@@ -106,11 +106,11 @@ export default function RegistriesPage() {
   const availableRegistries = registries.filter(r => !r.isActive);
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Carbon Registries</h1>
+    <div className="container mx-auto py-4">
+      <h1 className="text-3xl font-bold">Voluntary Carbon Programs</h1>
       
       <Tabs defaultValue="available" className="w-full">
-        <TabsList className="mb-8">
+        <TabsList className="my-4">
           <TabsTrigger value="available">Available</TabsTrigger>
           <TabsTrigger value="active">Active</TabsTrigger>
         </TabsList>
