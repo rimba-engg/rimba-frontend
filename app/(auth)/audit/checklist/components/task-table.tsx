@@ -216,11 +216,33 @@ export function TaskTable({
     });
   }, [checklist_items, sortConfig]);
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'COMPLETE':
+        return 'bg-green-100 text-green-800';
+      case 'IN_PROGRESS':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'NOT_STARTED':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const renderFieldValue = (checklist_item: ChecklistItem, column: ColumnSchema) => {
     // Determine if field is editable based on schema definition and logged in user's role.
     // If column.editable is not set, the field is editable.
     // const isEditable = !column.editable || (column.editable === 'ADMIN' && customerData?.role === 'ADMIN');
     const isEditable = false;
+
+    // Special handling for status field
+    if (column.name === 'Status') {
+      return (
+        <div className={`px-2 py-1 rounded-full text-sm font-medium ${getStatusColor(checklist_item.status)}`}>
+          {checklist_item.status}
+        </div>
+      );
+    }
 
     switch (column.type) {
       case 'user': {
