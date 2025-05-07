@@ -25,11 +25,20 @@ interface ValidationResponse {
   status: string;
   message: string;
   data: {
-    site_name: string;
-    view_name: string;
-    missing: string[];
-    out_of_range?: string[];
-    duplicates?: string[];
+    site: string;
+    view: string;
+    sensor_missing_data: {
+      timestamp: string;
+      invalid_columns: string[];
+      column_count: number;
+      is_substituted: boolean;
+      substitution_info: Record<string, any>;
+    }[];
+    aveva_missing_timestamps: {
+      timestamp: string;
+      is_substituted: boolean;
+      substitution_info: Record<string, any>;
+    }[];
   };
 }
 
@@ -38,12 +47,9 @@ export default function DataSubstitutionPage() {
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedView, setSelectedView] = useState<GasBalanceView | null>(null);
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [validationData, setValidationData] = useState<ValidationResponse['data'] | null>(null);
-  const [substituting, setSubstituting] = useState(false);
+  const [substitutingItems, setSubstitutingItems] = useState<Record<string, boolean>>({});
   const [substitutingAll, setSubstitutingAll] = useState(false);
 
   useEffect(() => {
@@ -57,7 +63,6 @@ export default function DataSubstitutionPage() {
       console.log('Site changed to:', site.name);
       
       setLoading(true); // Show loading state while changing site
-      setSelectedView(null); // Clear the selected view
       setSelectedSite(site.name); // Set the new site
       setValidationData(null); // Clear any validation data
     };
@@ -69,6 +74,13 @@ export default function DataSubstitutionPage() {
     };
   }, []);
 
+  // Automatically validate time series data when site changes
+  useEffect(() => {
+    if (!validationData && (selectedSite || localStorage.getItem('selected_site'))) {
+      validateTimeSeries();
+    }
+  }, [selectedSite]);  // Add selectedSite to dependency array
+
   const fetchViews = async () => {
     try {
       setLoading(true);
@@ -77,7 +89,7 @@ export default function DataSubstitutionPage() {
       const response = await api.get<ViewsResponse>(`/reporting/v2/views/?site_name=${site_name}`);
       setViews(response.views);
     } catch (err) {
-      setError('Failed to load views');
+      setError('Something went wrong');
       console.error('Error fetching views:', err);
     } finally {
       setLoading(false);
@@ -90,19 +102,13 @@ export default function DataSubstitutionPage() {
       setError(null);
       setValidationData(null);
 
-      if (!selectedView) {
-        throw new Error('No view selected');
-      }
-
-      if (!startDate || !endDate) {
-        throw new Error('Please select both start and end dates');
+      const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
+      if (!siteName) {
+        throw new Error('No site selected');
       }
 
       const payload = {
-        start_date: startDate,
-        end_date: endDate,
-        site_name: selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name,
-        view_name: selectedView.view_name
+        site_name: siteName
       };
 
       const response = await api.post<ValidationResponse>('/reporting/v2/time-series/missing-data-validation/', payload);
@@ -114,26 +120,22 @@ export default function DataSubstitutionPage() {
         throw new Error(response.message || 'Validation failed');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to validate time series data');
+      setError('Something went wrong');
       console.error('Error validating time series data:', err);
-      toast.error(err.message || 'Failed to validate time series data');
+      toast.error('Something went wrong');
     } finally {
       setValidating(false);
     }
   };
 
-  const handleSubstitute = async (timestamp: string) => {
+  const handleSubstituteSensorData = async (timestamp: string) => {
     try {
-      setSubstituting(true);
+      setSubstitutingItems(prev => ({ ...prev, [timestamp]: true }));
       
-      if (!selectedView) {
-        throw new Error('No view selected');
-      }
-
       const payload = {
         site_name: selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name,
-        view_name: selectedView.view_name,
-        timestamps: [timestamp]
+        timestamps: [timestamp],
+        data_type: 'sensor'
       };
 
       const response = await api.post<{
@@ -145,36 +147,38 @@ export default function DataSubstitutionPage() {
       }>('/reporting/v2/time-series/missing-data-validation/substitute/', payload);
       
       if (response.status === 'success') {
-        toast.success(response.message || `Successfully substituted data for ${timestamp}`);
+        toast.success(response.message || `Successfully substituted sensor data for ${timestamp}`);
         
-        // Update validation data to remove the substituted timestamp
-        if (validationData && response.data.total_substituted > 0) {
+        // Update validation data to mark the substituted timestamp
+        if (validationData) {
           setValidationData({
             ...validationData,
-            missing: validationData.missing.filter(t => t !== timestamp)
+            sensor_missing_data: validationData.sensor_missing_data.map(item => 
+              item.timestamp === timestamp 
+                ? { ...item, is_substituted: true } 
+                : item
+            )
           });
         }
       } else {
         throw new Error(response.message || 'Substitution failed');
       }
     } catch (err: any) {
-      console.error('Error substituting data:', err);
-      toast.error(err.message || 'Failed to substitute data');
+      console.error('Error substituting sensor data:', err);
+      toast.error('Something went wrong');
     } finally {
-      setSubstituting(false);
+      setSubstitutingItems(prev => ({ ...prev, [timestamp]: false }));
     }
   };
 
-  const handleSubstituteAll = async () => {
-    if (!validationData || validationData.missing.length === 0 || !selectedView) return;
-    
+  const handleSubstituteAvevaData = async (timestamp: string) => {
     try {
-      setSubstitutingAll(true);
+      setSubstitutingItems(prev => ({ ...prev, [timestamp]: true }));
       
       const payload = {
         site_name: selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name,
-        view_name: selectedView.view_name,
-        timestamps: validationData.missing
+        timestamps: [timestamp],
+        data_type: 'aveva'
       };
 
       const response = await api.post<{
@@ -182,37 +186,59 @@ export default function DataSubstitutionPage() {
         message?: string;
         data: {
           total_substituted: number;
-          substituted_entries: string[];
         }
       }>('/reporting/v2/time-series/missing-data-validation/substitute/', payload);
       
-      if ((response).status === 'success') {
-        toast.success((response).message || `Successfully substituted ${(response).data.total_substituted} data points`);
+      if (response.status === 'success') {
+        toast.success(response.message || `Successfully substituted AVEVA data for ${timestamp}`);
         
-        // Update validation data based on what was actually substituted
-        if (validationData && (await response).data.total_substituted > 0) {
-          // If all were substituted or we have the complete list of substituted entries
-          if ((response).data.total_substituted === validationData.missing.length || 
-              (response).data.substituted_entries.length === validationData.missing.length) {
-            setValidationData({
-              ...validationData,
-              missing: []
-            });
-          } else {
-            // Remove only the entries that were substituted
-            const substitutedSet = new Set((response).data.substituted_entries);
-            setValidationData({
-              ...validationData,
-              missing: validationData.missing.filter(timestamp => !substitutedSet.has(timestamp))
-            });
-          }
+        // Update validation data to mark the substituted timestamp
+        if (validationData) {
+          setValidationData({
+            ...validationData,
+            aveva_missing_timestamps: validationData.aveva_missing_timestamps.map(item => 
+              item.timestamp === timestamp 
+                ? { ...item, is_substituted: true } 
+                : item
+            )
+          });
         }
       } else {
-        throw new Error((await response).message || 'Batch substitution failed');
+        throw new Error(response.message || 'Substitution failed');
       }
     } catch (err: any) {
-      console.error('Error during batch substitution:', err);
-      toast.error(err.message || 'Failed to substitute all data points');
+      console.error('Error substituting AVEVA data:', err);
+      toast.error('Something went wrong');
+    } finally {
+      setSubstitutingItems(prev => ({ ...prev, [timestamp]: false }));
+    }
+  };
+
+  const handleSubstituteAllSensorData = async () => {
+    if (!validationData || !validationData.sensor_missing_data || validationData.sensor_missing_data.length === 0) return;
+    
+    try {
+      setSubstitutingAll(true);
+      toast.info('Substitute all functionality is currently disabled');
+      // API integration removed as requested
+    } catch (err: any) {
+      console.error('Error:', err);
+      toast.error('Something went wrong');
+    } finally {
+      setSubstitutingAll(false);
+    }
+  };
+
+  const handleSubstituteAllAvevaData = async () => {
+    if (!validationData || !validationData.aveva_missing_timestamps || validationData.aveva_missing_timestamps.length === 0) return;
+    
+    try {
+      setSubstitutingAll(true);
+      toast.info('Substitute all functionality is currently disabled');
+      // API integration removed as requested
+    } catch (err: any) {
+      console.error('Error:', err);
+      toast.error('Something went wrong');
     } finally {
       setSubstitutingAll(false);
     }
@@ -242,92 +268,30 @@ export default function DataSubstitutionPage() {
       )}
 
       <div className="flex flex-col space-y-6">
-        <div className="w-full md:w-1/3">
-          <div className="flex flex-col space-y-4">
-            <Select
-              value={selectedView?.id}
-              onValueChange={(value: string) => {
-                const view = views.find((view) => view.id === value);
-                if (view) {
-                  setSelectedView(view);
-                  setValidationData(null);
-                }
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select view" />
-              </SelectTrigger>
-              <SelectContent>
-                {views.map((view) => (
-                  <SelectItem key={view.id} value={view.id}>
-                    {view.view_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <FloatingLabelInput
-              label="Start Date (EST)"
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full"
-              max={endDate}
-            />
-
-            <FloatingLabelInput
-              label="End Date (EST)"
-              type="datetime-local"
-              min={startDate}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full"
-            />
-
-            <Button 
-              onClick={validateTimeSeries}
-              disabled={!selectedView || !startDate || !endDate || validating}
-              className="w-full"
-            >
-              {validating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Validating...
-                </>
-              ) : (
-                'Validate Data'
-              )}
-            </Button>
-          </div>
-        </div>
-
         {validationData ? (
           <Card className="w-full">
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>Data Validation Results</span>
-                {validationData.missing.length > 0 && (
-                  <Button 
-                    onClick={handleSubstituteAll}
-                    variant="outline"
-                    disabled={substitutingAll}
-                  >
-                    {substitutingAll ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Substituting...
-                      </>
-                    ) : (
-                      'Substitute All'
-                    )}
-                  </Button>
-                )}
+                <Button 
+                  onClick={validateTimeSeries} 
+                  disabled={validating}
+                  size="sm"
+                >
+                  {validating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Validating...
+                    </>
+                  ) : (
+                    'Refresh Data'
+                  )}
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {validationData.missing.length === 0 && 
-               (!validationData.out_of_range || validationData.out_of_range.length === 0) && 
-               (!validationData.duplicates || validationData.duplicates.length === 0) ? (
+              {(!validationData.sensor_missing_data || validationData.sensor_missing_data.length === 0) && 
+               (!validationData.aveva_missing_timestamps || validationData.aveva_missing_timestamps.length === 0) ? (
                 <div className="flex items-center justify-center p-6 bg-green-50 rounded-lg">
                   <CheckCircle2 className="mr-2 text-green-600" size={24} />
                   <span className="text-green-800 font-medium">Hurray! No data issues found in the selected time range</span>
@@ -335,122 +299,126 @@ export default function DataSubstitutionPage() {
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">View:</span> 
-                    <span>{validationData.view_name}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
                     <span className="font-medium">Site:</span> 
-                    <span>{validationData.site_name}</span>
+                    <span>{validationData.site}</span>
                   </div>
                   
                   <div className="flex flex-wrap gap-4">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">Missing:</span>
-                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
-                        {validationData.missing.length}
+                      <span className="font-medium">Sensor Missing Data:</span>
+                      <span className="flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
+                        <ClockIcon size={14} />
+                        {validationData.sensor_missing_data?.length || 0}
                       </span>
                     </div>
                     
-                    {validationData.out_of_range && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Out of Range:</span>
-                        <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm">
-                          {validationData.out_of_range.length}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {validationData.duplicates && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Duplicates:</span>
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                          {validationData.duplicates.length}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">AVEVA Missing Timestamps:</span>
+                      <span className="flex items-center gap-1 bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm">
+                        <AlertTriangle size={14} />
+                        {validationData.aveva_missing_timestamps?.length || 0}
+                      </span>
+                    </div>
                   </div>
 
-                  {validationData.missing.length > 0 && (
+                  {validationData.sensor_missing_data && validationData.sensor_missing_data.length > 0 && (
                     <div className="mt-4">
                       <h3 className="text-lg font-medium mb-2 flex items-center">
                         <ClockIcon className="mr-2 text-yellow-500" size={18} />
-                        Missing Timestamps
+                        Sensor Missing Data
+                        <Button 
+                          onClick={handleSubstituteAllSensorData}
+                          variant="outline"
+                          size="sm"
+                          className="ml-3"
+                          disabled={substitutingAll}
+                        >
+                          {substitutingAll ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Substituting...
+                            </>
+                          ) : (
+                            'Substitute All'
+                          )}
+                        </Button>
                       </h3>
-                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                        {validationData.missing.map((timestamp) => (
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                        {validationData.sensor_missing_data.map((item, index) => (
                           <div 
-                            key={timestamp} 
-                            className="bg-gray-50 p-3 rounded flex justify-between items-center"
+                            key={`sensor-${item.timestamp}-${index}`} 
+                            className="bg-gray-50 p-3 rounded"
                           >
-                            <span>{timestamp}</span>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleSubstitute(timestamp)}
-                              disabled={substituting}
-                            >
-                              {substituting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                'Substitute'
-                              )}
-                            </Button>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-semibold">{item.timestamp}</span>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleSubstituteSensorData(item.timestamp)}
+                                disabled={substitutingItems[item.timestamp] || item.is_substituted}
+                              >
+                                {substitutingItems[item.timestamp] ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : item.is_substituted ? (
+                                  'Fixed'
+                                ) : (
+                                  'Substitute'
+                                )}
+                              </Button>
+                            </div>
+                            <div className="mt-2">
+                              <p className="text-sm text-gray-500 mb-1">Missing columns ({item.column_count}):</p>
+                              <div className="flex flex-wrap gap-1">
+                                {item.invalid_columns.map((column, idx) => (
+                                  <span key={`${item.timestamp}-${idx}`} className="text-red-600 text-xs px-2 py-1 rounded border border-red-200">
+                                    {column}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
                   
-                  {validationData.out_of_range && validationData.out_of_range.length > 0 && (
+                  {validationData.aveva_missing_timestamps && validationData.aveva_missing_timestamps.length > 0 && (
                     <div className="mt-4">
                       <h3 className="text-lg font-medium mb-2 flex items-center">
                         <AlertTriangle className="mr-2 text-orange-500" size={18} />
-                        Out of Range Timestamps
+                        AVEVA Missing Timestamps
+                        <Button 
+                          onClick={handleSubstituteAllAvevaData}
+                          variant="outline"
+                          size="sm"
+                          className="ml-3"
+                          disabled={substitutingAll}
+                        >
+                          {substitutingAll ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Substituting...
+                            </>
+                          ) : (
+                            'Substitute All'
+                          )}
+                        </Button>
                       </h3>
                       <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                        {validationData.out_of_range.map((timestamp) => (
+                        {validationData.aveva_missing_timestamps.map((item, index) => (
                           <div 
-                            key={timestamp} 
+                            key={`aveva-${item.timestamp}-${index}`} 
                             className="bg-gray-50 p-3 rounded flex justify-between items-center"
                           >
-                            <span>{timestamp}</span>
+                            <span>{item.timestamp}</span>
                             <Button 
                               size="sm" 
-                              onClick={() => handleSubstitute(timestamp)}
-                              disabled={substituting}
+                              onClick={() => handleSubstituteAvevaData(item.timestamp)}
+                              disabled={substitutingItems[item.timestamp] || item.is_substituted}
                             >
-                              {substituting ? (
+                              {substitutingItems[item.timestamp] ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                'Substitute'
-                              )}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {validationData.duplicates && validationData.duplicates.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-lg font-medium mb-2 flex items-center">
-                        <AlertTriangle className="mr-2 text-blue-500" size={18} />
-                        Duplicate Timestamps
-                      </h3>
-                      <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                        {validationData.duplicates.map((timestamp) => (
-                          <div 
-                            key={timestamp} 
-                            className="bg-gray-50 p-3 rounded flex justify-between items-center"
-                          >
-                            <span>{timestamp}</span>
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleSubstitute(timestamp)}
-                              disabled={substituting}
-                            >
-                              {substituting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : item.is_substituted ? (
+                                'Fixed'
                               ) : (
                                 'Substitute'
                               )}
@@ -466,10 +434,19 @@ export default function DataSubstitutionPage() {
           </Card>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-12 bg-gray-50 rounded-lg border border-dashed">
-            <div className="text-center space-y-2">
-              <h3 className="text-lg font-medium">No Missing Data Results</h3>
-              <p className="text-gray-500">Select a view and date range, then click "Validate Data" to find missing data points.</p>
-            </div>
+            {validating ? (
+              <div className="text-center space-y-4">
+                <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+                <h3 className="text-lg font-medium">Validating Time Series Data</h3>
+                <p className="text-gray-500">Please wait while we check for missing data points...</p>
+              </div>
+            ) : (
+              <div className="text-center space-y-4">
+                <h3 className="text-lg font-medium">No Missing Data Results</h3>
+                <p className="text-gray-500">Click below to check for missing data points.</p>
+                <Button onClick={validateTimeSeries}>Validate Data</Button>
+              </div>
+            )}
           </div>
         )}
       </div>
