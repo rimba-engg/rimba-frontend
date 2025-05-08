@@ -28,14 +28,15 @@ interface ValidationResponse {
     site: string;
     view: string;
     sensor_missing_data: {
-      timestamp: string;
+      date_range: string;
+      count: number;
       invalid_columns: string[];
-      column_count: number;
       is_substituted: boolean;
       substitution_info: Record<string, any>;
     }[];
     aveva_missing_timestamps: {
-      timestamp: string;
+      date_range: string;
+      count: number;
       is_substituted: boolean;
       substitution_info: Record<string, any>;
     }[];
@@ -128,13 +129,30 @@ export default function DataSubstitutionPage() {
     }
   };
 
-  const handleSubstituteSensorData = async (timestamp: string) => {
+  // Helper function to format duration in minutes to days, hours, minutes format
+  const formatDuration = (minutes: number) => {
+    const days = Math.floor(minutes / (24 * 60));
+    const hours = Math.floor((minutes % (24 * 60)) / 60);
+    const mins = minutes % 60;
+    
+    if (days > 0) {
+      return `${days}d ${hours}h ${mins}m`;
+    } else {
+      return `${hours}h ${mins}m`;
+    }
+  };
+
+  const handleSubstituteSensorData = async (dateRange: string) => {
     try {
-      setSubstitutingItems(prev => ({ ...prev, [timestamp]: true }));
+      setSubstitutingItems(prev => ({ ...prev, [dateRange]: true }));
+      
+      // Parse the dateRange string to extract start and end dates
+      const [startDateStr, endDateStr] = dateRange.split(' to ');
       
       const payload = {
         site_name: selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name,
-        timestamps: [timestamp],
+        start_date: startDateStr,
+        end_date: endDateStr,
         data_type: 'sensor'
       };
 
@@ -147,14 +165,14 @@ export default function DataSubstitutionPage() {
       }>('/reporting/v2/time-series/missing-data-validation/substitute/', payload);
       
       if (response.status === 'success') {
-        toast.success(response.message || `Successfully substituted sensor data for ${timestamp}`);
+        toast.success(response.message || `Successfully substituted sensor data for ${dateRange}`);
         
-        // Update validation data to mark the substituted timestamp
+        // Update validation data to mark the substituted date range
         if (validationData) {
           setValidationData({
             ...validationData,
             sensor_missing_data: validationData.sensor_missing_data.map(item => 
-              item.timestamp === timestamp 
+              item.date_range === dateRange 
                 ? { ...item, is_substituted: true } 
                 : item
             )
@@ -167,17 +185,21 @@ export default function DataSubstitutionPage() {
       console.error('Error substituting sensor data:', err);
       toast.error('Something went wrong');
     } finally {
-      setSubstitutingItems(prev => ({ ...prev, [timestamp]: false }));
+      setSubstitutingItems(prev => ({ ...prev, [dateRange]: false }));
     }
   };
 
-  const handleSubstituteAvevaData = async (timestamp: string) => {
+  const handleSubstituteAvevaData = async (dateRange: string) => {
     try {
-      setSubstitutingItems(prev => ({ ...prev, [timestamp]: true }));
+      setSubstitutingItems(prev => ({ ...prev, [dateRange]: true }));
+      
+      // Parse the dateRange string to extract start and end dates
+      const [startDateStr, endDateStr] = dateRange.split(' to ');
       
       const payload = {
         site_name: selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name,
-        timestamps: [timestamp],
+        start_date: startDateStr,
+        end_date: endDateStr,
         data_type: 'aveva'
       };
 
@@ -190,14 +212,14 @@ export default function DataSubstitutionPage() {
       }>('/reporting/v2/time-series/missing-data-validation/substitute/', payload);
       
       if (response.status === 'success') {
-        toast.success(response.message || `Successfully substituted AVEVA data for ${timestamp}`);
+        toast.success(response.message || `Successfully substituted AVEVA data for ${dateRange}`);
         
-        // Update validation data to mark the substituted timestamp
+        // Update validation data to mark the substituted date range
         if (validationData) {
           setValidationData({
             ...validationData,
             aveva_missing_timestamps: validationData.aveva_missing_timestamps.map(item => 
-              item.timestamp === timestamp 
+              item.date_range === dateRange 
                 ? { ...item, is_substituted: true } 
                 : item
             )
@@ -210,7 +232,7 @@ export default function DataSubstitutionPage() {
       console.error('Error substituting AVEVA data:', err);
       toast.error('Something went wrong');
     } finally {
-      setSubstitutingItems(prev => ({ ...prev, [timestamp]: false }));
+      setSubstitutingItems(prev => ({ ...prev, [dateRange]: false }));
     }
   };
 
@@ -220,7 +242,7 @@ export default function DataSubstitutionPage() {
     try {
       setSubstitutingAll(true);
       toast.info('Substitute all functionality is currently disabled');
-      // API integration removed as requested
+      // If this gets enabled in the future, update to use start_date and end_date instead of date_ranges
     } catch (err: any) {
       console.error('Error:', err);
       toast.error('Something went wrong');
@@ -235,7 +257,7 @@ export default function DataSubstitutionPage() {
     try {
       setSubstitutingAll(true);
       toast.info('Substitute all functionality is currently disabled');
-      // API integration removed as requested
+      // If this gets enabled in the future, update to use start_date and end_date instead of date_ranges
     } catch (err: any) {
       console.error('Error:', err);
       toast.error('Something went wrong');
@@ -308,7 +330,11 @@ export default function DataSubstitutionPage() {
                       <span className="font-medium">Sensor Missing Data:</span>
                       <span className="flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
                         <ClockIcon size={14} />
-                        {validationData.sensor_missing_data?.length || 0}
+                        { (
+                          <span className="ml-1 border-l border-yellow-300 pl-1">
+                            {formatDuration(validationData.sensor_missing_data.reduce((total, item) => total + item.count, 0))}
+                          </span>
+                        )}
                       </span>
                     </div>
                     
@@ -316,7 +342,11 @@ export default function DataSubstitutionPage() {
                       <span className="font-medium">AVEVA Missing Timestamps:</span>
                       <span className="flex items-center gap-1 bg-orange-100 text-orange-800 px-2 py-1 rounded text-sm">
                         <AlertTriangle size={14} />
-                        {validationData.aveva_missing_timestamps?.length || 0}
+                        { (
+                          <span className="ml-1 border-l border-orange-300 pl-1">
+                            {formatDuration(validationData.aveva_missing_timestamps.reduce((total, item) => total + item.count, 0))}
+                          </span>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -327,7 +357,7 @@ export default function DataSubstitutionPage() {
                         <ClockIcon className="mr-2 text-yellow-500" size={18} />
                         Sensor Missing Data
                         <Button 
-                          onClick={handleSubstituteAllSensorData}
+                          onClick={() => toast.info('Sensor substitution functionality is currently not available')}
                           variant="outline"
                           size="sm"
                           className="ml-3"
@@ -346,17 +376,22 @@ export default function DataSubstitutionPage() {
                       <div className="space-y-4 max-h-[400px] overflow-y-auto">
                         {validationData.sensor_missing_data.map((item, index) => (
                           <div 
-                            key={`sensor-${item.timestamp}-${index}`} 
+                            key={`sensor-${item.date_range}-${index}`} 
                             className="bg-gray-50 p-3 rounded"
                           >
                             <div className="flex justify-between items-center mb-2">
-                              <span className="font-semibold">{item.timestamp}</span>
+                              <div className="flex flex-col">
+                                <span className="font-semibold">{item.date_range}</span>
+                                <span className="text-sm text-gray-500">
+                                  Missing duration: {formatDuration(item.count)}
+                                </span>
+                              </div>
                               <Button 
                                 size="sm" 
-                                onClick={() => handleSubstituteSensorData(item.timestamp)}
-                                disabled={substitutingItems[item.timestamp] || item.is_substituted}
+                                onClick={() => toast.info('Sensor substitution functionality is currently not available')}
+                                disabled={substitutingItems[item.date_range] || item.is_substituted}
                               >
-                                {substitutingItems[item.timestamp] ? (
+                                {substitutingItems[item.date_range] ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : item.is_substituted ? (
                                   'Fixed'
@@ -366,10 +401,10 @@ export default function DataSubstitutionPage() {
                               </Button>
                             </div>
                             <div className="mt-2">
-                              <p className="text-sm text-gray-500 mb-1">Missing columns ({item.column_count}):</p>
+                              <p className="text-sm text-gray-500 mb-1">Missing columns ({item.invalid_columns.length}):</p>
                               <div className="flex flex-wrap gap-1">
                                 {item.invalid_columns.map((column, idx) => (
-                                  <span key={`${item.timestamp}-${idx}`} className="text-red-600 text-xs px-2 py-1 rounded border border-red-200">
+                                  <span key={`${item.date_range}-${idx}`} className="text-red-600 text-xs px-2 py-1 rounded border border-red-200">
                                     {column}
                                   </span>
                                 ))}
@@ -406,16 +441,21 @@ export default function DataSubstitutionPage() {
                       <div className="space-y-2 max-h-[400px] overflow-y-auto">
                         {validationData.aveva_missing_timestamps.map((item, index) => (
                           <div 
-                            key={`aveva-${item.timestamp}-${index}`} 
+                            key={`aveva-${item.date_range}-${index}`} 
                             className="bg-gray-50 p-3 rounded flex justify-between items-center"
                           >
-                            <span>{item.timestamp}</span>
+                            <div className="flex flex-col">
+                              <span>{item.date_range}</span>
+                              <span className="text-sm text-gray-500">
+                                Missing duration: {formatDuration(item.count)}
+                              </span>
+                            </div>
                             <Button 
                               size="sm" 
-                              onClick={() => handleSubstituteAvevaData(item.timestamp)}
-                              disabled={substitutingItems[item.timestamp] || item.is_substituted}
+                              onClick={() => handleSubstituteAvevaData(item.date_range)}
+                              disabled={substitutingItems[item.date_range] || item.is_substituted}
                             >
-                              {substitutingItems[item.timestamp] ? (
+                              {substitutingItems[item.date_range] ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : item.is_substituted ? (
                                 'Fixed'
