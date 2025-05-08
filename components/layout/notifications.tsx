@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { BASE_URL , defaultHeaders} from '@/lib/api';
 import { Notification } from '@/lib/types';
+import { getStoredCustomer } from '@/lib/auth';
 
 export function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -130,7 +131,12 @@ export function Notifications() {
                 }`}
                 onClick={() => {
                   markAsRead(notification.id);
-                  if (notification.intent_type === 'CHECKLIST' && notification.checklist_id && notification.reference_id) {
+                  const customer = getStoredCustomer();
+                  
+                  if (customer?.name === "Novilla") {
+                    router.push('/reporting/data-substitution');
+                    setShowNotifications(false);
+                  } else if (notification.intent_type === 'CHECKLIST' && notification.checklist_id && notification.reference_id) {
                     router.push(`/audit/checklist?id=${notification.checklist_id}&checklist_item_id=${notification.reference_id}`);
                     setShowNotifications(false);
                   } else if (notification.intent_type === 'DOCUMENT' && notification.reference_id) {
