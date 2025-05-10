@@ -32,6 +32,7 @@ import {
   Puzzle,
   Map,
   Calendar,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -88,6 +89,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
         { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
+        { icon: Activity, label: 'Site Uptime', href: '/reporting/uptime' },
       ],
     },
   ] : [
