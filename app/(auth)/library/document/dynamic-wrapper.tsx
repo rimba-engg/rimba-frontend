@@ -585,14 +585,32 @@ const handleUnflagDocument = async () => {
           <div className="bg-card rounded-lg shadow min-h-[600px] flex flex-col relative">
             {documentDetails.document_preview_url ? (
               <>
-                <iframe
-                  src={`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(
-                    documentDetails.document_preview_url
-                  )}&embedded=true`}
-                  className="flex-1 w-full h-full"
-                  title="Document Preview"
-                  style={{ border: 'none' }}
-                />
+                {documentDetails.document_preview_url.toLowerCase().includes('.xlsx') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.xls') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.csv') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.docx') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.ppt') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.pptx') ? (
+                  // Use Office Apps viewer for Office documents
+                  <iframe
+                    src={`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(
+                      documentDetails.document_preview_url
+                    )}&embedded=true`}
+                    className="flex-1 w-full h-full"
+                    title="Document Preview"
+                    style={{ border: 'none' }}
+                  />
+                ) : (
+                  // Use Google Docs viewer for other file types
+                  <iframe
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(
+                      documentDetails.document_preview_url
+                    )}&embedded=true`}
+                    className="flex-1 w-full h-full"
+                    title="Document Preview"
+                    style={{ border: 'none' }}
+                  />
+                )}
                 <div className="absolute top-2 right-2 flex gap-2">
                   <Button
                     variant="outline"
