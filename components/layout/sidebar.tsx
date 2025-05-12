@@ -94,8 +94,8 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
         { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
         { icon: BarChart2, label: 'Analytics', href: '/reporting/analytics' },
         { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
-        { icon: Activity, label: 'Site Uptime', href: '/reporting/uptime' },
-        { icon: Fuel, label: 'Gas Sales', href: '/reporting/gas-sales' },
+        // { icon: Activity, label: 'Site Uptime', href: '/reporting/uptime' },
+        // { icon: Fuel, label: 'Gas Sales', href: '/reporting/gas-sales' },
       ],
     },
   ] : [
