@@ -1,16 +1,9 @@
 'use client'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LaborHourLogEntry } from "@/app/(auth)/prevailing-wage/types";
 
 const Apprenticeship = () => {
-  // Mock data
-  const totalLaborHours = 12500;
-  const totalApprenticeHours = 1875;
-  const requiredPercentage = 15;
-  const achievedPercentage = (totalApprenticeHours / totalLaborHours) * 100;
-
   // Mock labor hour log entries
   const laborHourLogEntries: LaborHourLogEntry[] = [
     {
@@ -75,6 +68,12 @@ const Apprenticeship = () => {
     }
   ];
 
+  // Mock data
+  const totalLaborHours = laborHourLogEntries.reduce((sum, entry) => sum + entry.totalHours, 0);
+  const totalApprenticeHours = laborHourLogEntries.reduce((sum, entry) => sum + entry.apprenticeHours, 0);
+  const requiredPercentage = 15;
+  const achievedPercentage = (totalApprenticeHours / totalLaborHours) * 100;
+  
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Apprenticeship</h1>
