@@ -11,7 +11,7 @@ import { toast } from "sonner";
 const mockProjects: Project[] = [
   {
     id: "1",
-    name: "Acme RNG",
+    name: "GreenFlame BioEnergy",
     state: "CA",
     county: "Los Angeles",
     contractors: [
@@ -35,7 +35,7 @@ const mockProjects: Project[] = [
 const mockOperationalData: QuarterlySummaryItem[] = [
   {
     contractor: "XYZ Maintenance",
-    projectSite: "Acme RNG",
+    projectSite: "GreenFlame BioEnergy",
     quarter: "Q1 2023",
     description: "Facility maintenance",
     actionTaken: "Documents received",
@@ -56,7 +56,7 @@ const mockOperationalData: QuarterlySummaryItem[] = [
 const mockConstructionData: QuarterlySummaryItem[] = [
   {
     contractor: "ABC Construction",
-    projectSite: "Acme RNG",
+    projectSite: "GreenFlame BioEnergy",
     quarter: "Q1 2023",
     description: "Building expansion",
     actionTaken: "Documents received",
