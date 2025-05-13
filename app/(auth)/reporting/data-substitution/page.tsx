@@ -349,20 +349,16 @@ export default function DataSubstitutionPage() {
                     </div>
                   </div> */}
 
-                  <Tabs defaultValue="sensor" className="mt-6">
-                    <TabsList className="grid w-full grid-cols-3 mb-4">
-                      <TabsTrigger value="sensor" className="flex items-center gap-2">
-                        <ClockIcon className="h-4 w-4 text-yellow-500" />
-                        <span>Sensor Missing</span>
-                        <span className="ml-1 text-xs text-yellow-600">
-                          ({formatDuration(validationData.sensor_missing_data.reduce((total, item) => total + item.count, 0))})
-                        </span>
-                      </TabsTrigger>
-                      <TabsTrigger value="aveva" className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-orange-500" />
-                        <span>AVEVA Missing</span>
-                        <span className="ml-1 text-xs text-orange-600">
-                          ({formatDuration(validationData.aveva_missing_timestamps.reduce((total, item) => total + item.count, 0))})
+                  <Tabs defaultValue="missing" className="mt-6">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="missing" className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                        <span>Missing Data</span>
+                        <span className="ml-1 text-xs text-red-600">
+                          ({formatDuration(
+                            (validationData.sensor_missing_data?.reduce((total, item) => total + item.count, 0) || 0) +
+                            (validationData.aveva_missing_timestamps?.reduce((total, item) => total + item.count, 0) || 0)
+                          )})
                         </span>
                       </TabsTrigger>
                       <TabsTrigger value="substituted" className="flex items-center gap-2">
@@ -371,16 +367,19 @@ export default function DataSubstitutionPage() {
                       </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="sensor">
+                    <TabsContent value="missing">
                       <div className="mt-2">
                         <h3 className="text-lg font-medium mb-2 flex items-center">
-                          <ClockIcon className="mr-2 text-yellow-500" size={18} />
-                          Sensor Missing Data
-                          <span className="ml-2 text-sm text-yellow-600">
-                            (Total: {formatDuration(validationData.sensor_missing_data.reduce((total, item) => total + item.count, 0))})
+                          <AlertTriangle className="mr-2 text-red-500" size={18} />
+                          Missing Data
+                          <span className="ml-2 text-sm text-red-600">
+                            (Total: {formatDuration(
+                              (validationData.sensor_missing_data?.reduce((total, item) => total + item.count, 0) || 0) +
+                              (validationData.aveva_missing_timestamps?.reduce((total, item) => total + item.count, 0) || 0)
+                            )})
                           </span>
                           <Button 
-                            onClick={() => toast.info('Sensor substitution functionality is currently not available')}
+                            onClick={() => toast.info('Substitute all functionality is currently disabled')}
                             variant="outline"
                             size="sm"
                             className="ml-3"
@@ -397,14 +396,15 @@ export default function DataSubstitutionPage() {
                           </Button>
                         </h3>
                         <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                          {/* Sensor Missing Data */}
                           {validationData.sensor_missing_data && 
-                           validationData.sensor_missing_data.filter(item => !item.is_substituted).length > 0 ? (
+                            validationData.sensor_missing_data.filter(item => !item.is_substituted).length > 0 ? (
                             validationData.sensor_missing_data
                               .filter(item => !item.is_substituted)
                               .map((item, index) => (
                                 <div 
                                   key={`sensor-${item.date_range}-${index}`} 
-                                  className="bg-gray-50 p-3 rounded"
+                                  className="bg-gray-50 p-3 rounded mb-3"
                                 >
                                   <div className="flex justify-between items-center mb-2">
                                     <div className="flex flex-col">
@@ -415,7 +415,7 @@ export default function DataSubstitutionPage() {
                                     </div>
                                     <Button 
                                       size="sm" 
-                                      onClick={() => toast.info('Sensor substitution functionality is currently not available')}
+                                      onClick={() => handleSubstituteSensorData(item.date_range)}
                                       disabled={substitutingItems[item.date_range]}
                                     >
                                       {substitutingItems[item.date_range] ? (
@@ -425,64 +425,34 @@ export default function DataSubstitutionPage() {
                                       )}
                                     </Button>
                                   </div>
-                                  <div className="mt-2">
-                                    <p className="text-sm text-gray-500 mb-1">Missing columns ({item.invalid_columns.length}):</p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {item.invalid_columns.map((column, idx) => (
-                                        <span key={`${item.date_range}-${idx}`} className="text-red-600 text-xs px-2 py-1 rounded border border-red-200">
-                                          {column}
-                                        </span>
-                                      ))}
+                                  {item.invalid_columns && item.invalid_columns.length > 0 && (
+                                    <div className="mt-2">
+                                      <p className="text-sm text-gray-500 mb-1">Missing columns ({item.invalid_columns.length}):</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {item.invalid_columns.map((column, idx) => (
+                                          <span key={`${item.date_range}-${idx}`} className="text-red-600 text-xs px-2 py-1 rounded border border-red-200">
+                                            {column}
+                                          </span>
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
                                 </div>
                               ))
-                          ) : (
-                            <div className="flex items-center justify-center p-6 bg-gray-50 rounded-lg">
-                              <span className="text-gray-500">No sensor missing data found</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </TabsContent>
+                          ) : null}
 
-                    <TabsContent value="aveva">
-                      <div className="mt-2">
-                        <h3 className="text-lg font-medium mb-2 flex items-center">
-                          <AlertTriangle className="mr-2 text-orange-500" size={18} />
-                          AVEVA Missing Timestamps
-                          <span className="ml-2 text-sm text-orange-600">
-                            (Total: {formatDuration(validationData.aveva_missing_timestamps.reduce((total, item) => total + item.count, 0))})
-                          </span>
-                          <Button 
-                            onClick={handleSubstituteAllAvevaData}
-                            variant="outline"
-                            size="sm"
-                            className="ml-3"
-                            disabled={substitutingAll}
-                          >
-                            {substitutingAll ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Substituting...
-                              </>
-                            ) : (
-                              'Substitute All'
-                            )}
-                          </Button>
-                        </h3>
-                        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                          {/* AVEVA Missing Timestamps */}
                           {validationData.aveva_missing_timestamps && 
-                           validationData.aveva_missing_timestamps.filter(item => !item.is_substituted).length > 0 ? (
+                            validationData.aveva_missing_timestamps.filter(item => !item.is_substituted).length > 0 ? (
                             validationData.aveva_missing_timestamps
                               .filter(item => !item.is_substituted)
                               .map((item, index) => (
                                 <div 
                                   key={`aveva-${item.date_range}-${index}`} 
-                                  className="bg-gray-50 p-3 rounded flex justify-between items-center"
+                                  className="bg-gray-50 p-3 rounded mb-3 flex justify-between items-center"
                                 >
                                   <div className="flex flex-col">
-                                    <span>{item.date_range}</span>
+                                    <span className="font-semibold">{item.date_range}</span>
                                     <span className="text-sm text-gray-500">
                                       Missing duration: {formatDuration(item.count)}
                                     </span>
@@ -500,9 +470,15 @@ export default function DataSubstitutionPage() {
                                   </Button>
                                 </div>
                               ))
-                          ) : (
+                          ) : null}
+
+                          {/* No data message */}
+                          {(!validationData.sensor_missing_data || 
+                            validationData.sensor_missing_data.filter(item => !item.is_substituted).length === 0) && 
+                           (!validationData.aveva_missing_timestamps || 
+                            validationData.aveva_missing_timestamps.filter(item => !item.is_substituted).length === 0) && (
                             <div className="flex items-center justify-center p-6 bg-gray-50 rounded-lg">
-                              <span className="text-gray-500">No AVEVA missing timestamps found</span>
+                              <span className="text-gray-500">No missing data found</span>
                             </div>
                           )}
                         </div>
@@ -521,28 +497,28 @@ export default function DataSubstitutionPage() {
                            (validationData.aveva_missing_timestamps && 
                             validationData.aveva_missing_timestamps.some(item => item.is_substituted)) ? (
                             <>
+                              {/* Substituted sensor data */}
                               {validationData.sensor_missing_data && 
                                validationData.sensor_missing_data.filter(item => item.is_substituted).length > 0 && (
-                                <div className="mb-4">
-                                  <h4 className="text-sm font-medium mb-2 text-yellow-600">Sensor Data</h4>
-                                  {validationData.sensor_missing_data
-                                    .filter(item => item.is_substituted)
-                                    .map((item, index) => (
-                                      <div 
-                                        key={`sensor-sub-${item.date_range}-${index}`} 
-                                        className="bg-green-50 p-3 rounded mb-2 border border-green-100"
-                                      >
-                                        <div className="flex justify-between items-center">
-                                          <div className="flex flex-col">
-                                            <span className="font-semibold">{item.date_range}</span>
-                                            <span className="text-sm text-gray-500">
-                                              Duration: {formatDuration(item.count)}
-                                            </span>
-                                          </div>
-                                          <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                                            Fixed
-                                          </Badge>
+                                validationData.sensor_missing_data
+                                  .filter(item => item.is_substituted)
+                                  .map((item, index) => (
+                                    <div 
+                                      key={`sensor-sub-${item.date_range}-${index}`} 
+                                      className="bg-green-50 p-3 rounded mb-2 border border-green-100"
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <div className="flex flex-col">
+                                          <span className="font-semibold">{item.date_range}</span>
+                                          <span className="text-sm text-gray-500">
+                                            Duration: {formatDuration(item.count)}
+                                          </span>
                                         </div>
+                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+                                          Fixed
+                                        </Badge>
+                                      </div>
+                                      {item.invalid_columns && item.invalid_columns.length > 0 && (
                                         <div className="mt-2">
                                           <p className="text-sm text-gray-500 mb-1">Substituted columns ({item.invalid_columns.length}):</p>
                                           <div className="flex flex-wrap gap-1">
@@ -553,34 +529,32 @@ export default function DataSubstitutionPage() {
                                             ))}
                                           </div>
                                         </div>
-                                      </div>
-                                    ))}
-                                </div>
+                                      )}
+                                    </div>
+                                  ))
                               )}
 
+                              {/* Substituted AVEVA data */}
                               {validationData.aveva_missing_timestamps && 
                                validationData.aveva_missing_timestamps.filter(item => item.is_substituted).length > 0 && (
-                                <div>
-                                  <h4 className="text-sm font-medium mb-2 text-orange-600">AVEVA Timestamps</h4>
-                                  {validationData.aveva_missing_timestamps
-                                    .filter(item => item.is_substituted)
-                                    .map((item, index) => (
-                                      <div 
-                                        key={`aveva-sub-${item.date_range}-${index}`} 
-                                        className="bg-green-50 p-3 rounded mb-2 border border-green-100 flex justify-between items-center"
-                                      >
-                                        <div className="flex flex-col">
-                                          <span>{item.date_range}</span>
-                                          <span className="text-sm text-gray-500">
-                                            Duration: {formatDuration(item.count)}
-                                          </span>
-                                        </div>
-                                        <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                                          Fixed
-                                        </Badge>
+                                validationData.aveva_missing_timestamps
+                                  .filter(item => item.is_substituted)
+                                  .map((item, index) => (
+                                    <div 
+                                      key={`aveva-sub-${item.date_range}-${index}`} 
+                                      className="bg-green-50 p-3 rounded mb-2 border border-green-100 flex justify-between items-center"
+                                    >
+                                      <div className="flex flex-col">
+                                        <span className="font-semibold">{item.date_range}</span>
+                                        <span className="text-sm text-gray-500">
+                                          Duration: {formatDuration(item.count)}
+                                        </span>
                                       </div>
-                                    ))}
-                                </div>
+                                      <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+                                        Fixed
+                                      </Badge>
+                                    </div>
+                                  ))
                               )}
                             </>
                           ) : (

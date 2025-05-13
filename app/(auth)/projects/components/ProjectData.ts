@@ -73,13 +73,13 @@ export const projectsData = [
     "customer": "Novilla",
     "sites": [
       {
-        "plant_name": "Three Petals",
+        "plant_name": "GreenFlame BioEnergy",
         "city": "Wisconsin",
         "state": "WI",
         "latitude": 44.5,
         "longitude": -89.5,
         "image_url": "https://static.wixstatic.com/media/6a634b_6056c66d4e684bca8a304e07fd790fba~mv2.jpg/v1/fill/w_762,h_380,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/6a634b_6056c66d4e684bca8a304e07fd790fba~mv2.jpg",
-        "summary": "Located at Trillium Hill Farm in Wisconsin, Three Petals RNG began construction in July 2022 and started commercial operations in October 2023. The project captures biogas from dairy operations and upgrades it to renewable natural gas."
+        "summary": "Located at Trillium Hill Farm in Wisconsin, GreenFlame BioEnergy RNG began construction in July 2022 and started commercial operations in October 2023. The project captures biogas from dairy operations and upgrades it to renewable natural gas."
       },
       {
         "plant_name": "Buckhorn",

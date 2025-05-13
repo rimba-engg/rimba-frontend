@@ -3,11 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft,
   Download,
-  Share2,
-  MoreVertical,
   FileText,
+  ChevronLeft,
   Calendar,
   User,
   Tag,
@@ -507,14 +505,14 @@ const handleUnflagDocument = async () => {
 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={handleBack} className="rounded-full">
-          <ArrowLeft className="w-5 h-5" />
+          <ChevronLeft className="w-5 h-5" />
         </Button>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">{documentDetails.name}</h1>
+          <h1 className="text-3xl">{documentDetails.name}</h1>
           {/* Flag/Unflag button moved here */}
           {documentDetails?.status === 'FLAGGED' ? (
             <Button
@@ -530,11 +528,11 @@ const handleUnflagDocument = async () => {
             <Button
               variant="outline"
               onClick={() => setIsFlagModalOpen(true)}
-              className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200"
+              className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
               size="sm"
             >
               <Flag className="w-4 h-4 mr-2" />
-              Flag Document
+              Flag
             </Button>
           ) : null}
         </div>
@@ -580,21 +578,39 @@ const handleUnflagDocument = async () => {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-5 gap-6">
         {/* Left/Middle Column */}
-        <div className="col-span-2 space-y-6">
+        <div className="col-span-4 space-y-6">
           {/* Document Preview */}
-          <div className="bg-card rounded-lg shadow p-6 min-h-[600px] flex flex-col relative">
+          <div className="bg-card rounded-lg shadow min-h-[600px] flex flex-col relative">
             {documentDetails.document_preview_url ? (
               <>
-                <iframe
-                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(
-                    documentDetails.document_preview_url
-                  )}&embedded=true`}
-                  className="flex-1 w-full h-full"
-                  title="Document Preview"
-                  style={{ border: 'none' }}
-                />
+                {documentDetails.document_preview_url.toLowerCase().includes('.xlsx') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.xls') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.csv') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.docx') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.ppt') || 
+                 documentDetails.document_preview_url.toLowerCase().includes('.pptx') ? (
+                  // Use Office Apps viewer for Office documents
+                  <iframe
+                    src={`https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(
+                      documentDetails.document_preview_url
+                    )}&embedded=true`}
+                    className="flex-1 w-full h-full"
+                    title="Document Preview"
+                    style={{ border: 'none' }}
+                  />
+                ) : (
+                  // Use Google Docs viewer for other file types
+                  <iframe
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(
+                      documentDetails.document_preview_url
+                    )}&embedded=true`}
+                    className="flex-1 w-full h-full"
+                    title="Document Preview"
+                    style={{ border: 'none' }}
+                  />
+                )}
                 <div className="absolute top-2 right-2 flex gap-2">
                   <Button
                     variant="outline"
