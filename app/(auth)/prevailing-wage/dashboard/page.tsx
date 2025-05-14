@@ -6,6 +6,9 @@ import ProjectsList from "@/app/(auth)/prevailing-wage/components/ProjectList";
 import QuarterlySummary from "@/app/(auth)/prevailing-wage/components/QuarterlySummary";
 import { Project, Contractor, QuarterlySummaryItem } from "@/app/(auth)/prevailing-wage/types";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { BASE_URL, defaultHeaders } from "@/lib/api";
 
 // Sample mock data
 const mockProjects: Project[] = [
@@ -79,6 +82,7 @@ const PrevailingWage = () => {
   const [projects, setProjects] = useState<Project[]>(mockProjects);
   const [operationalData, setOperationalData] = useState<QuarterlySummaryItem[]>(mockOperationalData);
   const [constructionData, setConstructionData] = useState<QuarterlySummaryItem[]>(mockConstructionData);
+  const [isDownloading, setIsDownloading] = useState(false);
   
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
@@ -102,11 +106,60 @@ const PrevailingWage = () => {
     }));
   };
 
+  const handleDownload = async () => {
+    // TODO: Implement download The extracted information should include data from all Prevailing Wage sub-menus, with each sub-menu's data placed in a separate sheet.
+
+    return;
+    try {
+      setIsDownloading(true);
+      const response = await fetch(`${BASE_URL}/v2/prevailing-wage/download/`, {
+        method: 'POST',
+        headers: {...defaultHeaders},
+        body: JSON.stringify({
+          date: selectedDate.toISOString(),
+          projects: projects,
+          operational: operationalData,
+          construction: constructionData
+        })
+      });
+
+      if (!response.ok) throw new Error('Export failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prevailing-wage-report-${selectedDate.toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Report downloaded successfully!');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download report. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold">Prevailing Wage Dashboard</h1>
-        <DateSelector onDateChange={handleDateChange} />
+        <div className="flex gap-4">
+          <DateSelector onDateChange={handleDateChange} />
+          <Button 
+            // variant="outline" 
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {isDownloading ? 'Downloading...' : 'Download Report'}
+          </Button>
+        </div>
       </div>
       
       <Tabs defaultValue="projects" className="w-full">
