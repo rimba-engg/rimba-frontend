@@ -106,7 +106,7 @@ export default function RngMassBalancePage() {
     if (selectedView) {
       fetchMassBalanceData();
     }
-  }, [selectedView, startDate, endDate, selectedSite]);
+  }, [selectedView, selectedSite]);
 
   // set column defs based on rowData
   useEffect(() => {
@@ -303,12 +303,20 @@ export default function RngMassBalancePage() {
               }}
             />
 
-            <button
-              onClick={handleDownloadCsv}
-              className="button-primary px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
-            >
-              Download CSV
-            </button>
+            <div className="flex justify-center mt-4 gap-2">
+              <button
+                onClick={fetchMassBalanceData}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 "
+              >
+                Search
+              </button>
+              <button
+                onClick={handleDownloadCsv}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+              >
+                Download CSV
+              </button>
+            </div>
           </div>
 
           {chartConfig && Object.keys(chartConfig).length > 0 && (
