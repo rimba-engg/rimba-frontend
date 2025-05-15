@@ -38,7 +38,9 @@ const WageTracker = () => {
       grossWages: 1830,
       requiredRate: 45.75,
       compliant: true,
-      week: "2023-04-01"
+      week: "2023-04-01",
+      workerStatus: "Journey Worker",
+      weekEndingDate: "2023-04-07"
     },
     {
       id: "2",
@@ -51,7 +53,9 @@ const WageTracker = () => {
       grossWages: 1738.5,
       requiredRate: 45.75,
       compliant: true,
-      week: "2023-04-01"
+      week: "2023-04-01",
+      workerStatus: "Registered Apprentice",
+      weekEndingDate: "2023-04-07"
     },
     {
       id: "3",
@@ -65,7 +69,9 @@ const WageTracker = () => {
       requiredRate: 43.25,
       compliant: false,
       underpaymentAmount: 30,
-      week: "2023-04-01"
+      week: "2023-04-01",
+      workerStatus: "Journey Worker",
+      weekEndingDate: "2023-04-07"
     },
     {
       id: "4",
@@ -78,7 +84,9 @@ const WageTracker = () => {
       grossWages: 1347.5,
       requiredRate: 38.50,
       compliant: true,
-      week: "2023-04-01"
+      week: "2023-04-01",
+      workerStatus: "Journey Worker",
+      weekEndingDate: "2023-04-07"
     }
   ];
 
@@ -86,6 +94,16 @@ const WageTracker = () => {
     entry.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) || 
     entry.classification.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -117,6 +135,8 @@ const WageTracker = () => {
                 <TableRow>
                   <TableHead>Employee Name</TableHead>
                   <TableHead>Classification</TableHead>
+                  <TableHead>Worker Status</TableHead>
+                  <TableHead>Week Ending</TableHead>
                   <TableHead>Hours</TableHead>
                   <TableHead>Rate Paid</TableHead>
                   <TableHead>Gross Wages</TableHead>
@@ -130,6 +150,16 @@ const WageTracker = () => {
                   <TableRow key={entry.id} className={!entry.compliant ? "bg-red-50" : ""}>
                     <TableCell className="font-medium">{entry.employeeName}</TableCell>
                     <TableCell>{entry.classification}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        entry.workerStatus === 'Journey Worker' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {entry.workerStatus}
+                      </span>
+                    </TableCell>
+                    <TableCell>{formatDate(entry.weekEndingDate)}</TableCell>
                     <TableCell>{entry.hoursWorked}</TableCell>
                     <TableCell>${entry.rate.toFixed(2)}</TableCell>
                     <TableCell>${entry.grossWages.toFixed(2)}</TableCell>

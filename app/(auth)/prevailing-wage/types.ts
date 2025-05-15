@@ -78,5 +78,18 @@ export interface Contractor {
     compliant: boolean;
     underpaymentAmount?: number;
     week: string;
+    workerStatus: 'Journey Worker' | 'Registered Apprentice';
+    weekEndingDate: string;
+  }
+  
+  export interface ProjectLaborHourEntry {
+    projectName: string;
+    journeymanHours: number;
+    apprenticeHours: number;
+    journeyworkerCount: number;
+    apprenticeCount: number;
+    totalHours: number;
+    apprenticePercentage: number;
+    meetsRatio: boolean;
   }
   
