@@ -82,3 +82,14 @@ export interface Contractor {
     weekEndingDate: string;
   }
   
+  export interface ProjectLaborHourEntry {
+    projectName: string;
+    journeymanHours: number;
+    apprenticeHours: number;
+    journeyworkerCount: number;
+    apprenticeCount: number;
+    totalHours: number;
+    apprenticePercentage: number;
+    meetsRatio: boolean;
+  }
+  
