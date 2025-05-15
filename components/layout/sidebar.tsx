@@ -37,11 +37,14 @@ import {
   Fuel,
   Flame,
   TrendingUp,
-  BarChartHorizontal
+  BarChartHorizontal,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
 import { type Customer } from '@/lib/types';
+import { UnlockFeatureModal } from '@/components/ui/UnlockFeatureModal';
+import { isFeatureRestricted, getFeatureUpgradeMessage } from '@/config/featureRestrictions';
 
 interface MenuItem {
   icon: any;
@@ -136,13 +139,14 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
   { icon: Puzzle, label: 'Integrations', href: '/integrations'},
 ];
 
-
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>('Library');
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [lockedFeature, setLockedFeature] = useState('');
   
   useEffect(() => {
     const customer = getStoredCustomer();
@@ -159,48 +163,82 @@ export function Sidebar() {
 
   const isItemActive = (href: string) => pathname === href;
 
+  const handleRestrictedFeatureClick = (e: React.MouseEvent, isRestricted: boolean, featureName: string) => {
+    if (isRestricted) {
+      e.preventDefault();
+      setLockedFeature(featureName);
+      setShowUnlockModal(true);
+    }
+  };
+
   const renderMenuItem = (item: MenuItem | MenuGroup) => {
     if ('items' in item) {
-      // Group Submenu
       const isExpanded = expandedGroup === item.label;
       const isGroupActive = item.items.some(subItem => isItemActive(subItem.href));
       const Icon = item.icon;
+      
+      const isRestricted = isFeatureRestricted(item.label, customerData?.name);
+      
 
       return (
         <div key={item.label}>
           <button
-            onClick={() => toggleGroup(item.label)}
+            onClick={(e) => {
+              if (isRestricted) {
+                handleRestrictedFeatureClick(e, true, item.label);
+              } else {
+                toggleGroup(item.label);
+              }
+            }}
             className={cn(
               'w-full flex items-center gap-2 px-3 py-2 rounded-md mb-1 text-gray-600 hover:bg-gray-100 transition-colors text-base',
               isGroupActive && 'text-primary',
               collapsed ? 'justify-center' : '',
-              item.border ? 'border-t' : ''
+              item.border ? 'border-t' : '',
+              isRestricted ? 'opacity-75' : ''
             )}
           >
-            <Icon className="w-4 h-4" />
-            {!collapsed && (
-              <div className="flex flex-row items-center justify-between w-full">
-                <span>{item.label}</span>
-                <ChevronRight className={cn(
-                  'w-4 h-4 transition-transform',
-                  isExpanded && 'transform rotate-90'
-                )} />
-              </div>
-            )}
+            <div className="flex items-center gap-2 w-full">
+              <Icon className="w-4 h-4 min-w-[16px]" />
+              {!collapsed && (
+                <div className="flex flex-row items-center justify-between w-full">
+                  <span className="mr-2">{item.label}</span>
+                  <div className="flex items-center gap-1">
+                    {isRestricted && (
+                      <Lock 
+                        className="w-4 h-4 text-yellow-400" 
+                        style={{ 
+                          filter: 'drop-shadow(0 0 3px rgba(250, 204, 21, 0.5))',
+                          strokeWidth: 2.5,
+                          animation: 'pulse 2s infinite'
+                        }} 
+                      />
+                    )}
+                    <ChevronRight 
+                      className={cn(
+                        'w-4 h-4 transition-transform ml-1',
+                        isExpanded && 'transform rotate-90'
+                      )} 
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </button>
-          {isExpanded && !collapsed && (
+          {isExpanded && !collapsed && !isRestricted && (
             <div className="ml-4 space-y-1">
               {item.items.map(subItem => {
-                // items in group submenu
                 const SubIcon = subItem.icon;
                 const isActive = isItemActive(subItem.href);
                 return (
                   <Link
                     key={subItem.href}
                     href={subItem.href}
+                    onClick={(e) => handleRestrictedFeatureClick(e, isRestricted, item.label)}
                     className={cn(
                       'flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors',
-                      isActive && 'text-primary bg-primary/5'
+                      isActive && 'text-primary bg-primary/5',
+                      isRestricted && 'opacity-50 cursor-not-allowed'
                     )}
                   >
                     <SubIcon className="w-4 h-4" />
@@ -242,33 +280,58 @@ export function Sidebar() {
   };
 
   return (
-    <div
-      className={cn(
-        'h-screen bg-white border-r flex flex-col transition-all duration-300',
-        collapsed ? 'w-16' : 'w-48'
-      )}
-    >
-      <div className="p-2 flex items-center justify-between border-b">
-        {getLogo()}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="ml-auto text-gray-500 hover:bg-gray-100"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      </div>
+    <>
+      <div
+        className={cn(
+          'h-screen bg-white border-r flex flex-col transition-all duration-300',
+          collapsed ? 'w-16' : 'w-48'
+        )}
+      >
+        <div className="p-2 flex items-center justify-between border-b">
+          {getLogo()}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className="ml-auto text-gray-500 hover:bg-gray-100"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
 
-      <nav className="flex-1 p-2">
-        {menuItems.map(item => renderMenuItem(item))}
-      </nav>
+        <nav className="flex-1 p-2">
+          {menuItems.map(item => renderMenuItem(item))}
+        </nav>
 
-      <div className="p-2 border-t">
-        <p className="text-xs text-muted-foreground text-center">
-          Rimba V{process.env.APP_VERSION}
-        </p>
+        <div className="p-2 border-t">
+          <p className="text-xs text-muted-foreground text-center">
+            Rimba V{process.env.APP_VERSION}
+          </p>
+        </div>
       </div>
-    </div>
+      
+      <UnlockFeatureModal 
+        isOpen={showUnlockModal}
+        onClose={() => setShowUnlockModal(false)}
+        featureName={lockedFeature}
+      />
+    </>
   );
 }
+
+<style jsx global>{`
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+`}</style>
