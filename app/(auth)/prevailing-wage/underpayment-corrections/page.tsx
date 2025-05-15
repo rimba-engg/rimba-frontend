@@ -21,15 +21,40 @@ interface UnderpaymentItem {
   workClassification: string;
   projectSite: string;
   payPeriod: string;
+  regularHours: number;
+  overtimeHours: number;
   requiredRate: number;
   paidRate: number;
   underpaymentAmount: number;
+  originalPaymentDate: string;
   interestRate: number;
   interestAmount: number;
   totalDue: number;
   correctionDate: string | null;
   status: 'pending' | 'corrected';
 }
+
+const FEDERAL_INTEREST_RATE = 5.0; // Example federal interest rate
+
+const calculateInterestAmount = (
+  underpaymentAmount: number,
+  originalPaymentDate: string,
+  correctionDate: string | null,
+  interestRate: number
+): number => {
+  if (!correctionDate) {
+    correctionDate = new Date().toISOString().split('T')[0];
+  }
+  
+  const originalDate = new Date(originalPaymentDate);
+  const correctionDateTime = new Date(correctionDate);
+  const daysOutstanding = Math.floor((correctionDateTime.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Interest rate calculation: Federal rate + 6%
+  const totalInterestRate = (FEDERAL_INTEREST_RATE + 6) / 100;
+  
+  return Number((underpaymentAmount * totalInterestRate * daysOutstanding / 365).toFixed(2));
+};
 
 const UnderpaymentCorrections = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -47,10 +72,13 @@ const UnderpaymentCorrections = () => {
       workClassification: "Electrician",
       projectSite: "GreenFlame BioEnergy",
       payPeriod: "2023-03-15",
+      regularHours: 32,
+      overtimeHours: 8,
       requiredRate: 45.75,
       paidRate: 40.00,
       underpaymentAmount: 230.00,
-      interestRate: 5.5,
+      originalPaymentDate: "2023-03-20",
+      interestRate: FEDERAL_INTEREST_RATE + 6,
       interestAmount: 12.65,
       totalDue: 242.65,
       correctionDate: null,
@@ -63,10 +91,13 @@ const UnderpaymentCorrections = () => {
       workClassification: "Plumber",
       projectSite: "Green Valley",
       payPeriod: "2023-03-10",
+      regularHours: 35,
+      overtimeHours: 5,
       requiredRate: 42.50,
       paidRate: 38.00,
       underpaymentAmount: 180.00,
-      interestRate: 5.5,
+      originalPaymentDate: "2023-03-15",
+      interestRate: FEDERAL_INTEREST_RATE + 6,
       interestAmount: 9.90,
       totalDue: 189.90,
       correctionDate: "2023-04-05",
@@ -79,10 +110,13 @@ const UnderpaymentCorrections = () => {
       workClassification: "Carpenter",
       projectSite: "GreenFlame BioEnergy",
       payPeriod: "2023-03-15",
+      regularHours: 40,
+      overtimeHours: 0,
       requiredRate: 38.25,
       paidRate: 35.00,
       underpaymentAmount: 130.00,
-      interestRate: 5.5,
+      originalPaymentDate: "2023-03-20",
+      interestRate: FEDERAL_INTEREST_RATE + 6,
       interestAmount: 7.15,
       totalDue: 137.15,
       correctionDate: null,
@@ -95,10 +129,13 @@ const UnderpaymentCorrections = () => {
       workClassification: "Electrician",
       projectSite: "GreenFlame BioEnergy",
       payPeriod: "2023-03-15",
+      regularHours: 36,
+      overtimeHours: 6,
       requiredRate: 45.75,
       paidRate: 43.00,
       underpaymentAmount: 110.00,
-      interestRate: 5.5,
+      originalPaymentDate: "2023-03-20",
+      interestRate: FEDERAL_INTEREST_RATE + 6,
       interestAmount: 6.05,
       totalDue: 116.05,
       correctionDate: "2023-04-01",
@@ -116,12 +153,28 @@ const UnderpaymentCorrections = () => {
   };
 
   const handleCorrection = (id: string) => {
-    // Update the correction date and status for the selected underpayment
-    setUnderpayments(underpayments.map(item => 
-      item.id === id 
-        ? { ...item, correctionDate: new Date().toISOString().split('T')[0], status: 'corrected' as const } 
-        : item
-    ));
+    const correctionDate = new Date().toISOString().split('T')[0];
+    
+    setUnderpayments(underpayments.map(item => {
+      if (item.id === id) {
+        // Recalculate interest amount based on actual correction date
+        const newInterestAmount = calculateInterestAmount(
+          item.underpaymentAmount,
+          item.originalPaymentDate,
+          correctionDate,
+          item.interestRate
+        );
+        
+        return {
+          ...item,
+          correctionDate,
+          interestAmount: newInterestAmount,
+          totalDue: item.underpaymentAmount + newInterestAmount,
+          status: 'corrected' as const
+        };
+      }
+      return item;
+    }));
     toast.success("Correction payment recorded successfully");
   };
 
@@ -268,9 +321,13 @@ const UnderpaymentCorrections = () => {
                   <th className="px-4 py-2 text-left">Classification</th>
                   <th className="px-4 py-2 text-left">Project Site</th>
                   <th className="px-4 py-2 text-left">Pay Period</th>
+                  <th className="px-4 py-2 text-right">Regular Hours</th>
+                  <th className="px-4 py-2 text-right">OT Hours</th>
                   <th className="px-4 py-2 text-right">Required Rate</th>
                   <th className="px-4 py-2 text-right">Paid Rate</th>
                   <th className="px-4 py-2 text-right">Underpayment</th>
+                  <th className="px-4 py-2 text-left">Original Payment Date</th>
+                  <th className="px-4 py-2 text-right">Interest Rate (%)</th>
                   <th className="px-4 py-2 text-right">Interest</th>
                   <th className="px-4 py-2 text-right">Total Due</th>
                   <th className="px-4 py-2 text-left">Correction Date</th>
@@ -289,12 +346,16 @@ const UnderpaymentCorrections = () => {
                     <td className="px-4 py-2">{item.workClassification}</td>
                     <td className="px-4 py-2">{item.projectSite}</td>
                     <td className="px-4 py-2">{item.payPeriod}</td>
+                    <td className="px-4 py-2 text-right">{item.regularHours}</td>
+                    <td className="px-4 py-2 text-right">{item.overtimeHours}</td>
                     <td className="px-4 py-2 text-right">${item.requiredRate.toFixed(2)}</td>
                     <td className="px-4 py-2 text-right">${item.paidRate.toFixed(2)}</td>
                     <td className="px-4 py-2 text-right">${item.underpaymentAmount.toFixed(2)}</td>
+                    <td className="px-4 py-2">{new Date(item.originalPaymentDate).toLocaleDateString()}</td>
+                    <td className="px-4 py-2 text-right">{item.interestRate.toFixed(1)}%</td>
                     <td className="px-4 py-2 text-right">${item.interestAmount.toFixed(2)}</td>
                     <td className="px-4 py-2 text-right font-medium">${item.totalDue.toFixed(2)}</td>
-                    <td className="px-4 py-2">{item.correctionDate || "---"}</td>
+                    <td className="px-4 py-2">{item.correctionDate ? new Date(item.correctionDate).toLocaleDateString() : "---"}</td>
                     <td className="px-4 py-2 text-center">
                       {item.status === 'corrected' ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
