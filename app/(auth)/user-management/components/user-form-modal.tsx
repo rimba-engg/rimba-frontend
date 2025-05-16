@@ -1,6 +1,7 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { useState } from 'react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +25,8 @@ interface UserFormModalProps {
   checklists: Checklist[];
   onClose: () => void;
   onChange: (field: keyof UserFormData, value: any) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
+  isLoading?: boolean;
 }
 
 export function UserFormModal({
@@ -36,6 +38,7 @@ export function UserFormModal({
   onClose,
   onChange,
   onSubmit,
+  isLoading = false
 }: UserFormModalProps) {
   if (!isOpen) return null;
 
@@ -71,6 +74,7 @@ export function UserFormModal({
             variant="ghost"
             size="icon"
             onClick={onClose}
+            disabled={isLoading}
           >
             <X className="w-5 h-5" />
           </Button>
@@ -85,6 +89,7 @@ export function UserFormModal({
                 value={formData.first_name}
                 onChange={(e) => onChange('first_name', e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -95,6 +100,7 @@ export function UserFormModal({
                 value={formData.last_name}
                 onChange={(e) => onChange('last_name', e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -107,7 +113,7 @@ export function UserFormModal({
               value={formData.email}
               onChange={(e) => onChange('email', e.target.value)}
               required
-              disabled={mode === 'edit'}
+              disabled={mode === 'edit' || isLoading}
             />
           </div>
 
@@ -120,6 +126,7 @@ export function UserFormModal({
                 value={formData.password || ''}
                 onChange={(e) => onChange('password', e.target.value)}
                 required={mode === 'create'}
+                disabled={isLoading}
               />
             </div>
           )}
@@ -129,6 +136,7 @@ export function UserFormModal({
             <Select
               value={formData.role}
               onValueChange={(value) => onChange('role', value)}
+              disabled={isLoading}
             >
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select role">
@@ -150,6 +158,7 @@ export function UserFormModal({
               <Select
                 value={formData.project}
                 onValueChange={(value) => onChange('project', value)}
+                disabled={isLoading}
               >
                 <SelectTrigger id="project">
                   <SelectValue placeholder="Select project">
@@ -176,6 +185,7 @@ export function UserFormModal({
                     id={checklist.id}
                     checked={isChecklistSelected(checklist.id)}
                     onCheckedChange={() => handleChecklistToggle(checklist.id, checklist.name)}
+                    disabled={isLoading}
                   />
                   <label
                     htmlFor={checklist.id}
@@ -196,11 +206,23 @@ export function UserFormModal({
               type="button"
               variant="outline"
               onClick={onClose}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button type="submit">
-              {mode === 'create' ? 'Add User' : 'Save Changes'}
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="min-w-[100px]"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {mode === 'create' ? 'Creating...' : 'Saving...'}
+                </>
+              ) : (
+                mode === 'create' ? 'Add User' : 'Save Changes'
+              )}
             </Button>
           </div>
         </form>

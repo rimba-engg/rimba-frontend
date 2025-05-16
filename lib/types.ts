@@ -68,6 +68,7 @@ export interface Checklist {
   progress_percentage?: number;
   project_id: string;
   schema?: Array<ColumnSchema>;
+  audit_year: string;
   additional_columns?: Array<ColumnSchema>;
   column_data?: Record<string, any>;
 }

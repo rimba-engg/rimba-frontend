@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,16 +13,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ColumnSchema } from '@/lib/types';
+
 interface AddColumnModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: ColumnSchema) => void;
+  isLoading?: boolean;
 }
 
 export function AddColumnModal({
   isOpen,
   onClose,
   onSubmit,
+  isLoading = false
 }: AddColumnModalProps) {
   const [name, setName] = useState('');
   const [fieldType, setFieldType] = useState('text');
@@ -64,6 +67,7 @@ export function AddColumnModal({
             variant="ghost"
             size="icon"
             onClick={onClose}
+            disabled={isLoading}
           >
             <X className="w-5 h-5" />
           </Button>
@@ -77,6 +81,7 @@ export function AddColumnModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter field name"
+              disabled={isLoading}
             />
           </div>
 
@@ -85,6 +90,7 @@ export function AddColumnModal({
             <Select
               value={fieldType}
               onValueChange={setFieldType}
+              disabled={isLoading}
             >
               <SelectTrigger id="fieldType">
                 <SelectValue placeholder="Select field type" />
@@ -107,6 +113,7 @@ export function AddColumnModal({
                 value={options}
                 onChange={(e) => setOptions(e.target.value)}
                 placeholder="Option 1, Option 2, Option 3"
+                disabled={isLoading}
               />
               <p className="text-sm text-muted-foreground">
                 Enter options separated by commas
@@ -122,11 +129,23 @@ export function AddColumnModal({
             <Button
               variant="outline"
               onClick={onClose}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
-              Add Field
+            <Button 
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="min-w-[100px]"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                'Add Field'
+              )}
             </Button>
           </div>
         </div>

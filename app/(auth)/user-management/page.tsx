@@ -30,6 +30,7 @@ export default function UserManagementPage() {
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -78,6 +79,7 @@ export default function UserManagementPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
       if (editingUser) {
@@ -105,6 +107,8 @@ export default function UserManagementPage() {
     } catch (err) {
       setError(editingUser ? 'Failed to update user' : 'Failed to create user');
       console.error('Error saving user:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -189,6 +193,7 @@ export default function UserManagementPage() {
         onClose={handleCloseModal}
         onChange={handleInputChange}
         onSubmit={handleSubmit}
+        isLoading={isSubmitting}
       />
 
       <DeleteUserModal
