@@ -284,7 +284,7 @@ export function Sidebar() {
       <div
         className={cn(
           'h-screen bg-white border-r flex flex-col transition-all duration-300',
-          collapsed ? 'w-16' : 'w-48'
+          collapsed ? 'w-16' : 'w-52'
         )}
       >
         <div className="p-2 flex items-center justify-between border-b">

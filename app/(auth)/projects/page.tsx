@@ -5,14 +5,12 @@ import MapView from "./components/MapView";
 
 export default function ProjectsClient() {
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <header>
-          <h1 className="text-4xl font-bold text-gray-950">Project Map</h1>
-        </header>
-        
-        <MapView />
-      </div>
+    <div className="max-w-7xl p-1 md:p-2 mx-auto space-y-4">
+      <header>
+        <h1 className="text-4xl">Project Map</h1>
+      </header>
+      
+      <MapView />
     </div>
   );
 }

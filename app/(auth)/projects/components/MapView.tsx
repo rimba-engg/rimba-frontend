@@ -1,11 +1,10 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, ExternalLink, BarChart, FileText, Scale } from "lucide-react";
+import { MapPin, BarChart, FileText, Scale } from "lucide-react";
 import { projectsData } from './ProjectData';
 import { toast } from "sonner";
 import L from 'leaflet';
@@ -20,10 +19,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Create a custom icon for our markers
-const customIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+// Create custom icons for different states
+const greenIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  shadowSize: [41, 41]
+});
+
+const yellowIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+  iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -39,6 +48,8 @@ interface Site {
   longitude: number;
   image_url: string;
   summary: string;
+  under_construction?: boolean;
+  address?: string;
 }
 
 const MapView = () => {
@@ -75,7 +86,6 @@ const MapView = () => {
     
     console.log("filteredSites", filteredSites);
     setCustomerSites(filteredSites);
-    setSelectedSites(filteredSites.slice(0, 1));
   }, []);
 
   // Helper function to find a customer by name
@@ -173,12 +183,15 @@ const MapView = () => {
       
       // Create and add the marker
       try {
-        const marker = L.marker([markerLat, markerLng], { icon: customIcon })
+        const marker = L.marker([markerLat, markerLng], { 
+          icon: site.under_construction ? yellowIcon : greenIcon 
+        })
           .addTo(map)
           .bindPopup(`
             <div class="text-center">
               <strong>${site.plant_name}</strong><br />
-              ${site.city}, ${site.state}
+              ${site.city}, ${site.state}<br />
+              ${site.under_construction ? '<span style="color: #b8860b;">Under Construction</span>' : '<span style="color: #2e8b57;">Operational</span>'}
             </div>
           `);
         
@@ -250,6 +263,15 @@ const MapView = () => {
     // Store only the site name in local storage
     localStorage.setItem('selected_site', JSON.stringify({ name: site.plant_name }));
     console.log(`Switched to site: ${site.plant_name}`);
+    
+    // Zoom to the selected site
+    if (mapRef.current) {
+      mapRef.current.setView(
+        [site.latitude, site.longitude],
+        12, // Zoom level for city view
+        { animate: true, duration: 1 }
+      );
+    }
     
     // Emit a custom event for site change
     const siteChangeEvent = new CustomEvent('siteChange', { 
@@ -331,7 +353,12 @@ const MapView = () => {
                 />
               </div>
               <p className="text-gray-700">{selectedSites[activeIndex].summary}</p>
+              {selectedSites[activeIndex].address && (
+                <p className="text-gray-700">Address: <u>{selectedSites[activeIndex].address}</u></p>
+              )}
             </CardContent>
+
+            {!selectedSites[activeIndex].under_construction && (
             <CardFooter className="flex flex-col gap-2">
               <div className="grid grid-cols-3 gap-2 w-full">
                 <Button 
@@ -360,16 +387,68 @@ const MapView = () => {
                 </Button>
               </div>
             </CardFooter>
+            )}
           </Card>
         ) : (
-          <div className="hidden md:block md:w-1/3">
-            <Card className="h-full flex items-center justify-center text-gray-500 border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <MapPin className="h-12 w-12 mb-2 opacity-50" />
-                <p className="text-center">Select a location on the map to view details</p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="w-full md:w-1/3">
+            <CardHeader>
+              <CardTitle>Plant Locations</CardTitle>
+              <CardDescription>Click on a plant to view details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Operational Plants */}
+              <div>
+                <h3 className="text-sm font-semibold text-green-600 mb-2 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Operational Plants
+                </h3>
+                <div className="space-y-2">
+                  {customerSites
+                    .filter(site => !site.under_construction)
+                    .map((site, index) => (
+                      <div
+                        key={`operational-${index}`}
+                        className="p-2 rounded-md hover:bg-green-50 cursor-pointer border border-green-100"
+                        onClick={() => {
+                          setSelectedSites([site]);
+                          setActiveIndex(0);
+                          handleSiteChange(site);
+                        }}
+                      >
+                        <p className="font-medium text-sm">{site.plant_name}</p>
+                        <p className="text-xs text-gray-500">{site.city}, {site.state}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Plants Under Construction */}
+              <div>
+                <h3 className="text-sm font-semibold text-yellow-600 mb-2 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Plants Under Construction
+                </h3>
+                <div className="space-y-2">
+                  {customerSites
+                    .filter(site => site.under_construction)
+                    .map((site, index) => (
+                      <div
+                        key={`construction-${index}`}
+                        className="p-2 rounded-md hover:bg-yellow-50 cursor-pointer border border-yellow-100"
+                        onClick={() => {
+                          setSelectedSites([site]);
+                          setActiveIndex(0);
+                          handleSiteChange(site);
+                        }}
+                      >
+                        <p className="font-medium text-sm">{site.plant_name}</p>
+                        <p className="text-xs text-gray-500">{site.city}, {site.state}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
