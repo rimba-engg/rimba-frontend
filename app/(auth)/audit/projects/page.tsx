@@ -11,6 +11,8 @@ import { api, BASE_URL ,defaultHeaders} from '@/lib/api';
 import { type ColumnSchema, type Checklist } from '@/lib/types';
 import { AllChecklistSidebar } from './components/checklist-sidebar';
 import { getStoredCustomer } from '@/lib/auth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { YEARS } from '@/components/ui/year-month-select';
 
 interface ChecklistResponse {
   data: {
@@ -41,6 +43,8 @@ const defaultColumns: ColumnSchema[] = [
   { id: 'progress_percentage', name: 'Progress', type: 'number' },
 ];
 
+
+
 export default function ProjectsPage() {
   const router = useRouter();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -60,6 +64,9 @@ export default function ProjectsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const customer = getStoredCustomer();
   const isBrightMark = customer?.name === "Brightmark";
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [isAddingColumn, setIsAddingColumn] = useState(false);
 
   useEffect(() => {
     fetchChecklists();
@@ -80,6 +87,16 @@ export default function ProjectsPage() {
       const response = await api.get<ChecklistResponse>('/audit/v2/checklist');
       setColumns(response.data.schema);
       setChecklists(response.data.checklists);
+      
+      // Extract unique years from checklists
+      const years = Array.from(new Set(response.data.checklists.map(checklist => checklist.audit_year))).sort().reverse();
+      setAvailableYears(years);
+      
+      // If no year is selected and we have years, select the most recent
+      if (years.length > 0 && !selectedYear) {
+        setSelectedYear(years[0]);
+      }
+      
       setError(null);
     } catch (err) {
       setError('Failed to load checklists');
@@ -114,6 +131,7 @@ export default function ProjectsPage() {
           checklist_items: [],
           created_by: JSON.parse(localStorage.getItem('user') || '{}'),
           updated_at: new Date().toISOString(),
+          audit_year: '',
         });
       } else {
         throw new Error(response.message || 'Failed to create checklist');
@@ -128,6 +146,7 @@ export default function ProjectsPage() {
 
   const handleAddColumn = async (columnData: ColumnSchema) => {
     try {
+      setIsAddingColumn(true);
       const response = await api.post('/audit/v2/project/schema/add/', {
         name: columnData.name,
         field_type: columnData.type,
@@ -139,6 +158,8 @@ export default function ProjectsPage() {
     } catch (error) {
       console.error('Error adding column:', error);
       setError('Failed to add column');
+    } finally {
+      setIsAddingColumn(false);
     }
   };
 
@@ -233,7 +254,23 @@ export default function ProjectsPage() {
       <div className="bg-white rounded-lg shadow">
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">All Projects</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-lg font-semibold text-gray-800">All Projects</h2>
+              <div className="w-[120px]">
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="flex gap-3">
               <input
                 type="file"
@@ -242,14 +279,6 @@ export default function ProjectsPage() {
                 className="hidden"
                 accept=".csv,.xlsx,.xls"
               />
-              {/* <button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
-                disabled={isSubmitting}
-              >
-                <RefreshCw size={16} className={isSubmitting ? "animate-spin" : ""} />
-                Bulk Upload Projects
-              </button> */}
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
@@ -257,24 +286,35 @@ export default function ProjectsPage() {
                 <Plus size={16} />
                 New Project
               </button>
-              {/* removing add column for demo as backend is not ready */}
               <button
                 onClick={() => setShowAddColumnModal(true)}
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
+                disabled={isAddingColumn}
               >
-                <Grid size={16} />
+                {isAddingColumn ? (
+                  <RefreshCw size={16} className="animate-spin" />
+                ) : (
+                  <Grid size={16} />
+                )}
                 Add Column
               </button>
             </div>
           </div>
 
-          <AllChecklistTable
-            projects={checklists}
-            columns={columns}
-            onEdit={handleEditClick}
-            onDelete={(id) => setShowDeleteConfirm(id)}
-            onChecklistClick={handleChecklistClick}
-          />
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-[300px] bg-gray-50 rounded-lg border border-gray-100">
+              <RefreshCw size={32} className="animate-spin text-[#1B4D3E] mb-3" />
+              <p className="text-gray-600 font-medium">Projects are loading, please wait...</p>
+            </div>
+          ) : (
+            <AllChecklistTable
+              projects={checklists.filter(checklist => checklist.audit_year === selectedYear)}
+              columns={columns}
+              onEdit={handleEditClick}
+              onDelete={(id) => setShowDeleteConfirm(id)}
+              onChecklistClick={handleChecklistClick}
+            />
+          )}
         </div>
       </div>
 
@@ -303,6 +343,7 @@ export default function ProjectsPage() {
         isOpen={showAddColumnModal}
         onClose={() => setShowAddColumnModal(false)}
         onSubmit={handleAddColumn}
+        isLoading={isAddingColumn}
       />
 
       {showAllChecklistSidebar && selectedChecklist && (
