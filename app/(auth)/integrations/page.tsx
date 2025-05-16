@@ -13,21 +13,8 @@ const Integrations = () => {
     setShowModal(true);
   };
 
-  // Add error handling for any fetch calls
-  // const fetchData = async () => {
-  //   try {
-  //     const response = await fetch('/your-api-endpoint');
-  //     if (!response.ok) throw new Error('Network response was not ok');
-  //     const data = await response.json();
-  //     return data;
-  //   } catch (error) {
-  //     console.error('Error fetching data:', error);
-  //     return null;
-  //   }
-  // };
-
   return (
-    <div className="min-h-screen bg-gray-50 p-8 relative">
+    <div className="min-h-screen p-8 relative">
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center">
@@ -64,7 +51,7 @@ const Integrations = () => {
 
         <div className="flex gap-4 mb-6">
           <div className="text-sm font-medium">
-            <span className="text-purple-600 border-b-2 border-purple-600 pb-2 mr-4">Available (9)</span>
+            <span className="text-purple-600 border-b-2 border-purple-600 pb-2 mr-4">Available (10)</span>
             <span className="text-gray-600">Connected (0)</span>
           </div>
         </div>
