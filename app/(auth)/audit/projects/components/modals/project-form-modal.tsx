@@ -77,7 +77,7 @@ export function ProjectFormModal({
       <div className="bg-white rounded-lg p-6 w-[600px] max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-semibold">
-            {mode === 'create' ? 'Create Checklist' : 'Edit Info'}
+            {mode === 'create' ? 'Create Log' : 'Edit Log'}
           </h3>
           <Button
             variant="ghost"
@@ -97,7 +97,7 @@ export function ProjectFormModal({
                 id="name"
                 value={project.name || ''}
                 onChange={(e) => onChange('name', e.target.value)}
-                placeholder="Enter checklist name"
+                placeholder="Enter Log name"
                 required
               />
             </div>
