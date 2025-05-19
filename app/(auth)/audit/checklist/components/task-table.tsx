@@ -46,7 +46,7 @@ export function TaskTable({
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ columnName: null, direction: 'asc' });
   
   // State for hidden columns
-  const [hiddenColumns, setHiddenColumns] = React.useState<Set<string>>(new Set());
+  const [hiddenColumns, setHiddenColumns] = React.useState<Set<string>>(new Set(['Created By', 'Entry Date']));
   
   // Add state for column ordering
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
