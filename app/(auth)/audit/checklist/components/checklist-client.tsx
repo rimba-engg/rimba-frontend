@@ -414,6 +414,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
           onCustomFieldChange={handleFieldChange}
           newComment={newComment}
           onNewCommentChange={setNewComment}
+          refreshChecklist={refreshChecklist}
         />
       )}
 

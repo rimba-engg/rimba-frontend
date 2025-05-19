@@ -23,6 +23,7 @@ interface TaskSidebarProps {
   onCustomFieldChange: (itemId: string, columnId: string, value: string) => void;
   newComment: string;
   onNewCommentChange: (value: string) => void;
+  refreshChecklist: () => void;
 }
 
 interface UserResponse {
@@ -42,6 +43,7 @@ export function TaskSidebar({
   onCustomFieldChange,
   newComment,
   onNewCommentChange,
+  refreshChecklist,
 }: TaskSidebarProps) {
   const router = useRouter();
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -454,6 +456,7 @@ export function TaskSidebar({
       console.error('Error updating comment:', error);
     } finally {
       setIsUpdatingComment(false);
+      refreshChecklist();
     }
   };
 
