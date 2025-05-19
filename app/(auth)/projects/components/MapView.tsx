@@ -9,7 +9,7 @@ import { projectsData } from './ProjectData';
 import { toast } from "sonner";
 import L from 'leaflet';
 import { getStoredCustomer } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // Fix for default marker icons in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -60,6 +60,7 @@ const MapView = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Get customer name from localStorage and filter sites
   useEffect(() => {
@@ -285,6 +286,18 @@ const MapView = () => {
     });
     window.dispatchEvent(navbarSiteChangeEvent);
   };
+
+  const querySite = searchParams.get('site');
+  useEffect(() => {
+    if (querySite) {
+      var currentSite = customerSites.find(site => site.plant_name == querySite);
+      if (currentSite) {
+      setSelectedSites([currentSite]);
+      setActiveIndex(0);
+      handleSiteChange(currentSite);
+      }
+    }
+  }, [querySite, customerSites]);
 
   return (
     <div className="flex flex-col space-y-4">

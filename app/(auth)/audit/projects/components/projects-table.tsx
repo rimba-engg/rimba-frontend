@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
+import { useRouter } from 'next/navigation';
 interface AllChecklistTableProps {
   projects: Checklist[];
   columns: ColumnSchema[];
@@ -43,6 +43,8 @@ export function AllChecklistTable({
 
   // Memoize customColumns to prevent infinite rendering
   const customColumns = React.useMemo(() => columns.slice(4), [columns]);
+  const router = useRouter();
+
   
   // Initialize column order from columns when component mounts or columns change
   useEffect(() => {
@@ -174,6 +176,10 @@ export function AllChecklistTable({
     setDraggedColumn(null);
   };
 
+  const onSiteClick = (site: string) => {
+    router.push(`/projects/?site=${site}`);
+  }
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -194,6 +200,9 @@ export function AllChecklistTable({
                 {/* Fixed columns */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Log
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Project
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Updated
@@ -254,6 +263,14 @@ export function AllChecklistTable({
                     >
                       <span className="font-medium">{project.name}</span>
                       <ChevronRight className="w-4 h-4 opacity-0 -ml-1 transition-all group-hover:opacity-100 group-hover:ml-0" />
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button 
+                      onClick={() => onSiteClick(project.site)}
+                      className="group flex items-center gap-1 text-primary hover:text-primary/80"
+                    >
+                      <span className="font-medium">{project.site}</span>
                     </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

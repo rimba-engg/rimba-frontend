@@ -8,6 +8,14 @@ import { Label } from '@/components/ui/label';
 import { type Checklist } from '@/lib/types';
 import { api } from '@/lib/api';
 import { getStoredCustomer } from '@/lib/auth';
+import { DemoRNGSites, NovillaSites, BrightmarkSites } from '@/config/rngSites';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -34,6 +42,19 @@ export function ProjectFormModal({
   const [loading, setLoading] = useState(false);
   const customer = getStoredCustomer();
   const isBrightMark = customer?.name === "Brightmark";
+
+  var sites = [];
+  switch (customer?.name) {
+    case "Novilla":
+      sites = NovillaSites;
+      break;
+    case "Brightmark":
+      sites = BrightmarkSites;
+      break;
+    default:
+      sites = DemoRNGSites;
+      break;
+  }
 
   // Fetch available projects when the modal is open and in "create" mode.
   useEffect(() => {
@@ -100,6 +121,28 @@ export function ProjectFormModal({
                 placeholder="Enter Log name"
                 required
               />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="site">Site</Label>
+            <div className="flex items-center gap-2">
+              <Building className="text-gray-400" size={20} />
+              <Select
+                value={project.site || ''}
+                onValueChange={(value) => onChange('site', value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site) => (
+                    <SelectItem key={site.name} value={site.name}>
+                      {site.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

@@ -313,7 +313,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
             href="/audit/projects"
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            Projects
+            Logs
           </Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
           <span className="text-muted-foreground">{checklistData.name}</span>

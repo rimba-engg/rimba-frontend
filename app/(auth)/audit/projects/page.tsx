@@ -114,6 +114,7 @@ export default function ProjectsPage() {
       const payload = {
         checklist_name: formData.name,
         project_id: formData.project_id,
+        site: formData.site,
       };
 
       const response = await api.post<CreateChecklistResponse>(
@@ -132,6 +133,7 @@ export default function ProjectsPage() {
           created_by: JSON.parse(localStorage.getItem('user') || '{}'),
           updated_at: new Date().toISOString(),
           audit_year: '',
+          site: '',
         });
       } else {
         throw new Error(response.message || 'Failed to create checklist');
