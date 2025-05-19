@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,29 +28,35 @@ export function AddColumnModal({
   const [fieldType, setFieldType] = useState('text');
   const [options, setOptions] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError('');
+    setIsLoading(true);
 
-    if (!name.trim()) {
-      setError('Column name is required');
-      return;
+    try {
+      if (!name.trim()) {
+        setError('Column name is required');
+        return;
+      }
+
+      if ((fieldType === 'single_select' || fieldType === 'multi_select') && !options.trim()) {
+        setError('Options are required for select fields');
+        return;
+      }
+
+      const formData: ColumnSchema = {
+        name: name.trim(),
+        type: fieldType as ColumnSchema['type'],
+        ...(fieldType === 'single_select' || fieldType === 'multi_select'
+          ? { options: options.split(',').map(opt => opt.trim()).filter(Boolean) }
+          : {}),
+      };
+
+      await onSubmit(formData);
+    } finally {
+      setIsLoading(false);
     }
-
-    if ((fieldType === 'single_select' || fieldType === 'multi_select') && !options.trim()) {
-      setError('Options are required for select fields');
-      return;
-    }
-
-    const formData: ColumnSchema = {
-      name: name.trim(),
-      type: fieldType as ColumnSchema['type'],
-      ...(fieldType === 'single_select' || fieldType === 'multi_select'
-        ? { options: options.split(',').map(opt => opt.trim()).filter(Boolean) }
-        : {}),
-    };
-
-    onSubmit(formData);
   };
 
   if (!isOpen) return null;
@@ -122,11 +128,19 @@ export function AddColumnModal({
             <Button
               variant="outline"
               onClick={onClose}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
-              Add Field
+            <Button onClick={handleSubmit} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                'Add Field'
+              )}
             </Button>
           </div>
         </div>
