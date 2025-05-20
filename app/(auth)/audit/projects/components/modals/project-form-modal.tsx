@@ -125,7 +125,7 @@ export function ProjectFormModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="site">Site</Label>
+            <Label htmlFor="site">Project</Label>
             <div className="flex items-center gap-2">
               <Building className="text-gray-400" size={20} />
               <Select
@@ -133,7 +133,7 @@ export function ProjectFormModal({
                 onValueChange={(value) => onChange('site', value)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a site" />
+                  <SelectValue placeholder="Select a Project" />
                 </SelectTrigger>
                 <SelectContent>
                   {sites.map((site) => (
@@ -151,14 +151,14 @@ export function ProjectFormModal({
             {/* Dropdown for project selection (only in create mode) */}
           {mode === 'create' && (
             <div className="space-y-2">
-              <Label htmlFor="projectSelect">Project</Label>
+              <Label htmlFor="projectSelect">Partner</Label>
               <select
                 id="projectSelect"
                 value={project.project_id || ''}
                 onChange={(e) => onChange('project_id', e.target.value)}
                 className="border border-gray-300 rounded-md p-2 w-full"
               >
-                <option value="">Select a project</option>
+                <option value="">Select a partner</option>
                 {availableProjects.map((proj) => (
                   <option key={proj.id} value={proj.id}>
                     {proj.name}
