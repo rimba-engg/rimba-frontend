@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, ChevronRight, Grid, Upload, Loader2 } from 'lucide-react';
+import { Plus, ChevronRight, Grid, Upload, Loader2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TaskTable } from './task-table';
@@ -13,6 +13,7 @@ import { AddColumnModal } from './add-column-modal';
 import { TaskStatus, type ChecklistItem, type FormData, type User, type Checklist, type ColumnSchema } from '@/lib/types';
 import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { getStoredUser } from '@/lib/auth';
+import { ShareChecklistModal } from './modals/share-checklist-modal';
 
 interface ApiResponse {
   status: number;
@@ -33,6 +34,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
   const [showTaskSidebar, setShowTaskSidebar] = useState<string | null>(checklistItemId || null);
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(checklistData.checklist_items);
   const [newComment, setNewComment] = useState('');
@@ -369,6 +371,11 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
             <Grid className="w-4 h-4 mr-2" />
             Add Column
           </Button>
+          
+          <Button variant="outline" className="flex items-center gap-2" onClick={() => setShowShareModal(true)}>
+          <Share2 size={18} />
+            Share
+          </Button>
         </div>
       </div>
 
@@ -442,6 +449,12 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
         isOpen={showAddColumnModal}
         onClose={() => setShowAddColumnModal(false)}
         onSubmit={handleAddColumn}
+      />
+
+      <ShareChecklistModal
+        open={showShareModal}
+        onOpenChange={() => setShowShareModal(false)}
+        checklist={checklistData}
       />
     </div>
   );

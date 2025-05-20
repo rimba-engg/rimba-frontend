@@ -134,6 +134,7 @@ export default function ProjectsPage() {
           updated_at: new Date().toISOString(),
           audit_year: '',
           site: '',
+          allowed_users: [],
         });
       } else {
         throw new Error(response.message || 'Failed to create checklist');

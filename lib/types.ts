@@ -72,6 +72,7 @@ export interface Checklist {
   additional_columns?: Array<ColumnSchema>;
   column_data?: Record<string, any>;
   site: string;
+  allowed_users: User[];
 }
 
 export interface Comment {
