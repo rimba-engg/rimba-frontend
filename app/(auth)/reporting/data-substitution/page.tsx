@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { DateTime } from 'luxon';
 import { type GasBalanceView } from '../rng-mass-balance/types';
 import {
@@ -105,9 +105,53 @@ export default function DataSubstitutionPage() {
     }
   };
 
-  const handleDownloadReport = (type: 'missing' | 'substituted') => {
+  const handleDownloadReport = async (type: 'missing' | 'substituted') => {
     toast.info(`Downloading ${type} data report...`);
-    // Implement download functionality here
+    try {
+      const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
+      if (!siteName) {
+        throw new Error('No site selected');
+      }
+
+      const payload = {
+        site_name: siteName
+      };
+
+      let endpoint = '';
+      if (type === 'missing') {
+        endpoint = '/reporting/v2/missing-data/download/';
+      } else if (type === 'substituted') {
+        endpoint = '/reporting/v2/substituted-data/download/';
+      }
+
+      const response = await fetch(`${BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          ...defaultHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${DateTime.now().minus({ days: 1 }).toFormat('yyyy-MM-dd')}-to-${DateTime.now().toFormat('yyyy-MM-dd')}-${type}-data-report-${siteName}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('Report downloaded successfully');
+    } catch (err: any) {
+      console.error('Error downloading report:', err);
+      toast.error('Failed to download report');
+    }
   };
 
   if (loading) {
