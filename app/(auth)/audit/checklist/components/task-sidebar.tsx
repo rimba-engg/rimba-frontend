@@ -23,6 +23,7 @@ interface TaskSidebarProps {
   onCustomFieldChange: (itemId: string, columnId: string, value: string) => void;
   newComment: string;
   onNewCommentChange: (value: string) => void;
+  refreshChecklist: () => void;
 }
 
 interface UserResponse {
@@ -42,6 +43,7 @@ export function TaskSidebar({
   onCustomFieldChange,
   newComment,
   onNewCommentChange,
+  refreshChecklist,
 }: TaskSidebarProps) {
   const router = useRouter();
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -77,6 +79,7 @@ export function TaskSidebar({
     size: number;
     uploaded_at: string;
   }>>([]);
+  // console.log(task.column_data);
 
   const fetchAssignedUsers = async () => {
     try {
@@ -454,6 +457,7 @@ export function TaskSidebar({
       console.error('Error updating comment:', error);
     } finally {
       setIsUpdatingComment(false);
+      refreshChecklist();
     }
   };
 
@@ -602,7 +606,7 @@ export function TaskSidebar({
           </div>
 
           {/* Custom Fields from Schema */}
-          {schema.filter(column => column.name !== 'Status' && column.name !== 'Assigned To').map((column) => (
+          {schema.filter(column => column.name !== 'Status' && column.name !== 'Assigned To' && column.name !== 'Created By' && column.name !== 'Entry Date').map((column) => (
             <div key={column.name}>
               <Label>{column.name}</Label>
               {renderFieldInput(column)}
@@ -656,6 +660,25 @@ export function TaskSidebar({
           <div>
             <Label>Comments</Label>
             <div className="mt-2 space-y-4">
+              {
+              task.column_data['Created By'] && task.column_data['Entry Date'] && (
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                    <img
+                    src={task.column_data['Created By'].avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(task.column_data['Created By'].first_name)}&background=random`}
+                    alt="Avatar"
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <span>{task.column_data['Created By'].first_name}</span>
+                  <span> created this task on </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(task.column_data['Entry Date']).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
               {task.comments.map((comment, index) => (
                 <div key={index} className="bg-gray-50 p-3 rounded-lg">
                   <div className="flex items-center justify-between mb-2">

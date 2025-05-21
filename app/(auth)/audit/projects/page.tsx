@@ -114,6 +114,7 @@ export default function ProjectsPage() {
       const payload = {
         checklist_name: formData.name,
         project_id: formData.project_id,
+        site: formData.site,
       };
 
       const response = await api.post<CreateChecklistResponse>(
@@ -132,6 +133,8 @@ export default function ProjectsPage() {
           created_by: JSON.parse(localStorage.getItem('user') || '{}'),
           updated_at: new Date().toISOString(),
           audit_year: '',
+          site: '',
+          allowed_users: [],
         });
       } else {
         throw new Error(response.message || 'Failed to create checklist');
@@ -255,7 +258,7 @@ export default function ProjectsPage() {
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
-              <h2 className="text-lg font-semibold text-gray-800">All Projects</h2>
+              <h2 className="text-lg font-semibold text-gray-800">All Logs of Issues</h2>
               <div className="w-[120px]">
                 <Select value={selectedYear} onValueChange={setSelectedYear}>
                   <SelectTrigger className="h-9">
@@ -284,7 +287,7 @@ export default function ProjectsPage() {
                 className="bg-[#1B4D3E] text-white px-4 py-2 rounded-lg hover:bg-[#163B30] transition-colors flex items-center gap-2"
               >
                 <Plus size={16} />
-                New Project
+                New Log
               </button>
               <button
                 onClick={() => setShowAddColumnModal(true)}

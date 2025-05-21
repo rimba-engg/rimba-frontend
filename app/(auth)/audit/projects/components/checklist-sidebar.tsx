@@ -22,6 +22,7 @@ export function AllChecklistSidebar({
 }: AllChecklistSidebarProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [columnData, setColumnData] = useState<Record<string, string>>(checklist.column_data || {});
+  const [checklistName, setChecklistName] = useState(checklist.name);
 
   const updateChecklist = async () => {
     setIsLoading(true);
@@ -30,6 +31,13 @@ export function AllChecklistSidebar({
       console.log('columns', columns);
       console.log('Newer data:', columnData);
       console.log('Older data:', checklist.column_data);
+
+      if (checklistName !== checklist.name) {
+        const response = await api.post('/audit/v2/checklist/name/update/', {
+          checklist_id: checklist.id,
+          name: checklistName,
+        });
+      }
 
       for (const column of columns.slice(4)) {
         const olderValue = checklist.column_data?.[column.name];
@@ -114,10 +122,16 @@ export function AllChecklistSidebar({
           <X size={16} />
         </Button>
       </div>
-
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 space-y-6">
+          <div>
+          <Input
+              value={checklistName}
+              onChange={(e) => setChecklistName(e.target.value)}
+              className="w-full"
+            />
+          </div>
           {columns.slice(4).map((column) => (
             <div key={column.name}>
               {renderField(column)}

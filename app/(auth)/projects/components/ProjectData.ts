@@ -193,5 +193,110 @@ export const projectsData = [
         "under_construction": false,
       }
     ]
+  },
+  {
+    "customer":"Brightmark",
+    "sites":[
+      {
+        "plant_name": "Ashley Plastics Renewal Facility",
+        "city": "Ashley",
+        "state": "IN",
+        "latitude": 41.5267,
+        "longitude": -85.0650,
+        "image_url": "https://www.brightmark.com/wp-content/uploads/2019/05/Plastics-Renewal-Facility-Ashley-Indiana.jpg",
+        "summary": "Operational since 2020. Processes 100,000 tons of plastic annually into fuels/wax. ISCC PLUS certified. Achieved 4M+ lbs recycled by 2022.",
+        "under_construction": false
+      },
+      {
+        "plant_name": "Thomaston Plastics Circularity Center",
+        "city": "Thomaston",
+        "state": "GA",
+        "latitude": 32.8885,
+        "longitude": -84.3263,
+        "image_url": "https://thomastoncircularitycenter.com/images/facility-render.jpg",
+        "summary": "$950M, 2.5M sq ft facility under construction. Will process 400K tons/year of plastic waste using Plastics Renewal® tech. Expected completion: 2026.",
+        "under_construction": true
+      },
+      {
+        "plant_name": "Midwest RNG Cluster",
+        "city": "Multiple",
+        "state": "IA/MI/SD/WI/OH",
+        "latitude": null,
+        "longitude": null,
+        "image_url": "https://www.energytech.com/static/energytech/images/2024/01/23/brightmark-rng-plant.jpg",
+        "summary": "15+ operational dairy RNG facilities across 5 states. Reduces 1.2M+ metric tons CO2e annually. Partners include Boadwine Dairy (SD).",
+        "under_construction": false
+      },
+        {
+          "plant_name": "Mondovi Circularity Center",
+          "city": "Mondovi",
+          "state": "WI",
+          "latitude": 44.5678,
+          "longitude": -91.6710,
+          "image_url": "https://www.brightmark.com/circularity-centers/assets/mondovi.jpg",
+          "summary": "Dairy RNG facility operational since 2021. Part of Midwest cluster.",
+          "under_construction": false
+        },
+        {
+          "plant_name": "Eloy Circularity Center",
+          "city": "Eloy",
+          "state": "AZ",
+          "latitude": 32.7557,
+          "longitude": -111.5550,
+          "image_url": "https://www.brightmark.com/circularity-centers/assets/eloy.jpg",
+          "summary": "Agricultural waste-to-RNG facility serving Southwest markets.",
+          "under_construction": false
+        },
+        {
+          "plant_name": "Sioux Falls Circularity Center",
+          "city": "Sioux Falls",
+          "state": "SD",
+          "latitude": 43.5460,
+          "longitude": -96.7313,
+          "image_url": "https://www.brightmark.com/circularity-centers/assets/sioux-falls.jpg",
+          "summary": "Flagship dairy RNG project with 10K+ cattle waste processed daily.",
+          "under_construction": false
+        },
+        {
+          "plant_name": "Yakima Circularity Center",
+          "city": "Yakima",
+          "state": "WA",
+          "latitude": 46.6021,
+          "longitude": -120.5059,
+          "image_url": "https://www.brightmark.com/circularity-centers/assets/yakima.jpg",
+          "summary": "West Coast hub for food waste-to-RNG conversion.",
+          "under_construction": false
+        },
+        {
+          "plant_name": "Centerville Circularity Center",
+          "city": "Centerville",
+          "state": "UT",
+          "latitude": 40.9180,
+          "longitude": -111.8722,
+          "image_url": "https://www.brightmark.com/circularity-centers/assets/centerville.jpg",
+          "summary": "Mountain West facility processing municipal organic waste.",
+          "under_construction": false
+        },
+        {
+          "plant_name": "Rochester Circularity Center",
+          "city": "Rochester",
+          "state": "MN",
+          "latitude": 44.0121,
+          "longitude": -92.4802,
+          "image_url": "https://www.brightmark.com/circularity-centers/assets/rochester.jpg",
+          "summary": "Group of 5 anaerobic digestion projects serving Upper Midwest.",
+          "under_construction": false
+        },
+        {
+          "plant_name": "Parkes Special Activation Precinct Facility",
+          "city": "Parkes",
+          "state": "NSW",
+          "latitude": -33.1374,
+          "longitude": 148.1753,
+          "image_url": "https://www.brightmark.com/wp-content/uploads/2023/03/australia-render.jpg",
+          "summary": "First Australian plastics renewal plant. Partnership with NSW Government. Capacity: 200K tons/year. Status: Planning phase.",
+          "under_construction": true
+        }
+    ]
   }
 ];
