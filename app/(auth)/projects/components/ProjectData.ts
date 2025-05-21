@@ -296,7 +296,29 @@ export const projectsData = [
           "image_url": "https://www.brightmark.com/wp-content/uploads/2023/03/australia-render.jpg",
           "summary": "First Australian plastics renewal plant. Partnership with NSW Government. Capacity: 200K tons/year. Status: Planning phase.",
           "under_construction": true
+        },
+        {
+          "plant_name": "Syracuse Circularity Center",
+          "city": "Syracuse",
+          "state": "NY",
+          "latitude": 43.0481,
+          "longitude": -76.1474,
+          "image_url": "https://www.brightmark.com/wp-content/uploads/2021/01/helios-project-header.jpg",
+          "summary": "The Syracuse Circularity Center, known as The Helios Project, is a fully operational dairy RNG facility in Western New York and the Finger Lakes region. It utilizes manure from Gardeau Crest Farms, Lawnhurst Farms, and Willet Dairy, processed in three anaerobic digesters. The captured methane is converted to renewable natural gas (RNG) and injected into the local pipeline, reducing greenhouse gas emissions, improving odor control, and transforming waste into valuable resources. The project is a joint venture between Brightmark and Chevron U.S.A. Inc.",
+          "under_construction": false
+        },
+        {
+          "plant_name": "Madison Circularity Center",
+          "city": "Madison",
+          "state": "WI",
+          "latitude": 43.0731,
+          "longitude": -89.4012,
+          "image_url": "https://www.brightmark.com/wp-content/uploads/2021/01/demeter-project-header.jpg",
+          "summary": "The Madison Circularity Center, also known as The Demeter Project, is an operational dairy RNG facility in Madison, Wisconsin. It processes manure from three local farms using three upgraded anaerobic digesters (completed June 2020) to convert methane into renewable natural gas. The project reduces greenhouse gas emissions by over 16,000 tons of CO2eq annually (equivalent to planting 21,000 acres of forest per year), prevents nitrogen and phosphorus runoff, and supports local environmental stewardship. The RNG is injected into an interstate pipeline via Dane County’s landfill gas processing facility.",
+          "under_construction": false
         }
+        
+        
     ]
   }
 ];
