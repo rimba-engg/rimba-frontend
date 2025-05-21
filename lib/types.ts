@@ -71,6 +71,8 @@ export interface Checklist {
   audit_year: string;
   additional_columns?: Array<ColumnSchema>;
   column_data?: Record<string, any>;
+  site: string;
+  allowed_users: User[];
 }
 
 export interface Comment {

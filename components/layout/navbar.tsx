@@ -16,7 +16,7 @@ import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { type User, type Customer  } from '@/lib/types';
 import { useAuth0 } from '@auth0/auth0-react';
-
+import { DemoRNGSites, NovillaSites } from '@/config/rngSites';
 
 
 export function Navbar() {
@@ -56,12 +56,7 @@ export function Navbar() {
     console.log('customerData', customerData);
     if (customerData?.name === 'Novilla') {
       
-      setSites([
-        { name: 'West Branch' },
-        { name: 'Buckhorn' },
-        {name: 'Red Leaf'},
-        {name:'Three Petals'}
-      ]);
+      setSites(NovillaSites);
       var current_site = localStorage.getItem('selected_site');
       if (current_site) {
         setSelectedSite(JSON.parse(current_site));
@@ -76,10 +71,7 @@ export function Navbar() {
       }
     }
     else if (customerData?.name === 'Demo-RNG') {
-      setSites([
-        { name: 'GreenFlame BioEnergy' },
-        {name: 'EcoMethane Hub'}
-      ]);
+      setSites(DemoRNGSites);
       var current_site = localStorage.getItem('selected_site');
       if (current_site) {
         setSelectedSite(JSON.parse(current_site));

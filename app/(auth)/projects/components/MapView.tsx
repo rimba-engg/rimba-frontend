@@ -4,12 +4,12 @@ import { useRef, useState, useEffect } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, BarChart, FileText, Scale } from "lucide-react";
+import { MapPin, BarChart, FileText, Scale, AlertCircle } from "lucide-react";
 import { projectsData } from './ProjectData';
 import { toast } from "sonner";
 import L from 'leaflet';
 import { getStoredCustomer } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // Fix for default marker icons in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -60,6 +60,7 @@ const MapView = () => {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Get customer name from localStorage and filter sites
   useEffect(() => {
@@ -286,6 +287,18 @@ const MapView = () => {
     window.dispatchEvent(navbarSiteChangeEvent);
   };
 
+  const querySite = searchParams.get('site');
+  useEffect(() => {
+    if (querySite) {
+      var currentSite = customerSites.find(site => site.plant_name == querySite);
+      if (currentSite) {
+      setSelectedSites([currentSite]);
+      setActiveIndex(0);
+      handleSiteChange(currentSite);
+      }
+    }
+  }, [querySite, customerSites]);
+
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex justify-between items-center">
@@ -388,6 +401,16 @@ const MapView = () => {
               </div>
             </CardFooter>
             )}
+            <div className="flex p-6">
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-2 text-left border-orange-500 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                onClick={() => router.push(`/audit/projects/`)}
+              >
+                <AlertCircle className="h-4 w-4" />
+                <span>Logs of Issues</span>
+              </Button>
+            </div>
           </Card>
         ) : (
           <Card className="w-full md:w-1/3">

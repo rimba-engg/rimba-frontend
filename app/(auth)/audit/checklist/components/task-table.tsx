@@ -1,6 +1,6 @@
 'use client';
 
-import { User2, ArrowUpDown, MoreHorizontal, Eye } from 'lucide-react';
+import { User2, ArrowUpDown, MoreHorizontal, Eye, Loader2 } from 'lucide-react';
 import { Customer, type ChecklistItem, type ColumnSchema, type User } from '@/lib/types';
 import {
   DropdownMenu,
@@ -12,6 +12,16 @@ import { Button } from '@/components/ui/button';
 import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { getStoredCustomer } from '@/lib/auth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TaskTableProps {
   checklistId: string;
@@ -46,13 +56,16 @@ export function TaskTable({
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ columnName: null, direction: 'asc' });
   
   // State for hidden columns
-  const [hiddenColumns, setHiddenColumns] = React.useState<Set<string>>(new Set());
+  const [hiddenColumns, setHiddenColumns] = React.useState<Set<string>>(new Set(['Created By', 'Entry Date']));
   
   // Add state for column ordering
   const [columnOrder, setColumnOrder] = React.useState<string[]>([]);
   
   // State for drag operation
   const [draggedColumn, setDraggedColumn] = React.useState<string | null>(null);
+
+  const [columnToDelete, setColumnToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Initialize column order from schema when component mounts or schema changes
   useEffect(() => {
@@ -77,22 +90,32 @@ export function TaskTable({
   };
 
   const handleDeleteColumn = async (columnName: string) => {
-    console.log(`Delete column: ${columnName}`);
+    setColumnToDelete(columnName);
+  };
+
+  const confirmDeleteColumn = async () => {
+    if (!columnToDelete) return;
+    
+    setIsDeleting(true);
     try {
       const payload = {
         checklist_id: checklistId,
-        column_name: columnName,
+        column_name: columnToDelete,
       };
       await api.post('/audit/v2/checklist/item/schema/delete/', payload);
-      console.log(`Column ${columnName} deleted successfully`);
-      // Optionally, update the state to reflect the deleted column
+      console.log(`Column ${columnToDelete} deleted successfully`);
       setHiddenColumns(prev => {
         const newHidden = new Set(prev);
-        newHidden.add(columnName);
+        newHidden.add(columnToDelete);
         return newHidden;
       });
+      // Only close the dialog after successful deletion
+      setColumnToDelete(null);
     } catch (error) {
       console.error('Error deleting column:', error);
+      // Don't close the dialog on error
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -363,73 +386,114 @@ export function TaskTable({
   };
 
   return (
-    <div className="relative w-full">
-      {/* Add some basic styles for drag and drop visual feedback */}
-      <style jsx global>{`
-        .dragging {
-          opacity: 0.5;
-        }
-        .drop-target {
-          border-left: 2px dashed #666;
-          border-right: 2px dashed #666;
-        }
-      `}</style>
-      <table className="w-full border-collapse min-w-[1200px]">
-        <thead>
-          <tr className="bg-muted/50">
-            <th className="text-left py-3 px-4">#</th>
-            {visibleColumns.map(column => (
-              <th key={column.name} className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                <div 
-                  className="flex items-center justify-between"
-                  draggable={true}
-                  onDragStart={(e) => handleDragStart(e, column.name)}
-                  onDragOver={(e) => handleDragOver(e, column.name)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, column.name)}
-                  onDragEnd={handleDragEnd}
-                >
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSort(column.name)}
-                    className="flex items-center gap-1 hover:bg-transparent cursor-grab"
-                  >
-                    {column.name}
-                    <ArrowUpDown className="w-4 h-4 ml-1" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-transparent">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleHideColumn(column.name)}>
-                        Hide Column
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteColumn(column.name)}>
-                        Delete Column
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedItems.map((checklist_item, index) => (
-            <tr key={checklist_item.id} className="hover:bg-muted/50 cursor-pointer border-b" onClick={() => onTaskClick(checklist_item.id)}>
-              <td className="h-16 px-4 font-medium">{index + 1}</td>
+    <>
+      <div className="relative w-full">
+        {/* Add some basic styles for drag and drop visual feedback */}
+        <style jsx global>{`
+          .dragging {
+            opacity: 0.5;
+          }
+          .drop-target {
+            border-left: 2px dashed #666;
+            border-right: 2px dashed #666;
+          }
+        `}</style>
+        <table className="w-full border-collapse min-w-[1200px]">
+          <thead>
+            <tr className="bg-muted/50">
+              <th className="text-left py-3 px-4">#</th>
               {visibleColumns.map(column => (
-                <td key={column.name} className="w-1/3 h-16 px-4">
-                  {renderFieldValue(checklist_item, column)}
-                </td>
+                <th key={column.name} className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                  <div 
+                    className="flex items-center justify-between"
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, column.name)}
+                    onDragOver={(e) => handleDragOver(e, column.name)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, column.name)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort(column.name)}
+                      className="flex items-center gap-1 hover:bg-transparent cursor-grab"
+                    >
+                      {column.name}
+                      <ArrowUpDown className="w-4 h-4 ml-1" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-transparent">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleHideColumn(column.name)}>
+                          Hide Column
+                        </DropdownMenuItem>
+                        {
+                          column.name !== 'Status' && column.name !== 'Description' && column.name !== 'Due Date' && column.name !== 'Assigned To' && (
+                            <DropdownMenuItem onClick={() => handleDeleteColumn(column.name)}>
+                              Delete Column
+                            </DropdownMenuItem>
+                          )
+                        }
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {sortedItems.map((checklist_item, index) => (
+              <tr key={checklist_item.id} className="hover:bg-muted/50 cursor-pointer border-b" onClick={() => onTaskClick(checklist_item.id)}>
+                <td className="h-16 px-4 font-medium">{index + 1}</td>
+                {visibleColumns.map(column => (
+                  <td key={column.name} className="w-1/3 h-16 px-4">
+                    {renderFieldValue(checklist_item, column)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      <AlertDialog 
+        open={!!columnToDelete} 
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setColumnToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the column "{columnToDelete}" and all its data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteColumn} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Column'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
