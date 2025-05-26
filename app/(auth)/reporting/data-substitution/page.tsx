@@ -25,9 +25,9 @@ interface SensorMissingData {
 }
 
 interface MissingDataSummary {
-  date_range: string;
-  missing_sensors_data: SensorMissingData[];
-  unique_sensor_count: number;
+  date_range?: string;
+  missing_sensors_data?: SensorMissingData[];
+  unique_sensor_count?: number;
 }
 
 interface ValidationResponse {
@@ -194,10 +194,10 @@ export default function DataSubstitutionPage() {
             <div className="flex items-center">
               <div className="flex flex-col">
                 <span className="text-2xl font-bold">
-                  {validationData?.missing_data_summary.unique_sensor_count || 0} sensors
+                  {validationData?.missing_data_summary?.unique_sensor_count || 0} sensors
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {validationData?.missing_data_summary.missing_sensors_data.length || 0} ongoing outages
+                  {validationData?.missing_data_summary?.missing_sensors_data?.length || 0} ongoing outages
                 </span>
               </div>
               <AlertTriangle className="ml-auto h-8 w-8 text-yellow-500" />
@@ -314,8 +314,8 @@ export default function DataSubstitutionPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {validationData.missing_data_summary.missing_sensors_data.map((item, index) => (
-                              <tr key={item.sensor} className={index !== validationData.missing_data_summary.missing_sensors_data.length - 1 ? "border-b" : ""}>
+                            {validationData?.missing_data_summary?.missing_sensors_data?.map((item, index) => (
+                              <tr key={item.sensor} className={index !== (validationData?.missing_data_summary?.missing_sensors_data?.length || 0) - 1 ? "border-b" : ""}>
                                 <td className="py-4">{item.sensor}</td>
                                 <td className="text-right">
                                   <Badge 
