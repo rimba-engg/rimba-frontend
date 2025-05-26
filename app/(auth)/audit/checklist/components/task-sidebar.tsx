@@ -270,7 +270,8 @@ export function TaskSidebar({
   const renderFieldInput = (column: ColumnSchema) => {
     const value = task.column_data[column.name] || '';
     // Determine if the field is editable: if not provided, then it is editable.
-    const isEditable = !column.editable || (column.editable === 'ADMIN' && isAdmin);
+    const isSuperAdmin = customerData?.role === 'SUPER_ADMIN';
+    const isEditable = !column.editable || (column.editable === 'ADMIN' && (isAdmin || isSuperAdmin));
 
     switch (column.type) {
       case 'user': {
