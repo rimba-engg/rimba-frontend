@@ -99,6 +99,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
         { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
         { icon: Activity, label: 'Site Uptime', href: '/reporting/uptime' },
         { icon: Fuel, label: 'Gas Sales', href: '/reporting/gas-sales' },
+        { icon: BarChart2, label: 'Factors of Revenue', href: '/reporting/factors-of-revenue' },
       ],
     },
   ] : [
