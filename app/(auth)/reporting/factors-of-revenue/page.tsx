@@ -20,6 +20,15 @@ function numberFormatter(params: any) {
   }).format(params.value);
 }
 
+// Add a function to style delta cells
+function deltaCellStyle(params: any): { backgroundColor: string; color: string } {
+  if (params.value == null) return { backgroundColor: '', color: '' };
+  return {
+    backgroundColor: params.value > 0 ? '#e6ffe6' : params.value < 0 ? '#ffe6e6' : '',
+    color: params.value > 0 ? '#006600' : params.value < 0 ? '#cc0000' : ''
+  };
+}
+
 const initialColumnDefs: ExtendedColumnWithType[] = [
   { 
     field: 'gasDay', 
@@ -63,7 +72,8 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         headerName: 'Delta', 
         type: 'number',
         minWidth: 100,
-        headerClass: 'ag-center-header'
+        headerClass: 'ag-center-header',
+        cellStyle: deltaCellStyle
       }
     ]
   },
@@ -93,7 +103,8 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         headerName: 'Delta', 
         type: 'number',
         minWidth: 100,
-        headerClass: 'ag-center-header'
+        headerClass: 'ag-center-header',
+        cellStyle: deltaCellStyle
       }
     ]
   },
@@ -123,7 +134,8 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         headerName: 'Delta', 
         type: 'number',
         minWidth: 100,
-        headerClass: 'ag-center-header'
+        headerClass: 'ag-center-header',
+        cellStyle: deltaCellStyle
       }
     ]
   },
@@ -153,7 +165,8 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         headerName: 'Delta', 
         type: 'number',
         minWidth: 100,
-        headerClass: 'ag-center-header'
+        headerClass: 'ag-center-header',
+        cellStyle: deltaCellStyle
       }
     ]
   },
@@ -183,7 +196,8 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         headerName: 'Delta', 
         type: 'number',
         minWidth: 100,
-        headerClass: 'ag-center-header'
+        headerClass: 'ag-center-header',
+        cellStyle: deltaCellStyle
       }
     ]
   },
