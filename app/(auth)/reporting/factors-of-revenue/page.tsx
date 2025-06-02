@@ -231,8 +231,9 @@ export default function FactorsOfRevenuePage() {
   const [error, setError] = useState<string | null>(null);
   const [rowData, setRowData] = useState<any[]>([]);
   const [startDate, setStartDate] = useState<string>(() => {
-    const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    const date = new Date();
+    date.setDate(date.getDate() - 2); // Go back 2 days to show 3 days including today
+    return date.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState<string>(() => {
     return new Date().toISOString().split('T')[0];
