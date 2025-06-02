@@ -230,9 +230,22 @@ export default function FactorsOfRevenuePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rowData, setRowData] = useState<any[]>([]);
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    return new Date().toISOString().split('T')[0];
+  });
   const [columnDefs, setColumnDefs] = useState(initialColumnDefs);
+
+  useEffect(() => {
+    // Fetch data on component mount if site is selected
+    const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+    if (selected_site?.name) {
+      fetchFactorsOfRevenueData();
+    }
+  }, []); // Run once on component mount
 
   const handleSearch = () => {
     const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
