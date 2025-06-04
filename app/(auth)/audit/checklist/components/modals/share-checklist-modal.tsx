@@ -90,7 +90,7 @@ export const ShareChecklistModal = ({ open, onOpenChange, checklist}: ShareModal
         status: string;
       }>;
       inactive_users: Array<any>;
-    }>(`/audit/v2/allowed_user_list/${checklist.id}`);
+    }>(`/audit/v2/allowed_user_list/${checklist.id}/`);
     if (response.active_users) {
         console.log(` fetchAllowedUsers response.active_users`, response.active_users);
       setAllowedUsers(response.active_users.map(user => ({
