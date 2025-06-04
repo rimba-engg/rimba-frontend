@@ -84,7 +84,7 @@ export default function ProjectsPage() {
   const fetchChecklists = async () => {
     try {
       setLoading(true);
-      const response = await api.get<ChecklistResponse>('/audit/v2/checklist');
+      const response = await api.get<ChecklistResponse>('/audit/v2/checklist/');
       setColumns(response.data.schema);
       setChecklists(response.data.checklists);
       
