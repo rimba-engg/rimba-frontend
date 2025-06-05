@@ -2,6 +2,7 @@
 
 import './globals.css';
 import ClientAuthProvider from './ClientAuthProvider';
+import TokenRefresher from '@/components/TokenRefresher';
 import { Rubik } from 'next/font/google';
 import { useEffect } from 'react';
 import { initMixpanel } from '../lib/mixpanel';
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={rubik.className}>
         <ClientAuthProvider>
+          <TokenRefresher />
           {children}
         </ClientAuthProvider>
       </body>

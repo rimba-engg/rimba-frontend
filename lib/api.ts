@@ -1,19 +1,23 @@
 import { SelectCustomerResponse } from './types';
+import { getAuth0Client } from './auth0Client';
 
 const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV;
 console.log('APP_ENV', APP_ENV);
-export const BASE_URL = `https://app-${APP_ENV}.rimba.ai`;
-console.log('BASE_URL', BASE_URL);
-// export const BASE_URL = 'http://localhost:8000';
+// export const BASE_URL = `https://app-${APP_ENV}.rimba.ai`;
+// console.log('BASE_URL', BASE_URL);
+export const BASE_URL = 'http://localhost:8080';
 
 
-export const defaultHeaders = {
+export const defaultHeaders: Record<string, string> = {
   'Content-Type': 'application/json',
-  'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-  'X-Customer-Id': localStorage.getItem('customer_id') || '',
-  'X-Id-Token': localStorage.getItem('id_token') || ''
 };
 
+// Populate header values immediately if running in the browser
+if (typeof window !== 'undefined') {
+  defaultHeaders['Authorization'] = `Bearer ${localStorage.getItem('access_token') || ''}`;
+  defaultHeaders['X-Customer-Id'] = localStorage.getItem('customer_id') || '';
+  defaultHeaders['X-Id-Token'] = localStorage.getItem('id_token') || '';
+}
 
 class ApiClient {
   private static instance: ApiClient;
@@ -42,6 +46,10 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    // Always attempt to refresh tokens right before sending the request so that we
+    // never hit the backend with an expired JWT.
+    await this.refreshTokens();
+
     const url = `${BASE_URL}${endpoint}`;
     const headers = new Headers({
       'Content-Type': 'application/json',
@@ -219,6 +227,43 @@ class ApiClient {
     this.updateDefaultHeaders();
     if (typeof window !== 'undefined') {
       localStorage.setItem('customer_id', customerId);
+    }
+  }
+
+  /**
+   * Try to obtain a fresh access token and id token from Auth0.
+   * Falls back to logout on unrecoverable errors (e.g. session expired).
+   */
+  private async refreshTokens(): Promise<void> {
+    if (typeof window === 'undefined') return; // SSR safeguard
+
+    try {
+      const auth0 = await getAuth0Client();
+      const accessToken = await auth0.getTokenSilently({
+        authorizationParams: { audience: process.env.NEXT_PUBLIC_AUTH0_AUDIENCE as string },
+      }).catch(() => undefined);
+      const idTokenClaims = await auth0.getIdTokenClaims().catch(() => undefined as any);
+      const idToken = idTokenClaims?.__raw as string | undefined;
+
+      if (accessToken) {
+        const finalIdToken = idToken ?? this.idToken ?? '';
+        // Preserve existing customer id if present
+        const customerId = this.csId || localStorage.getItem('customer_id') || '';
+        this.setTokens(accessToken, finalIdToken, customerId);
+      }
+    } catch (err) {
+      console.error('Unable to silently refresh Auth0 token', err);
+      // If silent auth fails we clear local state and force full reload/login.
+      this.accessToken = null;
+      this.idToken = null;
+      this.updateDefaultHeaders();
+
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('id_token');
+        // Redirect to landing page which will trigger a fresh Auth0 login flow.
+        window.location.href = '/';
+      }
     }
   }
 }
