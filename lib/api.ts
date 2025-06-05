@@ -3,9 +3,9 @@ import { getAuth0Client } from './auth0Client';
 
 const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV;
 console.log('APP_ENV', APP_ENV);
-// export const BASE_URL = `https://app-${APP_ENV}.rimba.ai`;
-// console.log('BASE_URL', BASE_URL);
-export const BASE_URL = 'http://localhost:8080';
+export const BASE_URL = `https://app-${APP_ENV}.rimba.ai`;
+console.log('BASE_URL', BASE_URL);
+// export const BASE_URL = 'http://localhost:8080';
 
 
 export const defaultHeaders: Record<string, string> = {
