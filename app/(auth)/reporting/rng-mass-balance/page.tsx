@@ -89,6 +89,16 @@ export default function RngMassBalancePage() {
   const [showPrevailingWage, setShowPrevailingWage] = useState(true);
   const [selectedSite, setSelectedSite] = useState<string>('');
 
+  // Set default dates (last 3 days to today) when component mounts
+  useEffect(() => {
+    if (!startDate && !endDate) {
+      const now = DateTime.now().setZone('America/New_York');
+      const threeDaysAgo = now.minus({ days: 3 });
+      
+      setStartDate(threeDaysAgo.toISO()?.slice(0, 16) ?? '');
+      setEndDate(now.toISO()?.slice(0, 16) ?? '');
+    }
+  }, []);
 
   useEffect(() => {
     fetchViews();
