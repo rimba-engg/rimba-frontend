@@ -140,8 +140,9 @@ export default function RngMassBalancePage() {
       var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
       var site_name = selected_site.name;
       const response = await api.get<ViewsResponse>(`/reporting/v2/views/?site_name=${site_name}`);
-      setViews(response.views);
-      setSelectedView(response.views[0]);
+      const filteredViews = response.views.filter(view => view.view_name !== 'Raw Data');
+      setViews(filteredViews);
+      setSelectedView(filteredViews[0]);
     } catch (err) {
       setError('Failed to load views');
       console.error('Error fetching views:', err);
