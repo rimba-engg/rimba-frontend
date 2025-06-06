@@ -92,8 +92,8 @@ export default function RngMassBalancePage() {
   // Set default dates (last 3 days to today) when component mounts
   useEffect(() => {
     if (!startDate && !endDate) {
-      const now = DateTime.now().setZone('America/New_York');
-      const threeDaysAgo = now.minus({ days: 3 });
+      const now = DateTime.now().setZone('America/New_York').set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
+      const threeDaysAgo = now.minus({ days: 3 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
       
       setStartDate(threeDaysAgo.toISO()?.slice(0, 16) ?? '');
       setEndDate(now.toISO()?.slice(0, 16) ?? '');
