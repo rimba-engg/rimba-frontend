@@ -188,7 +188,7 @@ export default function RngMassBalancePage() {
       toast.error('Failed to load mass balance data');
     } finally {
       setLoading(false);
-      toast.success('Mass balance data loaded successfully');
+      toast.success('Mass balance data loaded successfully', {position: 'bottom-right'});
     }
   };
     // In any other component
