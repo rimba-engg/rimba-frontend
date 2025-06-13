@@ -34,44 +34,44 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     field: 'gasDay', 
     headerName: 'Gas Day',
     type: 'date',
-    minWidth: 120,
-    maxWidth: 120,
+    minWidth: 100,
+    maxWidth: 100,
     headerClass: 'ag-center-header'
   },
   {
     field: '%Balance',
     headerName: '% Balance',
     type: 'number',
-    minWidth: 120,
-    maxWidth: 120,
+    minWidth: 100,
+    maxWidth: 100,
     headerClass: 'ag-center-header'
   },
   {
     field: 'inletActual',
     headerName: 'Inlet MMBtu',
     type: 'number',
-    minWidth: 300,
+    minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'inletActual', 
         headerName: 'Actual', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'inletBudget', 
         headerName: 'Budget', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'inletDelta', 
         headerName: 'Delta', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: deltaCellStyle
       }
@@ -81,28 +81,28 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     field: 'downtimeActual',
     headerName: 'Downtime MMBtu',
     type: 'number',
-    minWidth: 300,
+    minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'downtimeActual', 
         headerName: 'Actual', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'downtimeBudget', 
         headerName: 'Budget', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'downtimeDelta', 
         headerName: 'Delta', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: deltaCellStyle
       }
@@ -110,61 +110,30 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   },
   {
     field: 'methaneSlipActual',
-    headerName: 'Methane Slip (MMBtu)',
+    headerName: 'Tox MMBtu',
     type: 'number',
-    minWidth: 300,
+    minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'methaneSlipActual', 
         headerName: 'Actual', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'methaneSlipBudget', 
         headerName: 'Budget', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'methaneSlipDelta', 
         headerName: 'Delta', 
         type: 'number',
-        minWidth: 100,
-        headerClass: 'ag-center-header',
-        cellStyle: deltaCellStyle
-      }
-    ]
-  },
-  {
-    field: 'meteringErrorActual',
-    headerName: 'Metering Error',
-    type: 'number',
-    minWidth: 300,
-    headerClass: 'ag-center-header',
-    children: [
-      { 
-        field: 'meteringErrorActual', 
-        headerName: 'Actual', 
-        type: 'number',
-        minWidth: 100,
-        headerClass: 'ag-center-header'
-      },
-      { 
-        field: 'meteringErrorBudget', 
-        headerName: 'Budget', 
-        type: 'number',
-        minWidth: 100,
-        headerClass: 'ag-center-header'
-      },
-      { 
-        field: 'meteringErrorDelta', 
-        headerName: 'Delta', 
-        type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: deltaCellStyle
       }
@@ -174,28 +143,28 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     field: 'injectedActual',
     headerName: 'Injected MMBtu',
     type: 'number',
-    minWidth: 300,
+    minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'injectedActual', 
         headerName: 'Actual', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'injectedBudget', 
         headerName: 'Budget', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'injectedDelta', 
         headerName: 'Delta', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: deltaCellStyle
       }
@@ -205,21 +174,21 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     field: 'downtimeMinutesActual',
     headerName: 'Downtime Minutes',
     type: 'number',
-    minWidth: 200,
+    minWidth: 180,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'downtimeMinutesActual', 
         headerName: 'Actual', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'downtimeMinutesBudget', 
         headerName: 'Budget', 
         type: 'number',
-        minWidth: 100,
+        minWidth: 80,
         headerClass: 'ag-center-header'
       }
     ]
@@ -300,9 +269,6 @@ export default function FactorsOfRevenuePage() {
         methaneSlipActual: item.metrics['Methane Slip MMBtu'].actual,
         methaneSlipBudget: item.metrics['Methane Slip MMBtu'].budget,
         methaneSlipDelta: item.metrics['Methane Slip MMBtu'].delta,
-        meteringErrorActual: item.metrics['Metering Error']?.actual ?? null,
-        meteringErrorBudget: item.metrics['Metering Error']?.budget ?? null,
-        meteringErrorDelta: item.metrics['Metering Error']?.delta ?? null,
         injectedActual: item.metrics['Injected MMBtu'].actual,
         injectedBudget: item.metrics['Injected MMBtu'].budget,
         injectedDelta: item.metrics['Injected MMBtu'].delta,
@@ -310,25 +276,8 @@ export default function FactorsOfRevenuePage() {
         downtimeMinutesBudget: item.metrics['Downtime Minutes'].budget,
       }));
 
-      // Check if any row has metering error data
-      const hasMeteringError = transformedData.some(row => 
-        row.meteringErrorActual !== null || 
-        row.meteringErrorBudget !== null || 
-        row.meteringErrorDelta !== null
-      );
-
-      // Update column definitions based on data
-      const updatedColumnDefs = [...initialColumnDefs];
-      const meteringErrorColumnIndex = updatedColumnDefs.findIndex(col => 
-        col.field === 'meteringErrorActual'
-      );
-      
-      if (meteringErrorColumnIndex !== -1 && !hasMeteringError) {
-        updatedColumnDefs.splice(meteringErrorColumnIndex, 1);
-      }
-
       setRowData(transformedData);
-      setColumnDefs(updatedColumnDefs);
+      setColumnDefs(initialColumnDefs);
       
       toast.success('Data loaded successfully');
     } catch (err) {
@@ -352,7 +301,7 @@ export default function FactorsOfRevenuePage() {
   }, []);
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="p-4">
       {loading ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
