@@ -126,6 +126,32 @@ export default function AnalyticsPage() {
           .finally(() => setLoadingManureData(false));
   };
 
+    // Add a button to download analytic volume data
+    const downloadAnalyticsVolume = () => {
+      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      var site_name = selected_site.name;
+      api.post('/reporting/v2/rng/analytics/manure-flow/download/', {
+          start_date: startDate,
+          end_date: endDate,
+          site_name: site_name
+      })
+      .then((response: any) => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', 'analytics_volume.csv');
+          document.body.appendChild(link);
+          link.click();
+          if (link.parentNode) {
+              link.parentNode.removeChild(link);
+          }
+      })
+      .catch(error => {
+          console.error('Error downloading analytics volume:', error);
+          toast.error('Error downloading analytics volume');
+      });
+    };
+
     if (loading) {
         return (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -139,7 +165,15 @@ export default function AnalyticsPage() {
 
     return (
       <div className='space-y-4'>
-        <div className='text-2xl font-bold'>Analytics</div>
+        <div className="flex justify-between items-center">
+          <div className='text-2xl font-bold'>Analytics</div>
+          <button
+            onClick={downloadAnalyticsVolume}
+            className="flex gap-2 items-center px-2 py-1 bg-[#00674b] text-white rounded hover:bg-green-700 text-sm"
+          >
+            Download Manure Volume Data
+          </button>
+        </div>
 
         <div className="flex gap-4">
           <div className="flex flex-col py-4 gap-4 w-1/4">

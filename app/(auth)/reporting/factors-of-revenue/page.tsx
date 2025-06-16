@@ -34,16 +34,16 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     field: 'gasDay', 
     headerName: 'Gas Day',
     type: 'date',
-    minWidth: 100,
-    maxWidth: 100,
+    minWidth: 120,
+    maxWidth: 120,
     headerClass: 'ag-center-header'
   },
   {
     field: '%Balance',
     headerName: '% Balance',
     type: 'number',
-    minWidth: 100,
-    maxWidth: 100,
+    minWidth: 120,
+    maxWidth: 120,
     headerClass: 'ag-center-header'
   },
   {
