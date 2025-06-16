@@ -1,7 +1,8 @@
 'use client';
 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
-import { api } from '@/lib/api';
+import { api, defaultHeaders ,BASE_URL} from '@/lib/api';
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -58,6 +59,7 @@ export default function AnalyticsPage() {
     const [columnDefs, setColumnDefs] = useState<any>([]);
     const [relative, setRelative] = useState('Select time range...');
     const [selectedSite, setSelectedSite] = useState<string>('');
+    const [isDownloading, setIsDownloading] = useState(false);
     
     useEffect(() => {
         fetchAnalytics();
@@ -126,20 +128,60 @@ export default function AnalyticsPage() {
           .finally(() => setLoadingManureData(false));
   };
 
-    if (loading) {
-        return (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-              <Loader2 className="animate-spin" size={24} />
-              <div className="text-lg font-medium">Loading data...</div>
-            </div>
-          </div>
-        );
+    // Add a button to download analytic volume data
+    const downloadAnalyticsVolume = async () => {
+      try {
+        setIsDownloading(true);
+        const response = await fetch(`${BASE_URL}/reporting/v2/rng/analytics/manure-flow/download/`, {
+          method: 'POST',
+          headers: {
+            ...defaultHeaders
+          },
+          body: JSON.stringify({
+            start_date: startDate,
+            end_date: endDate,
+            site_name: JSON.parse(localStorage.getItem('selected_site') || '{}').name
+          })
+        });
+
+        if (!response.ok) throw new Error('Download failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'manure_analytics_volume.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading analytics volume:', error);
+        toast.error('Error downloading analytics volume');
+      } finally {
+        setIsDownloading(false);
       }
+    };
 
     return (
       <div className='space-y-4'>
-        <div className='text-2xl font-bold'>Analytics</div>
+        <div className="flex justify-between items-center">
+          <div className='text-2xl font-bold'>Analytics</div>
+            <button
+              onClick={downloadAnalyticsVolume}
+              className="flex gap-2 items-center px-2 py-1 bg-[#00674b] text-white rounded hover:bg-green-700 text-sm"
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                'Download Manure Volume Data'
+              )}
+            </button>
+          </div>
 
         <div className="flex gap-4">
           <div className="flex flex-col py-4 gap-4 w-1/4">
