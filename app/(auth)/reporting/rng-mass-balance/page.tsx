@@ -91,6 +91,7 @@ export default function RngMassBalancePage() {
 
   // Set default dates (last 3 days to today) when component mounts
   useEffect(() => {
+    // Set default dates
     if (!startDate && !endDate) {
       const now = DateTime.now().setZone('America/New_York').set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
       const threeDaysAgo = now.minus({ days: 3 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
@@ -98,22 +99,23 @@ export default function RngMassBalancePage() {
       setStartDate(threeDaysAgo.toISO()?.slice(0, 16) ?? '');
       setEndDate(now.toISO()?.slice(0, 16) ?? '');
     }
+
+    // Initialize selected site from localStorage
+    const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+    if (selected_site && selected_site.name) {
+      setSelectedSite(selected_site.name);
+    }
   }, []);
 
   useEffect(() => {
-    fetchViews();
+    if (selectedSite) {  // Only fetch views if we have a valid site
+      fetchViews();
+    }
   }, [selectedSite]);
 
-  // useEffect(() => {
-  //   // Set the first view as default when views are loaded
-  //   if (views.length > 0 && !selectedView) {
-  //     setSelectedView(views[0]);
-  //   }
-  // }, [views, selectedView]);
-
-  // Fetch data when view or dates change
+  // Fetch data when view changes
   useEffect(() => {
-    if (selectedView) {
+    if (selectedView && selectedSite) {  // Only fetch if both view and site are available
       fetchMassBalanceData();
     }
   }, [selectedView, selectedSite]);
@@ -137,15 +139,25 @@ export default function RngMassBalancePage() {
   const fetchViews = async () => {
     try {
       setLoading(true);
-      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
-      var site_name = selected_site.name;
-      const response = await api.get<ViewsResponse>(`/reporting/v2/views/?site_name=${site_name}`);
+      setError(null);
+
+      if (!selectedSite) {
+        throw new Error('No site selected');
+      }
+
+      const response = await api.get<ViewsResponse>(`/reporting/v2/views/?site_name=${selectedSite}`);
       const filteredViews = response.views.filter(view => view.view_name !== 'Raw Data');
+      
+      if (filteredViews.length === 0) {
+        throw new Error('No views available for this site');
+      }
+
       setViews(filteredViews);
       setSelectedView(filteredViews[0]);
     } catch (err) {
-      setError('Failed to load views');
+      setError(err instanceof Error ? err.message : 'Failed to load views');
       console.error('Error fetching views:', err);
+      setSelectedView(null);
     } finally {
       setLoading(false);
     }
@@ -160,12 +172,15 @@ export default function RngMassBalancePage() {
         throw new Error('No view selected');
       }
 
+      if (!selectedSite) {
+        throw new Error('No site selected');
+      }
+
       const payload: Record<string, any> = {
         view_name: selectedView.view_name,
+        site_name: selectedSite
       };
-      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
-      var site_name = selected_site.name;
-      payload.site_name = site_name;
+
       // Only add dates to payload if they are set
       if (startDate) {
         payload.start_datetime = startDate;
@@ -191,19 +206,40 @@ export default function RngMassBalancePage() {
       toast.success('Mass balance data loaded successfully', {position: 'bottom-right'});
     }
   };
-    // In any other component
+
+  // Handle site changes from other components
   useEffect(() => {
-    const handleSiteChange = (event: any) => {
-      const { site } = event.detail;
-      console.log('Site changed to:', site.name);
-      
-      setLoading(true); // Show loading state while changing site
-      setSelectedView(null); // Clear the selected view
-      setSelectedSite(site.name); // Set the new site
+    const handleSiteChange = () => {
+      try {
+        // Get site data from localStorage
+        const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+        if (!selected_site || !selected_site.name) {
+          throw new Error('No site selected');
+        }
+
+        console.log('Site changed to:', selected_site.name);
+        
+        // Reset states
+        setError(null);
+        setViews([]);
+        setSelectedView(null);
+        setRowData([]);
+        setViewAggregate({});
+        setChartConfig(null);
+        setChartTitle('');
+        setTaxCredit({});
+        
+        // Update site and trigger loading
+        setLoading(true);
+        setSelectedSite(selected_site.name);
+      } catch (err) {
+        console.error('Error handling site change:', err);
+        setError('Failed to change site. Please try again.');
+        setLoading(false);
+      }
     };
     
     window.addEventListener('siteChange', handleSiteChange);
-    
     return () => {
       window.removeEventListener('siteChange', handleSiteChange);
     };

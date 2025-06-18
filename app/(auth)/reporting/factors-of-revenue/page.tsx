@@ -199,14 +199,10 @@ export default function FactorsOfRevenuePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rowData, setRowData] = useState<any[]>([]);
-  const [startDate, setStartDate] = useState<string>(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 2); // Go back 2 days to show 3 days including today
-    return date.toISOString().split('T')[0];
-  });
-  const [endDate, setEndDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  const [startMonth, setStartMonth] = useState<number>(new Date().getMonth());
+  const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
+  const [endMonth, setEndMonth] = useState<number>(new Date().getMonth());
+  const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
   const [columnDefs, setColumnDefs] = useState(initialColumnDefs);
 
   useEffect(() => {
@@ -223,14 +219,6 @@ export default function FactorsOfRevenuePage() {
       toast.error('Please select a site');
       return;
     }
-    if (!startDate) {
-      toast.error('Please select a start date');
-      return;
-    }
-    if (!endDate) {
-      toast.error('Please select an end date');
-      return;
-    }
     fetchFactorsOfRevenueData();
   };
 
@@ -243,6 +231,9 @@ export default function FactorsOfRevenuePage() {
       if (!selected_site?.name) {
         throw new Error('No site selected');
       }
+
+      const startDate = new Date(startYear, startMonth, 1).toISOString().split('T')[0];
+      const endDate = new Date(endYear, endMonth + 1, 0).toISOString().split('T')[0];
 
       const payload = {
         site_name: selected_site.name,
@@ -300,6 +291,23 @@ export default function FactorsOfRevenuePage() {
     return () => window.removeEventListener('siteChange', handleSiteChange);
   }, []);
 
+  // Helper function to get month options
+  const getMonthOptions = () => {
+    return Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: new Date(0, i).toLocaleString('default', { month: 'long' })
+    }));
+  };
+
+  // Helper function to get year options
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => ({
+      value: currentYear - i,
+      label: (currentYear - i).toString()
+    }));
+  };
+
   return (
     <div className="p-4">
       {loading ? (
@@ -314,20 +322,54 @@ export default function FactorsOfRevenuePage() {
           <h1 className="text-2xl font-bold mb-6">Factors of Revenue</h1>
           
           <div className="flex gap-4 mb-6 items-end">
-            <FloatingLabelInput
-              type="date"
-              label="Start Date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-48"
-            />
-            <FloatingLabelInput
-              type="date"
-              label="End Date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-48"
-            />
+            <div className="flex flex-col">
+              <label className="mb-1">Start Month</label>
+              <select
+                value={startMonth}
+                onChange={(e) => setStartMonth(Number(e.target.value))}
+                className="w-48 p-2 border rounded"
+              >
+                {getMonthOptions().map((month) => (
+                  <option key={month.value} value={month.value}>{month.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="mb-1">Start Year</label>
+              <select
+                value={startYear}
+                onChange={(e) => setStartYear(Number(e.target.value))}
+                className="w-48 p-2 border rounded"
+              >
+                {getYearOptions().map((year) => (
+                  <option key={year.value} value={year.value}>{year.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="mb-1">End Month</label>
+              <select
+                value={endMonth}
+                onChange={(e) => setEndMonth(Number(e.target.value))}
+                className="w-48 p-2 border rounded"
+              >
+                {getMonthOptions().map((month) => (
+                  <option key={month.value} value={month.value}>{month.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="mb-1">End Year</label>
+              <select
+                value={endYear}
+                onChange={(e) => setEndYear(Number(e.target.value))}
+                className="w-48 p-2 border rounded"
+              >
+                {getYearOptions().map((year) => (
+                  <option key={year.value} value={year.value}>{year.label}</option>
+                ))}
+              </select>
+            </div>
             <Button 
               onClick={handleSearch}
               disabled={loading}

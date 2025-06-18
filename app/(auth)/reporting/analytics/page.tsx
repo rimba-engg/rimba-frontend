@@ -253,7 +253,18 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="w-3/4 h-[300px]">
-            <Line options={options} data={chartConfig} />
+            {loading ? (
+              <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
+                <Loader2 className="animate-spin" size={24} />
+                <div className="text-lg font-medium">Loading analytics data...</div>
+              </div>
+            ) : chartConfig ? (
+              <Line options={options} data={chartConfig} />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-white p-8 rounded-lg shadow-lg">
+                <div className="text-lg font-medium text-gray-500">No data available</div>
+              </div>
+            )}
             <ToastContainer />
           </div>
           <div className="w-3/4 h-[300px]">
@@ -262,8 +273,12 @@ export default function AnalyticsPage() {
                 <Loader2 className="animate-spin" size={24} />
                 <div className="text-lg font-medium">Loading manure flow data...</div>
               </div>
-            ) : (
+            ) : chartConfigManureData ? (
               <Line options={options} data={chartConfigManureData} />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-white p-8 rounded-lg shadow-lg">
+                <div className="text-lg font-medium text-gray-500">No manure flow data available</div>
+              </div>
             )}
             <ToastContainer />
           </div>
