@@ -78,6 +78,10 @@ export function Navbar() {
       } else {
         setSelectedSite({ name: 'GreenFlame BioEnergy' });
         localStorage.setItem('selected_site', JSON.stringify({ name: 'GreenFlame BioEnergy' }));
+        const siteChangeEvent = new CustomEvent('siteChange', { 
+          detail: { site: { name: 'GreenFlame BioEnergy' } }
+        });
+        window.dispatchEvent(siteChangeEvent);
       }
     }
     else if (customerData?.name === 'Kinder Morgan') {

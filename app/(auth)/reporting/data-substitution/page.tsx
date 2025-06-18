@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { DateTime } from 'luxon';
 import { type GasBalanceView } from '../rng-mass-balance/types';
+import { getStoredCustomer } from '@/lib/auth';
 import {
   Select,
   SelectContent,
@@ -40,12 +41,74 @@ interface ValidationResponse {
   };
 }
 
+interface MissingDataEntry {
+  start_datetime: string;
+  end_datetime: string;
+  sensor_name: string;
+  missing_duration: string;
+}
+
+interface SubstitutedDataEntry {
+  start_datetime: string;
+  end_datetime: string;
+  sensor_name: string;
+  substituted_duration: string;
+  substitution_method: string;
+}
+
+// Dummy data for Demo-RNG
+const DEMO_MISSING_DATA: MissingDataEntry[] = [
+  {
+    start_datetime: '2025-04-20T10:00:00',
+    end_datetime: '2025-04-20T11:30:00',
+    sensor_name: 'Flow Meter',
+    missing_duration: '1.5 hours'
+  },
+  {
+    start_datetime: '2025-04-20T12:00:00',
+    end_datetime: '2025-04-20T14:00:00',
+    sensor_name: 'Pressure Sensor',
+    missing_duration: '2 hours'
+  },
+  {
+    start_datetime: '2025-04-20T15:00:00',
+    end_datetime: '2025-04-20T16:45:00',
+    sensor_name: 'Flare Sensor',
+    missing_duration: '1.75 hours'
+  }
+];
+
+const DEMO_SUBSTITUTED_DATA: SubstitutedDataEntry[] = [
+  {
+    start_datetime: '2025-04-20T10:00:00',
+    end_datetime: '2025-04-20T11:30:00',
+    sensor_name: 'Flow Meter',
+    substituted_duration: '1.5 hours',
+    substitution_method: 'Linear Interpolation'
+  },
+  {
+    start_datetime: '2025-04-20T12:00:00',
+    end_datetime: '2025-04-20T14:00:00',
+    sensor_name: 'Pressure Sensor',
+    substituted_duration: '2 hours',
+    substitution_method: 'Last Known Value'
+  },
+  {
+    start_datetime: '2025-04-20T15:00:00',
+    end_datetime: '2025-04-20T16:45:00',
+    sensor_name: 'Flare Sensor',
+    substituted_duration: '1.75 hours',
+    substitution_method: 'Average Value'
+  }
+];
+
 export default function DataSubstitutionPage() {
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [validationData, setValidationData] = useState<ValidationResponse['data'] | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
 
   // Dummy values for demonstration
   const totalSubstitutedMMBTU = 287.5;
@@ -53,14 +116,38 @@ export default function DataSubstitutionPage() {
   const costOfSubstitutedGas = totalSubstitutedMMBTU * costPerMMBTU;
 
   useEffect(() => {
+    // Check if current customer is Demo-RNG
+    const customerData = getStoredCustomer();
+    const isCustomerDemo = customerData?.name === 'Demo-RNG';
+    setIsDemo(isCustomerDemo);
+    console.log('Is Demo Customer:', isCustomerDemo);
+
+    if (isCustomerDemo) {
+      console.log('Setting demo validation data');
+      setValidationData({
+        site: 'GreenFlame BioEnergy',
+        view: 'Demo View',
+        missing_data_summary: {
+          date_range: 'April 20, 2025 - April 21, 2025',
+          missing_sensors_data: DEMO_MISSING_DATA.map(item => ({
+            sensor: item.sensor_name,
+            '%missing': 15
+          })),
+          unique_sensor_count: DEMO_MISSING_DATA.length
+        }
+      });
+    }
+
     // Listen for site change events
     const handleSiteChange = (event: any) => {
       const { site } = event.detail;
       console.log('Site changed to:', site.name);
       
-      setLoading(true);
+      if (!isCustomerDemo) {
+        setLoading(true);
+        setValidationData(null);
+      }
       setSelectedSite(site.name);
-      setValidationData(null);
     };
     
     window.addEventListener('siteChange', handleSiteChange);
@@ -68,12 +155,30 @@ export default function DataSubstitutionPage() {
   }, []);
 
   useEffect(() => {
-    if (!validationData && (selectedSite || localStorage.getItem('selected_site'))) {
+    if (!validationData && !isDemo && (selectedSite || localStorage.getItem('selected_site'))) {
       validateTimeSeries();
     }
-  }, [selectedSite]);
+  }, [selectedSite, isDemo]);
 
   const validateTimeSeries = async () => {
+    // Skip API call for Demo-RNG
+    if (isDemo) {
+      console.log('Demo mode - setting demo validation data');
+      setValidationData({
+        site: 'GreenFlame BioEnergy',
+        view: 'Demo View',
+        missing_data_summary: {
+          date_range: 'April 20, 2025 - April 21, 2025',
+          missing_sensors_data: DEMO_MISSING_DATA.map(item => ({
+            sensor: item.sensor_name,
+            '%missing': 15
+          })),
+          unique_sensor_count: DEMO_MISSING_DATA.length
+        }
+      });
+      return;
+    }
+
     try {
       setValidating(true);
       setError(null);
@@ -89,8 +194,10 @@ export default function DataSubstitutionPage() {
       };
 
       const response = await api.post<ValidationResponse>('/reporting/v2/time-series/missing-data-validation/', payload);
+      console.log('API Response:', response);
       
       if (response.status === 'success') {
+        console.log('Setting validation data:', response.data);
         setValidationData(response.data);
         toast.success('Data retrieved successfully');
       } else {
@@ -106,6 +213,32 @@ export default function DataSubstitutionPage() {
   };
 
   const handleDownloadReport = async (type: 'missing' | 'substituted') => {
+    // For Demo-RNG, create and download a dummy CSV
+    if (isDemo) {
+      const csvContent = type === 'missing' 
+        ? 'Start Time,End Time,Sensor Name,Missing Duration\n' +
+          DEMO_MISSING_DATA.map(row => 
+            `${row.start_datetime},${row.end_datetime},${row.sensor_name},${row.missing_duration}`
+          ).join('\n')
+        : 'Start Time,End Time,Sensor Name,Duration,Method\n' +
+          DEMO_SUBSTITUTED_DATA.map(row => 
+            `${row.start_datetime},${row.end_datetime},${row.sensor_name},${row.substituted_duration},${row.substitution_method}`
+          ).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `demo-${type}-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Demo report downloaded successfully');
+      return;
+    }
+
+    // Original download logic for non-demo customers
     toast.info(`Downloading ${type} data report...`);
     try {
       const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
@@ -194,10 +327,10 @@ export default function DataSubstitutionPage() {
             <div className="flex items-center">
               <div className="flex flex-col">
                 <span className="text-2xl font-bold">
-                  {validationData?.missing_data_summary?.unique_sensor_count || 0} sensors
+                  {(isDemo ? DEMO_MISSING_DATA.length : validationData?.missing_data_summary?.missing_sensors_data?.length) || 0} sensors
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {validationData?.missing_data_summary?.missing_sensors_data?.length || 0} ongoing outages
+                  {(isDemo ? DEMO_MISSING_DATA.length : validationData?.missing_data_summary?.missing_sensors_data?.length) || 0} ongoing outages
                 </span>
               </div>
               <AlertTriangle className="ml-auto h-8 w-8 text-yellow-500" />
@@ -291,7 +424,7 @@ export default function DataSubstitutionPage() {
                       <div>
                         <h3 className="text-lg font-medium">Time Range</h3>
                         <p className="text-sm text-muted-foreground">
-                          {validationData.missing_data_summary.date_range}
+                          {isDemo ? 'March 20, 2024 - March 21, 2024' : validationData?.missing_data_summary?.date_range}
                         </p>
                       </div>
                       <Button
@@ -309,27 +442,49 @@ export default function DataSubstitutionPage() {
                         <table className="w-full">
                           <thead>
                             <tr className="border-b">
-                              <th className="text-left pb-4">Sensor</th>
-                              <th className="text-right pb-4">Missing Data (%)</th>
+                              {isDemo ? (
+                                <>
+                                  <th className="text-left pb-4">Start Time</th>
+                                  <th className="text-left pb-4">End Time</th>
+                                  <th className="text-left pb-4">Sensor Name</th>
+                                  <th className="text-right pb-4">Missing Duration</th>
+                                </>
+                              ) : (
+                                <>
+                                  <th className="text-left pb-4">Sensor</th>
+                                  <th className="text-right pb-4">Missing Data (%)</th>
+                                </>
+                              )}
                             </tr>
                           </thead>
                           <tbody>
-                            {validationData?.missing_data_summary?.missing_sensors_data?.map((item, index) => (
-                              <tr key={item.sensor} className={index !== (validationData?.missing_data_summary?.missing_sensors_data?.length || 0) - 1 ? "border-b" : ""}>
-                                <td className="py-4">{item.sensor}</td>
-                                <td className="text-right">
-                                  <Badge 
-                                    className={
-                                      item["%missing"] > 75 ? "bg-red-100 text-red-800" :
-                                      item["%missing"] > 25 ? "bg-yellow-100 text-yellow-800" :
-                                      "bg-green-100 text-green-800"
-                                    }
-                                  >
-                                    {item["%missing"].toFixed(2)}%
-                                  </Badge>
-                                </td>
-                              </tr>
-                            ))}
+                            {isDemo ? (
+                              DEMO_MISSING_DATA.map((item, index) => (
+                                <tr key={index} className={index !== DEMO_MISSING_DATA.length - 1 ? "border-b" : ""}>
+                                  <td className="py-4">{DateTime.fromISO(item.start_datetime).toFormat('HH:mm:ss')}</td>
+                                  <td className="py-4">{DateTime.fromISO(item.end_datetime).toFormat('HH:mm:ss')}</td>
+                                  <td className="py-4">{item.sensor_name}</td>
+                                  <td className="text-right">{item.missing_duration}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              validationData?.missing_data_summary?.missing_sensors_data?.map((item, index) => (
+                                <tr key={item.sensor} className={index !== (validationData?.missing_data_summary?.missing_sensors_data?.length || 0) - 1 ? "border-b" : ""}>
+                                  <td className="py-4">{item.sensor}</td>
+                                  <td className="text-right">
+                                    <Badge 
+                                      className={
+                                        item["%missing"] > 75 ? "bg-red-100 text-red-800" :
+                                        item["%missing"] > 25 ? "bg-yellow-100 text-yellow-800" :
+                                        "bg-green-100 text-green-800"
+                                      }
+                                    >
+                                      {item["%missing"].toFixed(2)}%
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -349,9 +504,42 @@ export default function DataSubstitutionPage() {
                       Download Report
                     </Button>
                   </div>
-                  <div className="flex items-center justify-center p-6 bg-gray-50 rounded-lg">
-                    <span className="text-gray-500">No substituted data available yet</span>
-                  </div>
+                  {isDemo ? (
+                    <div className="rounded-md border">
+                      <div className="p-4">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left pb-4">Start Time</th>
+                              <th className="text-left pb-4">End Time</th>
+                              <th className="text-left pb-4">Sensor Name</th>
+                              <th className="text-left pb-4">Duration</th>
+                              <th className="text-right pb-4">Method</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {DEMO_SUBSTITUTED_DATA.map((item, index) => (
+                              <tr key={index} className={index !== DEMO_SUBSTITUTED_DATA.length - 1 ? "border-b" : ""}>
+                                <td className="py-4">{DateTime.fromISO(item.start_datetime).toFormat('HH:mm:ss')}</td>
+                                <td className="py-4">{DateTime.fromISO(item.end_datetime).toFormat('HH:mm:ss')}</td>
+                                <td className="py-4">{item.sensor_name}</td>
+                                <td className="py-4">{item.substituted_duration}</td>
+                                <td className="text-right">
+                                  <Badge variant="outline">
+                                    {item.substitution_method}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center p-6 bg-gray-50 rounded-lg">
+                      <span className="text-gray-500">No substituted data available yet</span>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
