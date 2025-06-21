@@ -78,9 +78,48 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle 401 Unauthorized - logout
-        if (response.status === 401) 
-          this.logout();
+        // Handle 401 Unauthorized - try once more with fresh tokens
+        if (response.status === 401) {
+          console.warn('🚨 401 Unauthorized - Token expired/invalid for:', endpoint);
+          console.log('🔄 Attempting token refresh and retry...');
+          
+          try {
+            // Force refresh tokens by clearing cache and refreshing
+            this.accessToken = null;
+            this.idToken = null;
+            await this.refreshTokens();
+            
+            if (!this.accessToken) {
+              throw new Error('Token refresh failed - no new token received');
+            }
+            
+            console.log('✅ Token refresh successful, retrying request...');
+            
+            // Update headers with new tokens
+            if (this.accessToken) {
+              headers.set('Authorization', `Bearer ${this.accessToken}`);
+            }
+            if (this.idToken) {
+              headers.set('X-Id-Token', this.idToken);
+            }
+            
+            // Retry the request once
+            const retryResponse = await fetch(url, { ...config, headers });
+            const retryData = await retryResponse.json();
+            
+            if (retryResponse.ok) {
+              console.log('✅ Request retry successful after token refresh');
+              return retryData as T;
+            } else if (retryResponse.status === 401) {
+              console.log('❌ Still 401 after token refresh - session expired');
+              throw new Error('Your session has expired. Please log in again.');
+            }
+          } catch (refreshError) {
+            console.error('❌ Token refresh failed:', refreshError);
+            this.logout();
+            throw new Error('Your session has expired. Please log in again.');
+          }
+        }
 
         throw new Error(data.message || 'API request failed');
       }
