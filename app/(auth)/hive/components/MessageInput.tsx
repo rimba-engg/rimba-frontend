@@ -123,7 +123,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, prefi
         <Button
           type="submit"
           disabled={(!message.trim() && !feedbackText) || isLoading}
-          className="h-11 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+          className="h-11 px-4 disabled:opacity-50"
         >
           {isLoading ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
