@@ -153,7 +153,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ thread, onAddMessa
         {/* Typing effect display */}
         {isTyping && (
           <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-green-700 flex items-center justify-center flex-shrink-0">
               <div className="text-white text-xs">AI</div>
             </div>
             <div className="max-w-[70%]">

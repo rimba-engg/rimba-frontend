@@ -13,7 +13,7 @@ export const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ thinking, isAc
 
   return (
     <div className="flex gap-3 justify-start">
-      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-green-700 flex items-center justify-center flex-shrink-0">
         <Bot size={16} className="text-white" />
       </div>
       
@@ -34,9 +34,9 @@ export const ThinkingMessage: React.FC<ThinkingMessageProps> = ({ thinking, isAc
             {isActive && (
               <div className="ml-auto">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-green-700 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-green-700 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-green-700 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
               </div>
             )}
