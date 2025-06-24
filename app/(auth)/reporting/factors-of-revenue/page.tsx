@@ -17,6 +17,15 @@ function deltaCellStyle(params: any): { backgroundColor: string; color: string }
   };
 }
 
+function negativeDeltaCellStyle(params: any): { backgroundColor: string; color: string } {
+  // if value is negative, make the cell *GREEN*! Yes this is intentional
+  if (params.value == null) return { backgroundColor: '', color: '' };
+  return {
+    backgroundColor: params.value < 0 ? '#e6ffe6' : params.value > 0 ? '#ffe6e6' : '',
+    color: params.value < 0 ? '#006600' : params.value > 0 ? '#cc0000' : ''
+  };
+}
+
 const initialColumnDefs: ExtendedColumnWithType[] = [
   { 
     field: 'gasDay', 
@@ -92,7 +101,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
-        cellStyle: deltaCellStyle
+        cellStyle: negativeDeltaCellStyle
       }
     ]
   },
@@ -123,7 +132,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
-        cellStyle: deltaCellStyle
+        cellStyle: negativeDeltaCellStyle
       }
     ]
   },
@@ -377,7 +386,7 @@ export default function FactorsOfRevenuePage() {
                   initialRowData={rowData}
                   initialColumnDefs={columnDefs}
                   pagination={true}
-                  paginationPageSize={25}
+                  paginationPageSize={50}
                   defaultColDef={{
                     sortable: true,
                     filter: true,
