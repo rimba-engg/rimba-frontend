@@ -19,13 +19,10 @@ export interface Metric {
 export interface DailyMetrics {
   'Inlet MMBtu': Metric;
   'Downtime MMBtu': Metric;
-  'Methane Slip MMBtu': Metric;
-  'Metering Error'?: Metric;
+  'Tox MMBtu': Metric;
   'Injected MMBtu': Metric;
-  'Downtime Minutes': {
-    actual: number;
-    budget: number;
-  };
+  'Downtime Minutes': Metric;
+  'Metering Error'?: Metric;
 }
 
 export interface FactorsOfRevenueData {
@@ -36,6 +33,7 @@ export interface FactorsOfRevenueData {
 
 export interface FactorsOfRevenueResponse {
   message: string;
-  data: FactorsOfRevenueData[] | null;
+  data: FactorsOfRevenueData[];
+  totals: FactorsOfRevenueData;
   status: 'success' | 'error';
 } 
