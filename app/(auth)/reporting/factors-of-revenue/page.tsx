@@ -30,7 +30,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   { 
     field: 'gasDay', 
     headerName: 'Gas Day',
-    type: 'date',
+    type: 'string',
     minWidth: 120,
     maxWidth: 120,
     headerClass: 'ag-center-header'
@@ -106,28 +106,28 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     ]
   },
   {
-    field: 'methaneSlipActual',
+    field: 'toxActual',
     headerName: 'Tox MMBtu',
     type: 'number',
     minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
-        field: 'methaneSlipActual', 
+        field: 'toxActual', 
         headerName: 'Actual', 
         type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
-        field: 'methaneSlipBudget', 
+        field: 'toxBudget', 
         headerName: 'Budget', 
         type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
-        field: 'methaneSlipDelta', 
+        field: 'toxDelta', 
         headerName: 'Delta', 
         type: 'number',
         minWidth: 80,
@@ -187,20 +187,36 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
+      },
+      {
+        field: 'downtimeMinutesDelta',
+        headerName: 'Delta',
+        type: 'number',
+        minWidth: 80,
+        headerClass: 'ag-center-header',
+        cellStyle: negativeDeltaCellStyle
       }
     ]
   }
 ];
 
+// Define the row style based on whether the row is pinned
+const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
+  if (params.node.rowPinned) {
+    return { backgroundColor: '#f5f5f5', fontWeight: 'bold' };
+  }
+  return undefined;
+};
+
 export default function FactorsOfRevenuePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rowData, setRowData] = useState<any[]>([]);
+  const [totals, setTotals] = useState<any>({});
   const [startMonth, setStartMonth] = useState<number>(new Date().getMonth());
   const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
   const [endMonth, setEndMonth] = useState<number>(new Date().getMonth());
   const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
-  const [columnDefs, setColumnDefs] = useState(initialColumnDefs);
 
   useEffect(() => {
     // Fetch data on component mount if site is selected
@@ -254,18 +270,39 @@ export default function FactorsOfRevenuePage() {
         downtimeActual: item.metrics['Downtime MMBtu'].actual,
         downtimeBudget: item.metrics['Downtime MMBtu'].budget,
         downtimeDelta: item.metrics['Downtime MMBtu'].delta,
-        methaneSlipActual: item.metrics['Methane Slip MMBtu'].actual,
-        methaneSlipBudget: item.metrics['Methane Slip MMBtu'].budget,
-        methaneSlipDelta: item.metrics['Methane Slip MMBtu'].delta,
+        toxActual: item.metrics['Tox MMBtu'].actual,
+        toxBudget: item.metrics['Tox MMBtu'].budget,
+        toxDelta: item.metrics['Tox MMBtu'].delta,
         injectedActual: item.metrics['Injected MMBtu'].actual,
         injectedBudget: item.metrics['Injected MMBtu'].budget,
         injectedDelta: item.metrics['Injected MMBtu'].delta,
         downtimeMinutesActual: item.metrics['Downtime Minutes'].actual,
         downtimeMinutesBudget: item.metrics['Downtime Minutes'].budget,
+        downtimeMinutesDelta: item.metrics['Downtime Minutes'].delta,
       }));
 
+      const transformedTotals = {
+        gasDay: response.totals.gasDay,
+        '%Balance': response.totals['%Balance'],
+        inletActual: response.totals.metrics['Inlet MMBtu'].actual,
+        inletBudget: response.totals.metrics['Inlet MMBtu'].budget,
+        inletDelta: response.totals.metrics['Inlet MMBtu'].delta,
+        downtimeActual: response.totals.metrics['Downtime MMBtu'].actual,
+        downtimeBudget: response.totals.metrics['Downtime MMBtu'].budget,
+        downtimeDelta: response.totals.metrics['Downtime MMBtu'].delta,
+        toxActual: response.totals.metrics['Tox MMBtu'].actual,
+        toxBudget: response.totals.metrics['Tox MMBtu'].budget,
+        toxDelta: response.totals.metrics['Tox MMBtu'].delta,
+        injectedActual: response.totals.metrics['Injected MMBtu'].actual,
+        injectedBudget: response.totals.metrics['Injected MMBtu'].budget,
+        injectedDelta: response.totals.metrics['Injected MMBtu'].delta,
+        downtimeMinutesActual: response.totals.metrics['Downtime Minutes'].actual,
+        downtimeMinutesBudget: response.totals.metrics['Downtime Minutes'].budget,
+        downtimeMinutesDelta: response.totals.metrics['Downtime Minutes'].delta,
+      };
+
+      setTotals(transformedTotals);
       setRowData(transformedData);
-      setColumnDefs(initialColumnDefs);
       
       toast.success('Data loaded successfully');
     } catch (err) {
@@ -384,20 +421,9 @@ export default function FactorsOfRevenuePage() {
               {rowData.length > 0 ? (
                 <QueryTable
                   initialRowData={rowData}
-                  initialColumnDefs={columnDefs}
-                  pagination={true}
-                  paginationPageSize={50}
-                  defaultColDef={{
-                    sortable: true,
-                    filter: true,
-                    resizable: true,
-                    suppressMovable: true
-                  }}
-                  domLayout="autoHeight"
-                  rowHeight={40}
-                  headerHeight={40}
-                  suppressColumnVirtualisation={true}
-                  animateRows={true}
+                  initialColumnDefs={initialColumnDefs}
+                  pinnedTopRowData={[totals]}
+                  getRowStyle={getRowStyle}
                   autoSizeStrategy={{
                     type: "fitCellContents",
                   }}
@@ -413,7 +439,7 @@ export default function FactorsOfRevenuePage() {
       )}
       
       <ToastContainer 
-        position="top-right"
+        position="bottom-right"
         autoClose={2000}
         hideProgressBar={false}
         newestOnTop={true}
