@@ -2,23 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { DateTime } from 'luxon';
-import { type FactorsOfRevenueResponse, type FactorsOfRevenueData, type ExtendedColumnWithType } from './types';
+import { type FactorsOfRevenueResponse, type ExtendedColumnWithType } from './types';
 import { ToastContainer, toast } from 'react-toastify';
 import { Loader2, Search } from 'lucide-react';
-import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import QueryTable from '@/components/table/QueryTable';
 import { Button } from '@/components/ui/button';
-
-function numberFormatter(params: any) {
-  if (params.value == null) {
-    return '';
-  }
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: params.colDef.field.includes('%') ? 1 : 1,
-    maximumFractionDigits: params.colDef.field.includes('%') ? 1 : 1
-  }).format(params.value);
-}
 
 // Add a function to style delta cells
 function deltaCellStyle(params: any): { backgroundColor: string; color: string } {
@@ -26,6 +14,15 @@ function deltaCellStyle(params: any): { backgroundColor: string; color: string }
   return {
     backgroundColor: params.value > 0 ? '#e6ffe6' : params.value < 0 ? '#ffe6e6' : '',
     color: params.value > 0 ? '#006600' : params.value < 0 ? '#cc0000' : ''
+  };
+}
+
+function negativeDeltaCellStyle(params: any): { backgroundColor: string; color: string } {
+  // if value is negative, make the cell *GREEN*! Yes this is intentional
+  if (params.value == null) return { backgroundColor: '', color: '' };
+  return {
+    backgroundColor: params.value < 0 ? '#e6ffe6' : params.value > 0 ? '#ffe6e6' : '',
+    color: params.value < 0 ? '#006600' : params.value > 0 ? '#cc0000' : ''
   };
 }
 
@@ -104,7 +101,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
-        cellStyle: deltaCellStyle
+        cellStyle: negativeDeltaCellStyle
       }
     ]
   },
@@ -135,7 +132,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
         type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
-        cellStyle: deltaCellStyle
+        cellStyle: negativeDeltaCellStyle
       }
     ]
   },
@@ -389,7 +386,7 @@ export default function FactorsOfRevenuePage() {
                   initialRowData={rowData}
                   initialColumnDefs={columnDefs}
                   pagination={true}
-                  paginationPageSize={25}
+                  paginationPageSize={50}
                   defaultColDef={{
                     sortable: true,
                     filter: true,
@@ -401,6 +398,9 @@ export default function FactorsOfRevenuePage() {
                   headerHeight={40}
                   suppressColumnVirtualisation={true}
                   animateRows={true}
+                  autoSizeStrategy={{
+                    type: "fitCellContents",
+                  }}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
@@ -414,7 +414,7 @@ export default function FactorsOfRevenuePage() {
       
       <ToastContainer 
         position="top-right"
-        autoClose={3000}
+        autoClose={2000}
         hideProgressBar={false}
         newestOnTop={true}
         closeOnClick
