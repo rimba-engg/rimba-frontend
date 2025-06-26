@@ -44,7 +44,15 @@ const options = {
 interface AnalyticsResponse {
     chart_config: any;
     table_data: any;
+    totals: any;
 }
+
+const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
+  if (params.node.rowPinned) {
+    return { backgroundColor: '#f5f5f5', fontWeight: 'bold' };
+  }
+  return undefined;
+};
 
 export default function AnalyticsPage() {
     const [chartConfig, setChartConfig] = useState<any>(null);
@@ -56,6 +64,7 @@ export default function AnalyticsPage() {
     const [startDate, setStartDate] = useState<string>(DateTime.now().setZone('America/New_York').minus({ weeks: 1 }).toISO()?.slice(0, 10) ?? '');
     const [endDate, setEndDate] = useState<string>(DateTime.now().setZone('America/New_York').toISO()?.slice(0, 10) ?? '');
     const [rowData, setRowData] = useState<any>([]);
+    const [totals, setTotals] = useState<any>(null);
     const [columnDefs, setColumnDefs] = useState<any>([]);
     const [relative, setRelative] = useState('Select time range...');
     const [selectedSite, setSelectedSite] = useState<string>('');
@@ -93,7 +102,7 @@ export default function AnalyticsPage() {
             .then(data => {
                 setChartConfig(data.chart_config);
                 setRowData(data.table_data);
-                
+                setTotals(data.totals);
                 // set column defs
                 setColumnDefs(Object.keys(data.table_data[0]).map((key: any) => {
                     return {
@@ -287,6 +296,11 @@ export default function AnalyticsPage() {
         <QueryTable
           initialRowData={rowData}
           initialColumnDefs={columnDefs}
+          pinnedTopRowData={[totals]}
+          getRowStyle={getRowStyle}
+          autoSizeStrategy={{
+            type: "fitCellContents",
+          }}
         />
       </div>
     );
