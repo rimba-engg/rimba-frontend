@@ -22,4 +22,5 @@ export interface Message {
     messages: Message[];
     createdAt: Date;
     updatedAt: Date;
+    langGraphThreadId?: string; // LangGraph thread ID for API calls
   }

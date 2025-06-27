@@ -4,13 +4,20 @@ import { Thread, Message } from '../types/chat';
 import { MessageComponent } from './MessageComponent';
 import { MessageInput } from './MessageInput';
 import { ThinkingMessage } from './ThinkingMessage';
+import { LangGraphState } from '../hooks/useLangGraph';
+import { LANGGRAPH_CONFIG } from '../config/langgraph-config';
 
 interface ChatInterfaceProps {
   thread: Thread;
   onAddMessage: (threadId: string, message: Omit<Message, 'id' | 'timestamp'>) => void;
+  langGraph: LangGraphState & {
+    streamChat: (threadId: string, messages: Message[]) => AsyncGenerator<any, void, unknown>;
+    getThreadState?: (threadId: string) => Promise<any>;
+    invokeAssistant?: (threadId: string, messages: Message[]) => Promise<any>;
+  };
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ thread, onAddMessage }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ thread, onAddMessage, langGraph }) => {
   const [selectedFeedbackText, setSelectedFeedbackText] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [currentThinking, setCurrentThinking] = useState('');
@@ -26,55 +33,136 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ thread, onAddMessa
     scrollToBottom();
   }, [thread.messages, isAiThinking, isTyping, typingMessage]);
 
-  const simulateThinking = () => {
-    const thinkingSteps = [
-      "Let me understand your question...",
-      "Analyzing the context and requirements...",
-      "Considering different approaches...",
-      "Formulating a comprehensive response...",
-      "Finalizing my answer..."
-    ];
+  const processLangGraphStream = async (messages: Message[]) => {
+    if (!langGraph.isInitialized || !thread.langGraphThreadId) {
+      throw new Error('LangGraph not available');
+    }
 
-    let stepIndex = 0;
     setIsAiThinking(true);
-    setCurrentThinking(thinkingSteps[0]);
-
-    const thinkingInterval = setInterval(() => {
-      stepIndex++;
-      if (stepIndex < thinkingSteps.length) {
-        setCurrentThinking(prev => prev + '\n\n' + thinkingSteps[stepIndex]);
-      } else {
-        clearInterval(thinkingInterval);
-      }
-    }, 300);
-
-    return () => clearInterval(thinkingInterval);
-  };
-
-  const simulateTyping = (fullMessage: string, thinking: string) => {
-    setIsTyping(true);
+    setCurrentThinking('Connecting to AI...');
+    setIsTyping(false);
     setTypingMessage('');
-    
-    let currentIndex = 0;
-    const typingInterval = setInterval(() => {
-      if (currentIndex < fullMessage.length) {
-        setTypingMessage(fullMessage.slice(0, currentIndex + 1));
-        currentIndex++;
-      } else {
-        clearInterval(typingInterval);
-        setIsTyping(false);
-        setTypingMessage('');
+
+    let fullResponse = '';
+    let thinking = '';
+    let isProcessingResponse = false;
+
+    try {
+      const stream = langGraph.streamChat(thread.langGraphThreadId, messages);
+      
+      for await (const chunk of stream) {
+        console.log('LangGraph stream chunk:', chunk); // Debug log
         
-        // Add the complete message
+        // Handle different types of streaming events
+        if (chunk.event === LANGGRAPH_CONFIG.STREAM_EVENTS.CHAIN_START) {
+          setCurrentThinking('AI is thinking...');
+        } else if (chunk.event === LANGGRAPH_CONFIG.STREAM_EVENTS.CHAIN_STREAM) {
+          // This contains the actual response chunks
+          if (chunk.data && chunk.data.chunk) {
+            if (!isProcessingResponse) {
+              setIsAiThinking(false);
+              setIsTyping(true);
+              isProcessingResponse = true;
+            }
+            
+            if (typeof chunk.data.chunk === 'string') {
+              fullResponse += chunk.data.chunk;
+              setTypingMessage(fullResponse);
+            } else if (chunk.data.chunk.content) {
+              fullResponse += chunk.data.chunk.content;
+              setTypingMessage(fullResponse);
+            }
+          }
+        } else if (chunk.event === LANGGRAPH_CONFIG.STREAM_EVENTS.CHAIN_END) {
+          // Chain completed
+          break;
+        } else if (chunk.event === 'on_chat_model_stream') {
+          // Handle chat model streaming (common LangGraph event)
+          if (chunk.data && chunk.data.chunk) {
+            if (!isProcessingResponse) {
+              setIsAiThinking(false);
+              setIsTyping(true);
+              isProcessingResponse = true;
+            }
+            
+            // Handle different chunk formats
+            if (typeof chunk.data.chunk === 'string') {
+              fullResponse += chunk.data.chunk;
+              setTypingMessage(fullResponse);
+            } else if (chunk.data.chunk.content) {
+              fullResponse += chunk.data.chunk.content;
+              setTypingMessage(fullResponse);
+            }
+          }
+        } else if (chunk.event === 'on_chain_end' || chunk.event === 'on_graph_end') {
+          // Handle end events - check if we have final state
+          if (chunk.data && chunk.data.output && chunk.data.output.messages) {
+            const lastMessage = chunk.data.output.messages[chunk.data.output.messages.length - 1];
+            if (lastMessage && lastMessage.type === 'ai' && lastMessage.content) {
+              fullResponse = lastMessage.content;
+              setTypingMessage(fullResponse);
+              isProcessingResponse = true;
+            }
+          }
+          break;
+        }
+      }
+
+      // Complete the response
+      setIsTyping(false);
+      setTypingMessage('');
+      
+      if (fullResponse) {
         onAddMessage(thread.id, {
-          content: fullMessage,
+          content: fullResponse,
           role: 'assistant',
-          thinking: thinking
+          thinking: thinking || 'Processing...'
+        });
+      } else {
+        // If no streaming response was captured, try to get the final thread state
+        console.warn('No streaming response captured, trying to get final thread state...');
+        try {
+          if (langGraph.getThreadState) {
+            const threadState = await langGraph.getThreadState(thread.langGraphThreadId);
+            console.log('Thread state:', threadState);
+            
+            if (threadState.values && threadState.values.messages) {
+              const lastMessage = threadState.values.messages[threadState.values.messages.length - 1];
+              if (lastMessage && lastMessage.type === 'ai' && lastMessage.content) {
+                onAddMessage(thread.id, {
+                  content: lastMessage.content,
+                  role: 'assistant',
+                  thinking: 'Retrieved from final state'
+                });
+                return;
+              }
+            }
+          }
+        } catch (stateError) {
+          console.error('Failed to get thread state:', stateError);
+        }
+        
+        // Final fallback
+        onAddMessage(thread.id, {
+          content: 'I processed your request but encountered an issue with retrieving the response. The LangGraph server is working, but there may be a streaming compatibility issue.',
+          role: 'assistant'
         });
       }
-    }, 30); // Adjust speed here (lower = faster)
-
-    return () => clearInterval(typingInterval);
+    } catch (error) {
+      console.error('LangGraph streaming error:', error);
+      setIsAiThinking(false);
+      setIsTyping(false);
+      
+      // Fallback error message
+      onAddMessage(thread.id, {
+        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        role: 'assistant'
+      });
+    } finally {
+      setIsAiThinking(false);
+      setIsTyping(false);
+      setCurrentThinking('');
+    }
   };
 
   const handleSendMessage = async (content: string) => {
@@ -84,29 +172,34 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ thread, onAddMessa
       role: 'user'
     });
 
-    // Start thinking simulation
-    const cleanup = simulateThinking();
+    // Create updated messages array for LangGraph
+    const updatedMessages = [
+      ...thread.messages,
+      {
+        id: 'temp-user-msg',
+        content,
+        role: 'user' as const,
+        timestamp: new Date()
+      }
+    ];
 
-    // Simulate AI response after thinking
-    setTimeout(() => {
-      cleanup();
-      setIsAiThinking(false);
+    // Use LangGraph if available, otherwise fallback to simulation
+    if (langGraph.isInitialized && thread.langGraphThreadId) {
+      await processLangGraphStream(updatedMessages);
+    } else {
+      // Fallback simulation for when LangGraph is not available
+      setIsAiThinking(true);
+      setCurrentThinking('LangGraph not available. Using fallback response...');
       
-      const responses = [
-        "I understand your question. Let me help you with that.",
-        "That's an interesting point. Here's what I think about it...",
-        "Based on your query, I can provide you with the following information:",
-        "Great question! Let me break this down for you:",
-        "I'd be happy to help you with that. Here's my response:"
-      ];
-      
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)] + 
-        ` This is a simulated response to: "${content}". In a real implementation, this would be connected to an AI service like OpenAI's GPT API.`;
-
-      // Start typing effect
-      simulateTyping(randomResponse, currentThinking);
-      setCurrentThinking('');
-    }, 2000);
+      setTimeout(() => {
+        setIsAiThinking(false);
+        onAddMessage(thread.id, {
+          content: `I'm currently running in offline mode. To get AI responses, please ensure your LangGraph server is running and connected. Your message was: "${content}"`,
+          role: 'assistant'
+        });
+        setCurrentThinking('');
+      }, 1000);
+    }
   };
 
   const handleTextSelection = (text: string) => {

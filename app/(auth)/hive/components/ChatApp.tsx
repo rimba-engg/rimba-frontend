@@ -1,11 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { ChatInterface } from './ChatInterface';
 import { Thread, Message } from '../types/chat';
+import { useLangGraph } from '../hooks/useLangGraph';
 import { v4 as uuidv4 } from 'uuid';
 
 const ChatApp = () => {
+  const langGraph = useLangGraph();
   const [threads, setThreads] = useState<Thread[]>([
     {
       id: '1',
@@ -19,16 +21,54 @@ const ChatApp = () => {
 
   const activeThread = threads.find(thread => thread.id === activeThreadId);
 
-  const createNewThread = () => {
-    const newThread: Thread = {
-      id: uuidv4(),
-      title: 'New Chat',
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
+  // Initialize the first thread with LangGraph thread ID when LangGraph becomes available
+  useEffect(() => {
+    const initializeFirstThread = async () => {
+      if (langGraph.isInitialized && threads.length > 0 && !threads[0].langGraphThreadId) {
+        try {
+          const langGraphThreadId = await langGraph.createThread();
+          setThreads(prev => prev.map(thread => 
+            thread.id === '1' 
+              ? { ...thread, langGraphThreadId }
+              : thread
+          ));
+        } catch (error) {
+          console.error('Failed to initialize first thread with LangGraph:', error);
+        }
+      }
     };
-    setThreads(prev => [newThread, ...prev]);
-    setActiveThreadId(newThread.id);
+
+    initializeFirstThread();
+  }, [langGraph.isInitialized, langGraph.createThread]);
+
+  const createNewThread = async () => {
+    try {
+      // Create LangGraph thread first
+      const langGraphThreadId = await langGraph.createThread();
+      
+      const newThread: Thread = {
+        id: uuidv4(),
+        title: 'New Chat',
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        langGraphThreadId
+      };
+      setThreads(prev => [newThread, ...prev]);
+      setActiveThreadId(newThread.id);
+    } catch (error) {
+      console.error('Failed to create new thread:', error);
+      // Fallback to local thread without LangGraph integration
+      const newThread: Thread = {
+        id: uuidv4(),
+        title: 'New Chat',
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      setThreads(prev => [newThread, ...prev]);
+      setActiveThreadId(newThread.id);
+    }
   };
 
   const deleteThread = (threadId: string) => {
@@ -86,10 +126,39 @@ const ChatApp = () => {
         onUpdateThread={updateThread}
       />
       <main className="flex-1 flex flex-col">
+        {/* LangGraph Status Header */}
+        {(langGraph.isLoading || langGraph.error || !langGraph.isInitialized) && (
+          <div className="p-3 border-b">
+            {langGraph.isLoading && (
+              <div className="flex items-center gap-2 text-blue-600">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm">Connecting to LangGraph...</span>
+              </div>
+            )}
+            {langGraph.error && (
+              <div className="flex items-center gap-2 text-red-600">
+                <span className="text-sm">⚠️ LangGraph Error: {langGraph.error}</span>
+                <button 
+                  onClick={langGraph.initialize}
+                  className="text-xs bg-red-100 px-2 py-1 rounded hover:bg-red-200"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            {!langGraph.isInitialized && !langGraph.isLoading && !langGraph.error && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <span className="text-sm">🔌 LangGraph not connected</span>
+              </div>
+            )}
+          </div>
+        )}
+        
         {activeThread && (
           <ChatInterface 
             thread={activeThread}
             onAddMessage={addMessage}
+            langGraph={langGraph}
           />
         )}
       </main>
