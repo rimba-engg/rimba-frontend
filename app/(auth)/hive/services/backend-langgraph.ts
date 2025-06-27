@@ -1,4 +1,5 @@
 import { Message } from "../types/chat";
+import { api, BASE_URL } from "../../../../lib/api";
 
 export interface BackendMessage {
   role: "user" | "assistant";
@@ -45,65 +46,57 @@ export interface StreamEvent {
 }
 
 class BackendLangGraphService {
-  private baseUrl: string;
 
-  constructor() {
-    // Use the main API URL from environment or default
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  async healthCheck(): Promise<HealthCheck> {
+    return api.get<HealthCheck>('/langgraph/health');
   }
 
-  private async fetchWithAuth(url: string, options: RequestInit = {}) {
-    // Add any authentication headers if needed
-    const headers = {
+  async listAssistants(): Promise<Assistant[]> {
+    return api.get<Assistant[]>('/langgraph/assistants');
+  }
+
+  async createThread(metadata?: Record<string, any>): Promise<string> {
+    const data = await api.post<ThreadResponse>('/langgraph/threads', {
+      metadata: metadata || {}
+    });
+    return data.thread_id;
+  }
+
+  async chat(request: ChatRequest): Promise<ChatResponse> {
+    return api.post<ChatResponse>('/langgraph/chat', request);
+  }
+
+  async *streamChat(request: ChatRequest): AsyncGenerator<StreamEvent, void, unknown> {
+    // For streaming, we need to use fetch directly but with proper auth headers
+    // Get the access token and other headers from the api client
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const idToken = typeof window !== 'undefined' ? localStorage.getItem('id_token') : null;
+    const customerId = typeof window !== 'undefined' ? localStorage.getItem('customer_id') : null;
+
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     };
 
-    const response = await fetch(`${this.baseUrl}${url}`, {
-      ...options,
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+    if (idToken) {
+      headers['X-Id-Token'] = idToken;
+    }
+    if (customerId) {
+      headers['X-Customer-Id'] = customerId;
+    }
+
+    const response = await fetch(`${BASE_URL}/langgraph/chat/stream`, {
+      method: 'POST',
       headers,
+      body: JSON.stringify(request),
     });
 
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`API Error: ${response.status} - ${error}`);
     }
-
-    return response;
-  }
-
-  async healthCheck(): Promise<HealthCheck> {
-    const response = await this.fetchWithAuth('/langgraph/health');
-    return response.json();
-  }
-
-  async listAssistants(): Promise<Assistant[]> {
-    const response = await this.fetchWithAuth('/langgraph/assistants');
-    return response.json();
-  }
-
-  async createThread(metadata?: Record<string, any>): Promise<string> {
-    const response = await this.fetchWithAuth('/langgraph/threads', {
-      method: 'POST',
-      body: JSON.stringify({ metadata: metadata || {} }),
-    });
-    const data: ThreadResponse = await response.json();
-    return data.thread_id;
-  }
-
-  async chat(request: ChatRequest): Promise<ChatResponse> {
-    const response = await this.fetchWithAuth('/langgraph/chat', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-    return response.json();
-  }
-
-  async *streamChat(request: ChatRequest): AsyncGenerator<StreamEvent, void, unknown> {
-    const response = await this.fetchWithAuth('/langgraph/chat/stream', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
 
     if (!response.body) {
       throw new Error('No response body for streaming');
