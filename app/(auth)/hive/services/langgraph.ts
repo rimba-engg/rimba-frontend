@@ -17,8 +17,17 @@ class LangGraphService {
   private assistantId: string | null = null;
 
   constructor(apiUrl?: string) {
-    // Initialize client - use config or provided URL
-    this.client = new Client({ apiUrl: apiUrl || LANGGRAPH_CONFIG.API_URL });
+    // Initialize client - use config or provided URL with authentication
+    const clientConfig: any = { 
+      apiUrl: apiUrl || LANGGRAPH_CONFIG.API_URL 
+    };
+
+    // Add LangSmith API key if available (required for LangGraph Platform)
+    if (LANGGRAPH_CONFIG.LANGSMITH_API_KEY) {
+      clientConfig.apiKey = LANGGRAPH_CONFIG.LANGSMITH_API_KEY;
+    }
+
+    this.client = new Client(clientConfig);
   }
 
   async initialize() {

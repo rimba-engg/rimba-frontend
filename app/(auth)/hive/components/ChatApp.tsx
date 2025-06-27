@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
-import { ChatInterface } from './ChatInterface';
+import { BackendChatInterface } from './BackendChatInterface';
 import { Thread, Message } from '../types/chat';
-import { useLangGraph } from '../hooks/useLangGraph';
+import { useBackendLangGraph } from '../hooks/useBackendLangGraph';
 import { v4 as uuidv4 } from 'uuid';
 
 const ChatApp = () => {
-  const langGraph = useLangGraph();
+  const langGraph = useBackendLangGraph();
   const [threads, setThreads] = useState<Thread[]>([
     {
       id: '1',
@@ -155,7 +155,7 @@ const ChatApp = () => {
         )}
         
         {activeThread && (
-          <ChatInterface 
+          <BackendChatInterface 
             thread={activeThread}
             onAddMessage={addMessage}
             langGraph={langGraph}

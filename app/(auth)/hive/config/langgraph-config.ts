@@ -1,7 +1,10 @@
 // LangGraph Configuration
 export const LANGGRAPH_CONFIG = {
   // Default to localhost for development, can be overridden via environment variables
-  API_URL: process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || 'http://localhost:8123',
+  API_URL: process.env.NEXT_PUBLIC_LANGGRAPH_API_URL || 'https://hive-dev-26088926e7665bc694c2d4e2d51aee95.us.langgraph.app',
+  
+  // Authentication configuration - LangGraph Platform uses LangSmith API keys
+  LANGSMITH_API_KEY: process.env.NEXT_PUBLIC_LANGSMITH_API_KEY,
   
   // Other configuration options
   DEFAULT_TIMEOUT: 30000, // 30 seconds
