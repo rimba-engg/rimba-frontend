@@ -24,6 +24,7 @@ export const BackendChatInterface: React.FC<BackendChatInterfaceProps> = ({
   const [currentThinking, setCurrentThinking] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [typingMessage, setTypingMessage] = useState('');
+  const [lastProcessedResponse, setLastProcessedResponse] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -44,7 +45,7 @@ export const BackendChatInterface: React.FC<BackendChatInterfaceProps> = ({
     setIsTyping(false);
     setTypingMessage('');
 
-    let fullResponse = '';
+    let fullResponse = ''; // Reset to empty for new conversation
     let responseThreadId = thread.langGraphThreadId || null;
 
     try {
@@ -76,26 +77,40 @@ export const BackendChatInterface: React.FC<BackendChatInterfaceProps> = ({
             
             // Check if this is the final response
             if (data.final_response && data.execution_complete) {
-              // We have the final response
+              // We have the final response - simulate streaming if it's new
               console.log('Found final response:', data.final_response);
-              if (!isTyping) {
-                setIsAiThinking(false);
-                setIsTyping(true);
+              
+              if (lastProcessedResponse !== data.final_response) {
+                // This is a new response
+                fullResponse = data.final_response;
+                setLastProcessedResponse(data.final_response);
+                
+                if (!isTyping) {
+                  setIsAiThinking(false);
+                  setIsTyping(true);
+                }
+                
+                setTypingMessage(fullResponse);
               }
-              fullResponse = data.final_response;
-              setTypingMessage(fullResponse);
             } else if (data.messages && data.messages.length > 0) {
               // Check if there's a new AI message
               const lastMessage = data.messages[data.messages.length - 1];
               console.log('Last message:', lastMessage);
               if (lastMessage && lastMessage.type === 'ai' && lastMessage.content) {
                 console.log('Found AI message:', lastMessage.content);
-                if (!isTyping) {
-                  setIsAiThinking(false);
-                  setIsTyping(true);
+                
+                if (lastProcessedResponse !== lastMessage.content) {
+                  // This is a new response
+                  fullResponse = lastMessage.content;
+                  setLastProcessedResponse(lastMessage.content);
+                  
+                  if (!isTyping) {
+                    setIsAiThinking(false);
+                    setIsTyping(true);
+                  }
+                  
+                  setTypingMessage(fullResponse);
                 }
-                fullResponse = lastMessage.content;
-                setTypingMessage(fullResponse);
               }
             }
           }
@@ -140,6 +155,13 @@ export const BackendChatInterface: React.FC<BackendChatInterfaceProps> = ({
   };
 
   const handleSendMessage = async (content: string) => {
+    // Clear any previous typing state immediately
+    setIsTyping(false);
+    setTypingMessage('');
+    setIsAiThinking(false);
+    setCurrentThinking('');
+    setLastProcessedResponse(''); // Reset to ensure fresh processing
+
     // Add user message
     onAddMessage(thread.id, {
       content,
