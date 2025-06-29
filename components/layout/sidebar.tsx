@@ -136,6 +136,8 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
     ],
   },
   { icon: Brain, label: 'Hive', href: '/hive', border: true },
+  { icon: Brain, label: 'Vertex', href: '/vertex', border: true },
+
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management'}] : []),
   ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
   { icon: Puzzle, label: 'Integrations', href: '/integrations'},
