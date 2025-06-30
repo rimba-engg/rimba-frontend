@@ -13,12 +13,6 @@ import {
   type RemoveUIMessage,
 } from "@langchain/langgraph-sdk/react-ui";
 import { useQueryState } from "nuqs";
-import { Input } from "@/app/(auth)/vertex/components/ui/input";
-import { Button } from "@/app/(auth)/vertex/components/ui/button";
-import { LangGraphLogoSVG } from "@/app/(auth)/vertex/components/icons/langgraph";
-import { Label } from "@/app/(auth)/vertex/components/ui/label";
-import { ArrowRight } from "lucide-react";
-import { PasswordInput } from "@/app/(auth)/vertex/components/ui/password-input";
 import { getApiKey } from "@/app/(auth)/vertex/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
@@ -120,9 +114,10 @@ const StreamSession = ({
   );
 };
 
-// Default values for the form
+// Default values for the configuration - hardcoded
 const DEFAULT_API_URL = "http://localhost:2024";
-const DEFAULT_ASSISTANT_ID = "agent";
+const DEFAULT_ASSISTANT_ID = "vertex";
+const DEFAULT_API_KEY = ""; // Set your default API key here if needed
 
 export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -134,18 +129,18 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   const envApiKey: string | undefined =
     process.env.NEXT_PUBLIC_LANGSMITH_API_KEY;
 
-  // Use URL params with env var fallbacks
+  // Use URL params with env var fallbacks, then hardcoded defaults
   const [apiUrl, setApiUrl] = useQueryState("apiUrl", {
-    defaultValue: envApiUrl || "",
+    defaultValue: envApiUrl || DEFAULT_API_URL,
   });
   const [assistantId, setAssistantId] = useQueryState("assistantId", {
-    defaultValue: envAssistantId || "",
+    defaultValue: envAssistantId || DEFAULT_ASSISTANT_ID,
   });
 
-  // For API key, use localStorage with env var fallback
+  // For API key, use localStorage with env var fallback, then hardcoded default
   const [apiKey, _setApiKey] = useState(() => {
     const storedKey = getApiKey();
-    return storedKey || envApiKey || "";
+    return storedKey || envApiKey || DEFAULT_API_KEY;
   });
 
   const setApiKey = (key: string) => {
@@ -153,111 +148,29 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     _setApiKey(key);
   };
 
-  // Determine final values to use, prioritizing URL params then env vars
-  const finalApiUrl = apiUrl || envApiUrl;
-  const finalAssistantId = assistantId || envAssistantId;
+  // Determine final values to use, ensuring we always have defaults
+  const finalApiUrl = apiUrl || envApiUrl || DEFAULT_API_URL;
+  const finalAssistantId = assistantId || envAssistantId || DEFAULT_ASSISTANT_ID;
+  const finalApiKey = apiKey || envApiKey || DEFAULT_API_KEY;
 
-  // If we're missing any required values, show the form
-  if (!finalApiUrl || !finalAssistantId) {
-    return (
-      <div className="flex items-center justify-center min-h-screen w-full p-4">
-        <div className="animate-in fade-in-0 zoom-in-95 flex flex-col border bg-background shadow-lg rounded-lg max-w-3xl">
-          <div className="flex flex-col gap-2 mt-14 p-6 border-b">
-            <div className="flex items-start flex-col gap-2">
-              <LangGraphLogoSVG className="h-7" />
-              <h1 className="text-xl font-semibold tracking-tight">
-                Agent Chat
-              </h1>
-            </div>
-            <p className="text-muted-foreground">
-              Welcome to Agent Chat! Before you get started, you need to enter
-              the URL of the deployment and the assistant / graph ID.
-            </p>
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
+  // Ensure URL query state is set with defaults if missing
+  useEffect(() => {
+    if (!apiUrl && finalApiUrl) {
+      setApiUrl(finalApiUrl);
+      console.log("finalApiUrl", finalApiUrl);
+    }
+    if (!assistantId && finalAssistantId) {
+      setAssistantId(finalAssistantId);
+    }
+  }, [apiUrl, assistantId, finalApiUrl, finalAssistantId, setApiUrl, setAssistantId]);
 
-              const form = e.target as HTMLFormElement;
-              const formData = new FormData(form);
-              const apiUrl = formData.get("apiUrl") as string;
-              const assistantId = formData.get("assistantId") as string;
-              const apiKey = formData.get("apiKey") as string;
-
-              setApiUrl(apiUrl);
-              setApiKey(apiKey);
-              setAssistantId(assistantId);
-
-              form.reset();
-            }}
-            className="flex flex-col gap-6 p-6 bg-muted/50"
-          >
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="apiUrl">
-                Deployment URL<span className="text-rose-500">*</span>
-              </Label>
-              <p className="text-muted-foreground text-sm">
-                This is the URL of your LangGraph deployment. Can be a local, or
-                production deployment.
-              </p>
-              <Input
-                id="apiUrl"
-                name="apiUrl"
-                className="bg-background"
-                defaultValue={apiUrl || DEFAULT_API_URL}
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="assistantId">
-                Assistant / Graph ID<span className="text-rose-500">*</span>
-              </Label>
-              <p className="text-muted-foreground text-sm">
-                This is the ID of the graph (can be the graph name), or
-                assistant to fetch threads from, and invoke when actions are
-                taken.
-              </p>
-              <Input
-                id="assistantId"
-                name="assistantId"
-                className="bg-background"
-                defaultValue={assistantId || DEFAULT_ASSISTANT_ID}
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="apiKey">LangSmith API Key</Label>
-              <p className="text-muted-foreground text-sm">
-                This is <strong>NOT</strong> required if using a local LangGraph
-                server. This value is stored in your browser's local storage and
-                is only used to authenticate requests sent to your LangGraph
-                server.
-              </p>
-              <PasswordInput
-                id="apiKey"
-                name="apiKey"
-                defaultValue={apiKey ?? ""}
-                className="bg-background"
-                placeholder="lsv2_pt_..."
-              />
-            </div>
-
-            <div className="flex justify-end mt-2">
-              <Button type="submit" size="lg">
-                Continue
-                <ArrowRight className="size-5" />
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
+  // Always render StreamSession with the final values (no form shown)
   return (
-    <StreamSession apiKey={apiKey} apiUrl={apiUrl} assistantId={assistantId}>
+    <StreamSession 
+      apiKey={finalApiKey} 
+      apiUrl={finalApiUrl} 
+      assistantId={finalAssistantId}
+    >
       {children}
     </StreamSession>
   );

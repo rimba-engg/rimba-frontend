@@ -264,9 +264,9 @@ export function Thread() {
                 </Button>
               )}
             </div>
-            <div className="absolute top-2 right-4 flex items-center">
+            {/* <div className="absolute top-2 right-4 flex items-center">
               <OpenGitHubRepo />
-            </div>
+            </div> */}
           </div>
         )}
         {chatStarted && (
@@ -299,9 +299,9 @@ export function Thread() {
                   damping: 30,
                 }}
               >
-                <LangGraphLogoSVG width={32} height={32} />
+                {/* <LangGraphLogoSVG width={32} height={32} /> */}
                 <span className="text-xl font-semibold tracking-tight">
-                  Agent Chat
+                  Hive AI
                 </span>
               </motion.button>
             </div>
@@ -372,9 +372,9 @@ export function Thread() {
               <div className="sticky flex flex-col items-center gap-8 bottom-0 bg-white">
                 {!chatStarted && (
                   <div className="flex gap-3 items-center">
-                    <LangGraphLogoSVG className="flex-shrink-0 h-8" />
+                    {/* <LangGraphLogoSVG className="flex-shrink-0 h-8" /> */}
                     <h1 className="text-2xl font-semibold tracking-tight">
-                      Agent Chat
+                      Hive AI
                     </h1>
                   </div>
                 )}
