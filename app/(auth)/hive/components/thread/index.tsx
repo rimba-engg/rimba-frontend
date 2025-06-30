@@ -205,7 +205,7 @@ export function Thread() {
   );
 
   return (
-    <div className="flex w-full h-screen overflow-hidden">
+    <div className="flex w-full h-[calc(100vh-80px)] overflow-hidden">
       <div className="relative lg:flex hidden">
         <motion.div
           className="absolute h-full border-r bg-white overflow-hidden z-20"
