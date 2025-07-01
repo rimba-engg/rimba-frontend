@@ -1,4 +1,5 @@
 "use client";
+import "@/lib/eventsource";
 
 import { Thread } from "@/app/(auth)/hive/components/thread";
 import { StreamProvider } from "@/app/(auth)/hive/providers/Stream";
