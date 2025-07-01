@@ -13,6 +13,9 @@ import {
 } from "react";
 import { createClient } from "./client";
 import { hiveConfig } from "../config";
+import { getStoredUser, getStoredCustomer } from '@/lib/auth';
+import { type User, type Customer  } from '@/lib/types';
+
 
 interface ThreadContextType { 
   getThreads: () => Promise<Thread[]>;
@@ -26,11 +29,13 @@ const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
 
 function getThreadSearchMetadata(
   assistantId: string,
-): { graph_id: string } | { assistant_id: string } {
+  user_id: string,
+  customer_id: string,
+): { user_id: string, customer_id: string } | { user_id: string, customer_id: string } {
   if (validate(assistantId)) {
-    return { assistant_id: assistantId };
+    return { user_id: user_id, customer_id: customer_id };
   } else {
-    return { graph_id: assistantId };
+    return { user_id: user_id, customer_id: customer_id };
   }
 }
 
@@ -42,10 +47,16 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   const getThreads = useCallback(async (): Promise<Thread[]> => {
     if (!apiUrl || !assistantId) return [];
     const client = createClient(apiUrl, getApiKey() ?? undefined);
+    const user: User | null = getStoredUser();
+    const customer: Customer | null = getStoredCustomer();
+    console.log('user', user);
+    console.log('customer', customer);
+
+    if (!user || !customer) return [];
 
     const threads = await client.threads.search({
       metadata: {
-        ...getThreadSearchMetadata(assistantId),
+        ...getThreadSearchMetadata(assistantId, user.id, customer.id),
       },
       limit: 100,
     });
