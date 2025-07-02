@@ -4,6 +4,7 @@ import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { getContentString } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../markdown-text";
+import { SelectableContent } from "../selectable-content";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { cn } from "@/lib/utils";
 import { ToolCalls, ToolResult } from "./tool-calls";
@@ -119,9 +120,9 @@ export function AssistantMessage({
       ) : (
         <div className="flex flex-col gap-2">
           {contentString.length > 0 && (
-            <div className="py-1">
+            <SelectableContent messageId={message?.id} className="py-1">
               <MarkdownText>{contentString}</MarkdownText>
-            </div>
+            </SelectableContent>
           )}
 
           {!hideToolCalls && (
