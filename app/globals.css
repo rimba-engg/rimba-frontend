@@ -81,7 +81,7 @@
     @apply bg-background text-foreground;
   }
 }
-@layer components {
+/* @layer components {
   .markdown-content {
     @apply max-w-none;
 
@@ -137,4 +137,4 @@
       }
     }
   }
-}
+} */

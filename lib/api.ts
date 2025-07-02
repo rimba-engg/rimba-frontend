@@ -21,9 +21,9 @@ if (typeof window !== 'undefined') {
 
 class ApiClient {
   private static instance: ApiClient;
-  private accessToken: string | null = null;
-  private idToken: string | null = null;
-  private csId: string | null = null;
+  public accessToken: string | null = null;
+  public idToken: string | null = null;
+  public csId: string | null = null;
 
   // Add private constructor to load initial state
   private constructor() {
