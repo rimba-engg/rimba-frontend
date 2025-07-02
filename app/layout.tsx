@@ -6,6 +6,7 @@ import TokenRefresher from '@/components/TokenRefresher';
 import { Rubik } from 'next/font/google';
 import { useEffect } from 'react';
 import { initMixpanel } from '../lib/mixpanel';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
 const rubik = Rubik({ subsets: ['latin'] });
 
@@ -26,7 +27,9 @@ export default function RootLayout({
       <body className={rubik.className}>
         <ClientAuthProvider>
           <TokenRefresher />
-          {children}
+          <NuqsAdapter>
+            {children}
+          </NuqsAdapter>
         </ClientAuthProvider>
       </body>
     </html>

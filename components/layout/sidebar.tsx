@@ -38,7 +38,8 @@ import {
   Flame,
   TrendingUp,
   BarChartHorizontal,
-  Lock
+  Lock,
+  BotMessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -135,7 +136,9 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       { icon: UserCog, label: 'Contractor Management', href: '/prevailing-wage/contractor-management' },
     ],
   },
-  { icon: Brain, label: 'Hive', href: '/hive', border: true },
+  { icon: BotMessageSquare, label: 'Hive', href: '/hive', border: true },
+  // { icon: Brain, label: 'Vertex', href: '/vertex', border: true },
+
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management'}] : []),
   ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
   { icon: Puzzle, label: 'Integrations', href: '/integrations'},
