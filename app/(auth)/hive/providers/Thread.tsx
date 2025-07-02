@@ -31,11 +31,11 @@ function getThreadSearchMetadata(
   assistantId: string,
   user_id: string,
   customer_id: string,
-): { user_id: string, customer_id: string } | { user_id: string, customer_id: string } {
+): { rimba_user_id: string, rimba_customer_id: string } {
   if (validate(assistantId)) {
-    return { user_id: user_id, customer_id: customer_id };
+    return { rimba_user_id: user_id, rimba_customer_id: customer_id };
   } else {
-    return { user_id: user_id, customer_id: customer_id };
+    return { rimba_user_id: user_id, rimba_customer_id: customer_id };
   }
 }
 
