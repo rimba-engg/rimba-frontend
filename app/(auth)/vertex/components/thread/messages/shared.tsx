@@ -11,7 +11,7 @@ import {
 import { TooltipIconButton } from "../tooltip-icon-button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { Button } from "@/app/(auth)/hive/components/ui/button";
+import { Button } from "@/app/(auth)/vertex/components/ui/button";
 
 function ContentCopyable({
   content,

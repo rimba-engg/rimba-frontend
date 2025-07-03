@@ -1,5 +1,5 @@
 import { validate } from "uuid";
-import { getApiKey } from "@/app/(auth)/hive/lib/api-key";
+import { getApiKey } from "@/app/(auth)/vertex/lib/api-key";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useQueryState } from "nuqs";
 import {
@@ -12,7 +12,7 @@ import {
   SetStateAction,
 } from "react";
 import { createClient } from "./client";
-import { hiveConfig } from "../config";
+import { vertexAgentConfig } from "../config";
 import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { type User, type Customer  } from '@/lib/types';
 
@@ -40,7 +40,7 @@ function getThreadSearchMetadata(
 }
 
 export function ThreadProvider({ children }: { children: ReactNode }) {
-  const { apiUrl, assistantId, apiKey } = hiveConfig;
+  const { apiUrl, assistantId, apiKey } = vertexAgentConfig;
   const [threads, setThreads] = useState<Thread[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
 

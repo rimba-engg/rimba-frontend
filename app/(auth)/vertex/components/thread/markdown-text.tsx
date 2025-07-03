@@ -8,10 +8,10 @@ import rehypeKatex from "rehype-katex";
 import remarkMath from "remark-math";
 import { FC, memo, useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { SyntaxHighlighter } from "@/app/(auth)/hive/components/thread/syntax-highlighter";
+import { SyntaxHighlighter } from "@/app/(auth)/vertex/components/thread/syntax-highlighter";
 
-import { TooltipIconButton } from "@/app/(auth)/hive/components/thread/tooltip-icon-button";
-import { cn } from "@/app/(auth)/hive/lib/utils";
+import { TooltipIconButton } from "@/app/(auth)/vertex/components/thread/tooltip-icon-button";
+import { cn } from "@/app/(auth)/vertex/lib/utils";
 
 import "katex/dist/katex.min.css";
 

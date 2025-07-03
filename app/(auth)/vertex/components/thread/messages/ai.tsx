@@ -1,15 +1,16 @@
 import { parsePartialJson } from "@langchain/core/output_parsers";
-import { useStreamContext } from "@/app/(auth)/hive/providers/Stream";
+import { useStreamContext } from "@/app/(auth)/vertex/providers/Stream";
 import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { getContentString } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../markdown-text";
+import { SelectableContent } from "../selectable-content";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { cn } from "@/lib/utils";
 import { ToolCalls, ToolResult } from "./tool-calls";
 import { MessageContentComplex } from "@langchain/core/messages";
 import { Fragment } from "react/jsx-runtime";
-import { isAgentInboxInterruptSchema } from "@/app/(auth)/hive/lib/agent-inbox-interrupt";
+import { isAgentInboxInterruptSchema } from "@/app/(auth)/vertex/lib/agent-inbox-interrupt";
 import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
@@ -119,9 +120,9 @@ export function AssistantMessage({
       ) : (
         <div className="flex flex-col gap-2">
           {contentString.length > 0 && (
-            <div className="py-1">
+            <SelectableContent messageId={message?.id} className="py-1">
               <MarkdownText>{contentString}</MarkdownText>
-            </div>
+            </SelectableContent>
           )}
 
           {!hideToolCalls && (

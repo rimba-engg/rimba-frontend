@@ -13,10 +13,10 @@ import {
   type RemoveUIMessage,
 } from "@langchain/langgraph-sdk/react-ui";
 import { useQueryState } from "nuqs";
-import { getApiKey } from "@/app/(auth)/hive/lib/api-key";
+import { getApiKey } from "@/app/(auth)/vertex/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
-import { hiveConfig } from "../config";
+import { vertexAgentConfig } from "../config";
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 import { api } from "@/lib/api";
 import { createClient } from "./client";
@@ -129,9 +129,9 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
 
   return (
     <StreamSession 
-      apiKey={hiveConfig.apiKey} 
-      apiUrl={hiveConfig.apiUrl} 
-      assistantId={hiveConfig.assistantId}
+      apiKey={vertexAgentConfig.apiKey} 
+      apiUrl={vertexAgentConfig.apiUrl} 
+      assistantId={vertexAgentConfig.assistantId}
     >
       {children}
     </StreamSession>

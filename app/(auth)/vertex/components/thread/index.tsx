@@ -1,17 +1,19 @@
 import { v4 as uuidv4 } from "uuid";
 import { ReactNode, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { cn } from "@/app/(auth)/hive/lib/utils";
-import { useStreamContext } from "@/app/(auth)/hive/providers/Stream";
+import { cn } from "@/app/(auth)/vertex/lib/utils";
+import { useStreamContext } from "@/app/(auth)/vertex/providers/Stream";
 import { useState, FormEvent } from "react";
 import { Button } from "../ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
+import { ReferencedTextDisplay } from "./referenced-text-display";
+import { useReferencedText } from "../../providers/ReferencedText";
 import {
   DO_NOT_RENDER_ID_PREFIX,
   ensureToolCallsHaveResponses,
-} from "@/app/(auth)/hive/lib/ensure-tool-responses";
+} from "@/app/(auth)/vertex/lib/ensure-tool-responses";
 import { LangGraphLogoSVG } from "../icons/langgraph";
 import { TooltipIconButton } from "./tooltip-icon-button";
 import {
@@ -25,7 +27,7 @@ import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import ThreadHistory from "./history";
 import { toast } from "sonner";
-import { useMediaQuery } from "@/app/(auth)/hive/hooks/useMediaQuery";
+import { useMediaQuery } from "@/app/(auth)/vertex/hooks/useMediaQuery";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import { GitHubSVG } from "../icons/github";
@@ -112,6 +114,7 @@ export function Thread() {
   const stream = useStreamContext();
   const messages = stream.messages;
   const isLoading = stream.isLoading;
+  const { referencedText, clearReferencedText } = useReferencedText();
 
   const lastError = useRef<string | undefined>(undefined);
 
@@ -162,10 +165,16 @@ export function Thread() {
     if (!input.trim() || isLoading) return;
     setFirstTokenReceived(false);
 
+    // Prepare message content with referenced text if available
+    let messageContent = input;
+    if (referencedText) {
+      messageContent = `Replying to: "${referencedText.text}"\n\n${input}`;
+    }
+
     const newHumanMessage: Message = {
       id: uuidv4(),
       type: "human",
-      content: input,
+      content: messageContent,
     };
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
@@ -185,6 +194,7 @@ export function Thread() {
     );
 
     setInput("");
+    clearReferencedText(); // Clear referenced text after submitting
   };
 
   const handleRegenerate = (
@@ -301,7 +311,7 @@ export function Thread() {
               >
                 {/* <LangGraphLogoSVG width={32} height={32} /> */}
                 <span className="text-xl font-semibold tracking-tight">
-                  Hive AI
+                  Vertex AI
                 </span>
               </motion.button>
             </div>
@@ -374,7 +384,7 @@ export function Thread() {
                   <div className="flex gap-3 items-center">
                     {/* <LangGraphLogoSVG className="flex-shrink-0 h-8" /> */}
                     <h1 className="text-2xl font-semibold tracking-tight">
-                      Hive AI
+                      Vertex AI
                     </h1>
                   </div>
                 )}
@@ -386,25 +396,28 @@ export function Thread() {
                     onSubmit={handleSubmit}
                     className="grid grid-rows-[1fr_auto] gap-2 max-w-3xl mx-auto"
                   >
-                    <textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (
-                          e.key === "Enter" &&
-                          !e.shiftKey &&
-                          !e.metaKey &&
-                          !e.nativeEvent.isComposing
-                        ) {
-                          e.preventDefault();
-                          const el = e.target as HTMLElement | undefined;
-                          const form = el?.closest("form");
-                          form?.requestSubmit();
-                        }
-                      }}
-                      placeholder="Type your message..."
-                      className="p-3.5 pb-0 border-none bg-transparent field-sizing-content shadow-none ring-0 outline-none focus:outline-none focus:ring-0 resize-none"
-                    />
+                    <div className="p-3.5 pb-0">
+                      <ReferencedTextDisplay />
+                      <textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (
+                            e.key === "Enter" &&
+                            !e.shiftKey &&
+                            !e.metaKey &&
+                            !e.nativeEvent.isComposing
+                          ) {
+                            e.preventDefault();
+                            const el = e.target as HTMLElement | undefined;
+                            const form = el?.closest("form");
+                            form?.requestSubmit();
+                          }
+                        }}
+                        placeholder="Type your message..."
+                        className="w-full border-none bg-transparent field-sizing-content shadow-none ring-0 outline-none focus:outline-none focus:ring-0 resize-none"
+                      />
+                    </div>
 
                     <div className="flex items-center justify-between p-2 pt-4">
                       <div>

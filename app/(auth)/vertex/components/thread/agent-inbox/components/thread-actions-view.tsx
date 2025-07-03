@@ -1,8 +1,8 @@
-import { Button } from "@/app/(auth)/hive/components/ui/button";
+import { Button } from "@/app/(auth)/vertex/components/ui/button";
 import { ThreadIdCopyable } from "./thread-id";
 import { InboxItemInput } from "./inbox-item-input";
 import useInterruptedActions from "../hooks/use-interrupted-actions";
-import { cn } from "@/app/(auth)/hive/lib/utils";
+import { cn } from "@/app/(auth)/vertex/lib/utils";
 import { toast } from "sonner";
 import { useQueryState } from "nuqs";
 import { constructOpenInStudioURL } from "../utils";

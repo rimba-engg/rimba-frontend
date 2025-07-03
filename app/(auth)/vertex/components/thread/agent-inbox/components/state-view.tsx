@@ -7,11 +7,11 @@ import {
   unknownToPrettyDate,
 } from "../utils";
 import { motion } from "framer-motion";
-import { cn } from "@/app/(auth)/hive/lib/utils";
+import { cn } from "@/app/(auth)/vertex/lib/utils";
 import { BaseMessage } from "@langchain/core/messages";
 import { ToolCall } from "@langchain/core/messages/tool";
 import { ToolCallTable } from "./tool-call-table";
-import { Button } from "@/app/(auth)/hive/components/ui/button";
+import { Button } from "@/app/(auth)/vertex/components/ui/button";
 import { MarkdownText } from "../../markdown-text";
 
 interface StateViewRecursiveProps {
