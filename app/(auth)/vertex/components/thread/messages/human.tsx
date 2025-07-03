@@ -1,4 +1,4 @@
-import { useStreamContext } from "@/app/(auth)/hive/providers/Stream";
+import { useStreamContext } from "@/app/(auth)/vertex/providers/Stream";
 import { Message } from "@langchain/langgraph-sdk";
 import { useState } from "react";
 import { getContentString } from "../utils";

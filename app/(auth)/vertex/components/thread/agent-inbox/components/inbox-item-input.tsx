@@ -1,13 +1,13 @@
 import { HumanResponseWithEdits, SubmitType } from "../types";
-import { Textarea } from "@/app/(auth)/hive/components/ui/textarea";
+import { Textarea } from "@/app/(auth)/vertex/components/ui/textarea";
 import React from "react";
 import { haveArgsChanged, prettifyText } from "../utils";
-import { Button } from "@/app/(auth)/hive/components/ui/button";
+import { Button } from "@/app/(auth)/vertex/components/ui/button";
 import { Undo2 } from "lucide-react";
 import { MarkdownText } from "../../markdown-text";
 import { ActionRequest, HumanInterrupt } from "@langchain/langgraph/prebuilt";
 import { toast } from "sonner";
-import { Separator } from "@/app/(auth)/hive/components/ui/separator";
+import { Separator } from "@/app/(auth)/vertex/components/ui/separator";
 
 function ResetButton({ handleReset }: { handleReset: () => void }) {
   return (

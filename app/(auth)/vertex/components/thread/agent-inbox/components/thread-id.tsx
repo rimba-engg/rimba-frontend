@@ -4,7 +4,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/app/(auth)/hive/components/ui/tooltip";
+} from "@/app/(auth)/vertex/components/ui/tooltip";
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TooltipIconButton } from "../../tooltip-icon-button";

@@ -7,9 +7,9 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/app/(auth)/hive/components/ui/tooltip";
-import { Button, ButtonProps } from "@/app/(auth)/hive/components/ui/button";
-import { cn } from "@/app/(auth)/hive/lib/utils";
+} from "@/app/(auth)/vertex/components/ui/tooltip";
+import { Button, ButtonProps } from "@/app/(auth)/vertex/components/ui/button";
+import { cn } from "@/app/(auth)/vertex/lib/utils";
 
 export type TooltipIconButtonProps = ButtonProps & {
   tooltip: string;

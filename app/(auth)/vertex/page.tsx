@@ -1,11 +1,11 @@
 "use client";
 import "@/lib/eventsource";
 
-import { Thread } from "@/app/(auth)/hive/components/thread";
-import { StreamProvider } from "@/app/(auth)/hive/providers/Stream";
-import { ThreadProvider } from "@/app/(auth)/hive/providers/Thread";
-import { ReferencedTextProvider } from "@/app/(auth)/hive/providers/ReferencedText";
-import { Toaster } from "@/app/(auth)/hive/components/ui/sonner";
+import { Thread } from "@/app/(auth)/vertex/components/thread";
+import { StreamProvider } from "@/app/(auth)/vertex/providers/Stream";
+import { ThreadProvider } from "@/app/(auth)/vertex/providers/Thread";
+import { ReferencedTextProvider } from "@/app/(auth)/vertex/providers/ReferencedText";
+import { Toaster } from "@/app/(auth)/vertex/components/ui/sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import React from "react";
 

@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import { ReactNode, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { cn } from "@/app/(auth)/hive/lib/utils";
-import { useStreamContext } from "@/app/(auth)/hive/providers/Stream";
+import { cn } from "@/app/(auth)/vertex/lib/utils";
+import { useStreamContext } from "@/app/(auth)/vertex/providers/Stream";
 import { useState, FormEvent } from "react";
 import { Button } from "../ui/button";
 import { Checkpoint, Message } from "@langchain/langgraph-sdk";
@@ -13,7 +13,7 @@ import { useReferencedText } from "../../providers/ReferencedText";
 import {
   DO_NOT_RENDER_ID_PREFIX,
   ensureToolCallsHaveResponses,
-} from "@/app/(auth)/hive/lib/ensure-tool-responses";
+} from "@/app/(auth)/vertex/lib/ensure-tool-responses";
 import { LangGraphLogoSVG } from "../icons/langgraph";
 import { TooltipIconButton } from "./tooltip-icon-button";
 import {
@@ -27,7 +27,7 @@ import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import ThreadHistory from "./history";
 import { toast } from "sonner";
-import { useMediaQuery } from "@/app/(auth)/hive/hooks/useMediaQuery";
+import { useMediaQuery } from "@/app/(auth)/vertex/hooks/useMediaQuery";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import { GitHubSVG } from "../icons/github";
@@ -311,7 +311,7 @@ export function Thread() {
               >
                 {/* <LangGraphLogoSVG width={32} height={32} /> */}
                 <span className="text-xl font-semibold tracking-tight">
-                  Hive AI
+                  Vertex AI
                 </span>
               </motion.button>
             </div>
@@ -384,7 +384,7 @@ export function Thread() {
                   <div className="flex gap-3 items-center">
                     {/* <LangGraphLogoSVG className="flex-shrink-0 h-8" /> */}
                     <h1 className="text-2xl font-semibold tracking-tight">
-                      Hive AI
+                      Vertex AI
                     </h1>
                   </div>
                 )}

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useThreads } from "@/app/(auth)/hive/providers/Thread";
+import { useThreads } from "@/app/(auth)/vertex/providers/Thread";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useEffect } from "react";
 
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PanelRightOpen, PanelRightClose } from "lucide-react";
-import { useMediaQuery } from "@/app/(auth)/hive/hooks/useMediaQuery";
+import { useMediaQuery } from "@/app/(auth)/vertex/hooks/useMediaQuery";
 
 function ThreadList({
   threads,

@@ -35,8 +35,6 @@ import {
   Activity,
   Gauge,
   Fuel,
-  Flame,
-  TrendingUp,
   BarChartHorizontal,
   Lock,
   BotMessageSquare
@@ -136,8 +134,7 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       { icon: UserCog, label: 'Contractor Management', href: '/prevailing-wage/contractor-management' },
     ],
   },
-  { icon: BotMessageSquare, label: 'Hive', href: '/hive', border: true },
-  // { icon: Brain, label: 'Vertex', href: '/vertex', border: true },
+  { icon: BotMessageSquare, label: 'Vertex', href: '/vertex', border: true },
 
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management'}] : []),
   ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),

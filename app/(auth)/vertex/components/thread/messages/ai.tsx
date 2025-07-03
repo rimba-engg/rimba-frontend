@@ -1,5 +1,5 @@
 import { parsePartialJson } from "@langchain/core/output_parsers";
-import { useStreamContext } from "@/app/(auth)/hive/providers/Stream";
+import { useStreamContext } from "@/app/(auth)/vertex/providers/Stream";
 import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { getContentString } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { ToolCalls, ToolResult } from "./tool-calls";
 import { MessageContentComplex } from "@langchain/core/messages";
 import { Fragment } from "react/jsx-runtime";
-import { isAgentInboxInterruptSchema } from "@/app/(auth)/hive/lib/agent-inbox-interrupt";
+import { isAgentInboxInterruptSchema } from "@/app/(auth)/vertex/lib/agent-inbox-interrupt";
 import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
