@@ -44,6 +44,13 @@ interface MassBalanceResponse {
   tax_credit: Record<string, any>;
 }
 
+interface CsvExportResponse {
+  csv_data?: string;
+  data?: string;
+  full_precision_view_data_csv?: string;
+  csv?: string;
+}
+
 // Define the row style based on whether the row is pinned
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
@@ -88,6 +95,7 @@ export default function RngMassBalancePage() {
   const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
   const [showPrevailingWage, setShowPrevailingWage] = useState(true);
   const [selectedSite, setSelectedSite] = useState<string>('');
+  const [csvLoading, setCsvLoading] = useState(false);
 
   // Set default dates (last 3 days to today) when component mounts
   useEffect(() => {
@@ -245,18 +253,74 @@ export default function RngMassBalancePage() {
     };
   }, []);
 
-  // Function to handle CSV export
-  const handleDownloadCsv = () => {
-    const blob = new Blob([fullPrecisionRowDataCsv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
-    var site_name = selected_site.name;
-    var filename = `${selectedView?.view_name}_${site_name}_${startDate}_${endDate}.csv`;
-    console.log(filename);
-    a.download = filename;
-    a.click();
+  // Function to handle CSV export with different API
+  const handleDownloadCsv = async () => {
+    try {
+      setCsvLoading(true);
+      
+      if (!selectedView) {
+        toast.error('No view selected');
+        return;
+      }
+
+      if (!selectedSite) {
+        toast.error('No site selected');
+        return;
+      }
+
+      const payload: Record<string, any> = {
+        view_name: selectedView.view_name,
+        site_name: selectedSite
+      };
+
+      // Only add dates to payload if they are set
+      if (startDate) {
+        payload.start_datetime = startDate;
+      }
+      if (endDate) {
+        payload.end_datetime = endDate;
+      }
+
+      // Call the different API endpoint for CSV export
+      const response = await api.post<CsvExportResponse | string>('/reporting/v2/rng-mass-balance/download/', payload);
+      
+      // Handle the response - assuming it returns CSV data
+      let csvData = '';
+      if (typeof response === 'string') {
+        csvData = response;
+      } else if (response && typeof response === 'object') {
+        const responseObj = response as CsvExportResponse;
+        csvData = responseObj.csv_data || responseObj.data || responseObj.full_precision_view_data_csv || responseObj.csv || '';
+      }
+
+      if (!csvData) {
+        toast.error('No CSV data received from server');
+        return;
+      }
+
+      // Create and download the CSV file
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+      const site_name = selected_site.name;
+      const filename = `${selectedView?.view_name}_${site_name}_${startDate}_${endDate}.csv`;
+      
+      a.download = filename;
+      a.click();
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      toast.success('CSV downloaded successfully', { position: 'bottom-right' });
+    } catch (err) {
+      console.error('Error downloading CSV:', err);
+      toast.error('Failed to download CSV');
+    } finally {
+      setCsvLoading(false);
+    }
   };
 
   if (loading) {
@@ -360,8 +424,9 @@ export default function RngMassBalancePage() {
               <button
                 onClick={handleDownloadCsv}
                 className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+                disabled={csvLoading}
               >
-                Download CSV
+                {csvLoading ? <Loader2 className="animate-spin" size={20} /> : 'Download CSV'}
               </button>
             </div>
           </div>
