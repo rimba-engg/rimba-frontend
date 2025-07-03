@@ -38,6 +38,14 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 
+import { getStoredUser, getStoredCustomer } from '@/lib/auth';
+import { type User, type Customer  } from '@/lib/types';
+
+// Type extension for Message with metadata
+type MessageWithMetadata = Message & {
+  metadata?: Record<string, any>;
+};
+
 function StickyToBottomContent(props: {
   content: ReactNode;
   footer?: ReactNode;
@@ -117,6 +125,8 @@ export function Thread() {
   const { referencedText, clearReferencedText } = useReferencedText();
 
   const lastError = useRef<string | undefined>(undefined);
+  const user: User | null = getStoredUser();
+  const customer: Customer | null = getStoredCustomer();
 
   useEffect(() => {
     if (!stream.error) {
@@ -171,13 +181,13 @@ export function Thread() {
       messageContent = `Replying to: "${referencedText.text}"\n\n${input}`;
     }
 
-    const newHumanMessage: Message = {
+    const newHumanMessage: MessageWithMetadata = {
       id: uuidv4(),
       type: "human",
       content: messageContent,
       metadata: {
-        rimba_user_name: "John Doe",
-        rimba_customer_name: "Acme Inc",
+        rimba_user_name: user?.first_name + " " + user?.last_name,
+        rimba_customer_name: customer?.name ?? "",
       },
     };
 
