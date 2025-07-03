@@ -175,6 +175,10 @@ export function Thread() {
       id: uuidv4(),
       type: "human",
       content: messageContent,
+      metadata: {
+        rimba_user_name: "John Doe",
+        rimba_customer_name: "Acme Inc",
+      },
     };
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
