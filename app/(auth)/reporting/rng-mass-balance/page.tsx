@@ -401,7 +401,7 @@ export default function RngMassBalancePage() {
                 let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'America/New_York' }).set({ hour: 10 });
 
                 // Set to 10 AM EST next day
-                let nextDay = selectedDate.plus({ days: 1 }).minus({ seconds: 1 });
+                let nextDay = selectedDate.plus({ days: 1 });
 
                 // for debugging
                 console.log(e.target.value);
