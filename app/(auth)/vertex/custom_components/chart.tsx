@@ -156,19 +156,58 @@ const ChartComponent = (props: ChartProps) => {
         return <Pie data={pieChartData} options={pieOptions} />;
 
       case 'line':
+        // Group data by category
+        const categorizedData = data.reduce((acc, point) => {
+          const category = point.category || 'Default';
+          if (!acc[category]) {
+            acc[category] = [];
+          }
+          acc[category].push(point);
+          return acc;
+        }, {} as Record<string, ChartDataPoint[]>);
+
+        // Get all unique labels for consistent x-axis
+        const allLabels = Array.from(new Set(data.map(point => point.label)));
+
+        // Define colors for different categories
+        const lineColors = [
+          'rgba(59, 130, 246, 1)',    // Blue
+          'rgba(239, 68, 68, 1)',     // Red
+          'rgba(16, 185, 129, 1)',    // Green
+          'rgba(245, 158, 11, 1)',    // Yellow
+          'rgba(139, 92, 246, 1)',    // Purple
+          'rgba(236, 72, 153, 1)',    // Pink
+        ];
+
+        const lineBackgroundColors = [
+          'rgba(59, 130, 246, 0.1)',
+          'rgba(239, 68, 68, 0.1)',
+          'rgba(16, 185, 129, 0.1)',
+          'rgba(245, 158, 11, 0.1)',
+          'rgba(139, 92, 246, 0.1)',
+          'rgba(236, 72, 153, 0.1)',
+        ];
+
         const lineChartData = {
-          labels: data.map(point => point.label),
-          datasets: [
-            {
-              label: y_axis_label || 'Value',
-              data: data.map(point => point.value),
-              borderColor: 'rgba(59, 130, 246, 1)',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          labels: allLabels,
+          datasets: Object.entries(categorizedData).map(([category, points], index) => {
+            // Create data array matching all labels
+            const dataForCategory = allLabels.map(label => {
+              const point = points.find(p => p.label === label);
+              return point ? point.value : null;
+            });
+
+            return {
+              label: category,
+              data: dataForCategory,
+              borderColor: lineColors[index % lineColors.length],
+              backgroundColor: lineBackgroundColors[index % lineBackgroundColors.length],
               borderWidth: 2,
               fill: true,
               tension: 0.1,
-            },
-          ],
+              spanGaps: true, // Connect points even if some data is missing
+            };
+          }),
         };
 
         const lineOptions = {
