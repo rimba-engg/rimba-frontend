@@ -14,6 +14,7 @@ import { isAgentInboxInterruptSchema } from "@/app/(auth)/vertex/lib/agent-inbox
 import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
+import components from "@/app/(auth)/vertex/custom_components";
 
 function CustomComponent({
   message,
@@ -36,6 +37,7 @@ function CustomComponent({
           stream={thread}
           message={customComponent}
           meta={{ ui: customComponent }}
+          components={components as any}
         />
       ))}
     </Fragment>
