@@ -3,7 +3,7 @@
   "version": "2.14.0",
   "private": true,
   "scripts": {
-    "dev": "tsc --noEmit && next dev",
+    "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -17,7 +17,6 @@
     "@langchain/langgraph-api": "^0.0.16",
     "@langchain/langgraph-cli": "^0.0.16",
     "@langchain/langgraph-sdk": "^0.0.86",
-    "@next/swc-wasm-nodejs": "13.5.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",

@@ -41,8 +41,16 @@ const options = {
     },
   };
 
+interface DataSummary {
+    labels: string[];
+    values: number[];
+    site_type: string;
+    site_name: string;
+    multi_site_data?: { [key: string]: number[] };
+}
+
 interface AnalyticsResponse {
-    chart_config: any;
+    data_summary: DataSummary | null;
     table_data: any;
     totals: any;
 }
@@ -54,9 +62,101 @@ const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string
   return undefined;
 };
 
+// Function to create chart config for analytics data
+function createAnalyticsChartConfig(dataSummary: DataSummary): any {
+  const siteConfigs = {
+    'novilla': {
+      'West Branch': {
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+      },
+      'Red Leaf': {
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+      },
+      'Three Petals': {
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+      },
+      'Buckhorn': {
+        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+        borderColor: 'rgba(153, 102, 255, 1)',
+      },
+    },
+    'demo_rng': {
+      'Green Flame Bio Energy': {
+        backgroundColor: 'rgba(34, 139, 34, 0.2)',
+        borderColor: 'rgba(34, 139, 34, 1)',
+      },
+      'Eco Methane Hub': {
+        backgroundColor: 'rgba(255, 140, 0, 0.2)',
+        borderColor: 'rgba(255, 140, 0, 1)',
+      },
+    },
+  };
+
+  if (dataSummary.site_type === 'novilla' || dataSummary.site_type === 'demo_rng') {
+    let colors = { backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)' };
+    
+    if (dataSummary.site_type === 'novilla') {
+      colors = siteConfigs.novilla[dataSummary.site_name as keyof typeof siteConfigs.novilla] || colors;
+    } else if (dataSummary.site_type === 'demo_rng') {
+      colors = siteConfigs.demo_rng[dataSummary.site_name as keyof typeof siteConfigs.demo_rng] || colors;
+    }
+
+    return {
+      labels: dataSummary.labels,
+      datasets: [{
+        label: `${dataSummary.site_name} Balance`,
+        data: dataSummary.values,
+        backgroundColor: colors.backgroundColor,
+        borderColor: colors.borderColor,
+        borderWidth: 1,
+        fill: false,
+        tension: 0.1
+      }]
+    };
+  }
+
+  return null;
+}
+
+// Function to create chart config for manure flow multi-site data
+function createManureFlowChartConfig(dataSummary: DataSummary): any {
+  if (dataSummary.site_type !== 'manure_flow' || !dataSummary.multi_site_data) {
+    return null;
+  }
+
+  const siteColors = {
+    'Hoogland': { backgroundColor: 'rgba(65, 105, 225, 0.2)', borderColor: 'rgba(65, 105, 225, 1)' },
+    'Maassen': { backgroundColor: 'rgba(255, 165, 0, 0.2)', borderColor: 'rgba(255, 165, 0, 1)' },
+    'Buckhorn': { backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)' },
+    'Three Petals': { backgroundColor: 'rgba(153, 102, 255, 0.2)', borderColor: 'rgba(153, 102, 255, 1)' },
+    'Red Leaf': { backgroundColor: 'rgba(255, 99, 132, 0.2)', borderColor: 'rgba(255, 99, 132, 1)' },
+    'BH-historian': { backgroundColor: 'rgba(65, 105, 225, 0.2)', borderColor: 'rgba(65, 105, 225, 1)' }
+  };
+
+  const datasets = Object.entries(dataSummary.multi_site_data).map(([siteName, data]) => ({
+    label: siteName,
+    data: data,
+    backgroundColor: siteColors[siteName as keyof typeof siteColors]?.backgroundColor || 'rgba(75, 192, 192, 0.2)',
+    borderColor: siteColors[siteName as keyof typeof siteColors]?.borderColor || 'rgba(75, 192, 192, 1)',
+    borderWidth: 1,
+    fill: false,
+    tension: 0.1
+  }));
+
+  return {
+    labels: dataSummary.labels,
+    datasets: datasets
+  };
+}
+
 export default function AnalyticsPage() {
     const [chartConfig, setChartConfig] = useState<any>(null);
     const [chartConfigManureData, setChartConfigManureData] = useState<any>(null);
+    const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
+    const [manureDataSummary, setManureDataSummary] = useState<DataSummary | null>(null);
   
     const [loading, setLoading] = useState(true);
     const [loadingManureData, setLoadingManureData] = useState(true);
@@ -74,6 +174,26 @@ export default function AnalyticsPage() {
         fetchAnalytics();
         fetchAnalyticsManureData();
     }, [startDate, endDate, selectedSite]);
+
+    // Create chart config when data_summary changes
+    useEffect(() => {
+        if (dataSummary) {
+            const chartConfig = createAnalyticsChartConfig(dataSummary);
+            setChartConfig(chartConfig);
+        } else {
+            setChartConfig(null);
+        }
+    }, [dataSummary]);
+
+    // Create manure flow chart config when manure_data_summary changes
+    useEffect(() => {
+        if (manureDataSummary) {
+            const chartConfig = createManureFlowChartConfig(manureDataSummary);
+            setChartConfigManureData(chartConfig);
+        } else {
+            setChartConfigManureData(null);
+        }
+    }, [manureDataSummary]);
 
     useEffect(() => {
       const handleSiteChange = (event: any) => {
@@ -100,7 +220,7 @@ export default function AnalyticsPage() {
             site_name: site_name
         })
             .then(data => {
-                setChartConfig(data.chart_config);
+                setDataSummary(data.data_summary);
                 setRowData(data.table_data);
                 setTotals(data.totals);
                 // set column defs
@@ -128,7 +248,7 @@ export default function AnalyticsPage() {
           site_name: site_name
       })
           .then(data => {
-              setChartConfigManureData(data.chart_config);
+              setManureDataSummary(data.data_summary);
           })
           .catch(error => {
               console.error('Error fetching manure flow data:', error);

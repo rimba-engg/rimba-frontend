@@ -35,11 +35,18 @@ interface ViewsResponse {
   views: GasBalanceView[];
 }
 
+interface DataSummary {
+  labels: string[];
+  values: number[];
+  site_type: string;
+  site_name: string;
+}
+
 interface MassBalanceResponse {
   view_aggregate: Record<string, any>;
   view_data: Array<Record<string, any>>;
   full_precision_view_data_csv: string;
-  chart_config: Record<string, any>;
+  data_summary: DataSummary | null;
   chart_title: string;
   tax_credit: Record<string, any>;
 }
@@ -79,6 +86,55 @@ function numberFormatter(params: any) {
   }).format(params.value);
 }
 
+// Function to convert data_summary to chart config
+function createChartConfig(dataSummary: DataSummary): ChartData<"bar", number[], unknown> {
+  const siteConfigs = {
+    'novilla': {
+      'West Branch': {
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+      },
+      'Red Leaf': {
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+      },
+      'Three Petals': {
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+      },
+      'Buckhorn': {
+        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+        borderColor: 'rgba(153, 102, 255, 1)',
+      },
+    },
+    'demo_rng': {
+      'default': {
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+      },
+    },
+  };
+
+  let colors = { backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)' };
+  
+  if (dataSummary.site_type === 'novilla') {
+    colors = siteConfigs.novilla[dataSummary.site_name as keyof typeof siteConfigs.novilla] || colors;
+  } else if (dataSummary.site_type === 'demo_rng') {
+    colors = siteConfigs.demo_rng.default;
+  }
+
+  return {
+    labels: dataSummary.labels,
+    datasets: [{
+      label: 'Total MMBTU',
+      data: dataSummary.values,
+      backgroundColor: colors.backgroundColor,
+      borderColor: colors.borderColor,
+      borderWidth: 1
+    }]
+  };
+}
+
 export default function RngMassBalancePage() {
   const [views, setViews] = useState<GasBalanceView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +147,7 @@ export default function RngMassBalancePage() {
   const [endDate, setEndDate] = useState<string>('');
   const [viewAggregate, setViewAggregate] = useState<Record<string, any>>({});
   const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
+  const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
   const [chartTitle, setChartTitle] = useState<string>('');
   const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
   const [showPrevailingWage, setShowPrevailingWage] = useState(true);
@@ -143,6 +200,16 @@ export default function RngMassBalancePage() {
       );
     }
   }, [rowData]);
+
+  // Create chart config when data_summary changes
+  useEffect(() => {
+    if (dataSummary) {
+      const chartConfig = createChartConfig(dataSummary);
+      setChartConfig(chartConfig);
+    } else {
+      setChartConfig(null);
+    }
+  }, [dataSummary]);
 
   const fetchViews = async () => {
     try {
@@ -202,7 +269,7 @@ export default function RngMassBalancePage() {
       setRowData(response.view_data);
       setViewAggregate(response.view_aggregate);
       setFullPrecisionRowDataCsv(response.full_precision_view_data_csv);
-      setChartConfig(response.chart_config as ChartData<"bar", (number | [number, number] | null)[], unknown>);
+      setDataSummary(response.data_summary);
       setChartTitle(response.chart_title);
       setTaxCredit(response.tax_credit);
     } catch (err) {
@@ -234,6 +301,7 @@ export default function RngMassBalancePage() {
         setRowData([]);
         setViewAggregate({});
         setChartConfig(null);
+        setDataSummary(null);
         setChartTitle('');
         setTaxCredit({});
         
