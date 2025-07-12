@@ -10,9 +10,10 @@ interface CalculatorProps {
   inputs: { label: string; value: number }[];
   startDateTime: string;
   endDateTime: string;
+  siteName?: string;
 }
 
-export default function SO2Calculator({ inputs, startDateTime, endDateTime }: CalculatorProps) {
+export default function SO2Calculator({ inputs, startDateTime, endDateTime, siteName }: CalculatorProps) {
   const [userInputs, setUserInputs] = useState<Record<string, string>>({});
   const [results, setResults] = useState<Record<string, { hourlySO2: number; totalSO2: number }>>({});
   const [processedInputs, setProcessedInputs] = useState<{ label: string; value: number; maxSO2?: number }[]>([]);
@@ -26,31 +27,126 @@ export default function SO2Calculator({ inputs, startDateTime, endDateTime }: Ca
       // Filter out any inputs with zero or negative values
       const filteredInputs = inputs.slice(1);
 
-      // Define mapping of labels to max permissible SO2 values
-      const maxPermissibleSO2: Record<string, number> = {
-        'HG Biogas': 52.20,
-        'Off Spec': 52.20,
-        'Tox Flow': 55.16,
-        'Maassen Flare': 27.14
+      // Define site-specific mapping of labels to max permissible SO2 values
+      const getSiteSpecificMaxSO2 = (siteName?: string): Record<string, number> => {
+        console.log('🏭 getSiteSpecificMaxSO2 called with siteName:', siteName);
+        
+        const defaultValues = {
+          'HG Biogas': 0.0,
+          'Off Spec': 0.0,
+          'Tox Flow': 0.0,
+          'Maassen Flare': 0.0
+        };
+
+        // Site-specific overrides
+        const siteSpecificValues: Record<string, Record<string, number>> = {
+          'Buckhorn': {
+            'Biogas to Flare (F204_FT301)': 39.7, // Special case for Hoogland when only gas from Hoogland digester is flowing
+            'Off Spec Gas to Flare Flow (FIT203)': 39.7,
+            'Tox Flow (FIT1701)': 41.1,
+          },
+
+          'West Branch': {
+            'HG Biogas': 52.20,
+            'Off Spec': 52.20,
+            'Tox Flow': 55.16,
+            'Maassen Flare': 27.14
+          },
+
+          'Three Petals':
+          {
+            "Biogas to Flare Flow (F506_FT301)": 39.7,
+            "Off Spec to Flare Flow (FI4623)": 39.7,
+            "Tox Flow (FIT1701)": 39.5,
+
+          },
+
+          'Red Leaf':
+          {
+            "BIOGAS to Flare Flow": 0.0,
+            "OFF SPEC to Flare Flow": 0.0,
+            "Tox Flow": 0.0,
+          }
+          // Add more sites as needed
+        };
+
+        const result = siteSpecificValues[siteName || ''] || defaultValues;
+        console.log('📊 getSiteSpecificMaxSO2 returning:', result);
+        return result;
       };
 
-      // Shorten labels to first 2 words and add max permissible SO2 values
+      const maxPermissibleSO2 = getSiteSpecificMaxSO2(siteName);
+      console.log('✅ maxPermissibleSO2 result:', maxPermissibleSO2);
+
+      // Debug: Log actual input labels for West Branch
+      if (siteName === 'West Branch') {
+        console.log('🔍 West Branch actual input labels:', filteredInputs.map(item => item.label));
+      }
+
+      // Create a flexible mapping function that can handle both exact matches and partial matches
+      const getMaxSO2ForLabel = (label: string): number => {
+        // First try exact match
+        if (maxPermissibleSO2[label]) {
+          return maxPermissibleSO2[label];
+        }
+        
+        // For West Branch, create mapping from actual labels to config keys
+        if (siteName === 'West Branch') {
+          const westBranchMapping: Record<string, string> = {
+            'HG Biogas': 'HG Biogas',
+            'Off Spec': 'Off Spec', 
+            'Tox Flow': 'Tox Flow',
+            'Maassen Flare': 'Maassen Flare'
+          };
+          
+          // Try partial matching - find config key that matches part of the label
+          for (const [configKey, maxValue] of Object.entries(maxPermissibleSO2)) {
+            if (label.toLowerCase().includes(configKey.toLowerCase()) || 
+                configKey.toLowerCase().includes(label.toLowerCase())) {
+              return maxValue;
+            }
+          }
+          
+          // Try specific West Branch patterns
+          if (label.toLowerCase().includes('hg') || label.toLowerCase().includes('biogas')) {
+            return maxPermissibleSO2['HG Biogas'] || 0;
+          }
+          if (label.toLowerCase().includes('off spec')) {
+            return maxPermissibleSO2['Off Spec'] || 0;
+          }
+          if (label.toLowerCase().includes('tox')) {
+            return maxPermissibleSO2['Tox Flow'] || 0;
+          }
+          if (label.toLowerCase().includes('maassen')) {
+            return maxPermissibleSO2['Maassen Flare'] || 0;
+          }
+        }
+        
+        return 0;
+      };
+
+      // Get max SO2 value using flexible mapping, then shorten label for display
       var finalInputs = filteredInputs.map(item => {
         const words = item.label.split(' ');
         const shortenedLabel = words.slice(0, 2).join(' ');
         return {
           ...item,
           label: shortenedLabel,
-          maxSO2: maxPermissibleSO2[shortenedLabel] || 0
+          maxSO2: getMaxSO2ForLabel(item.label)
         };
       });
       
       const totalFlowValue = finalInputs.reduce((sum, item) => sum + item.value, 0);  
-      // Add the Total Flow item to the end of the list
+      // Add the Total Flow item to the end of the list with site-specific total flow max
+      const getTotalFlowMax = (siteName?: string): number => {
+        const siteSpecificTotalFlow: Record<string, number> = {};
+        return siteSpecificTotalFlow[siteName || ''] || 0.0; // Default fallback
+      };
+      
       finalInputs.push({ 
         label: 'Total Flow', 
         value: totalFlowValue,
-        maxSO2: 186.7 // Default max value for total flow
+        maxSO2: getTotalFlowMax(siteName)
       });
       
       console.log(finalInputs);
@@ -162,7 +258,7 @@ export default function SO2Calculator({ inputs, startDateTime, endDateTime }: Ca
           </div>
         )}
         <div className="text-xs text-gray-500 italic mt-1">
-          Note: Permitted limit for HG Biogas decreases to 29.42 lbs/hr when only gas from Hoogland digester is flowing.
+          Note: Permitted limits are site-specific. {siteName === 'Hoogland' ? 'For Hoogland, HG Biogas limit is 29.42 lbs/hr when only gas from Hoogland digester is flowing.' : 'Contact your site administrator for specific permit limits.'}
         </div>
       </CardFooter>
     </Card>

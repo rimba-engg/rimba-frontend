@@ -47,9 +47,21 @@ export default function AirPermitsPage() {
   useEffect(() => {
     const handleSiteChange = (event: any) => {
       const { site } = event.detail;
-      console.log('Site changed to:', site.name);
-      // Do something with the new site
-      setSelectedSite(site.name);
+      console.log('Site changed to:', site);
+      
+      // Check if site exists and has a name before updating
+      if (site && site.name) {
+        console.log('Valid site received, updating selectedSite to:', site.name);
+        setSelectedSite(site.name);
+      } else {
+        console.log('Invalid site received (undefined or no name):', site);
+        // Try to get site from localStorage as fallback
+        const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+        if (selected_site.name) {
+          console.log('Fallback: Using site from localStorage:', selected_site.name);
+          setSelectedSite(selected_site.name);
+        }
+      }
     };
     
     window.addEventListener('siteChange', handleSiteChange);
@@ -64,17 +76,44 @@ export default function AirPermitsPage() {
     fetchAirPermitsData();
   }, [startDate, endDate, selectedSite]);
 
+  // Log selectedSite changes for debugging
+  useEffect(() => {
+    console.log('selectedSite state changed to:', selectedSite);
+  }, [selectedSite]);
+
+  // Initialize selectedSite from localStorage on component mount
+  useEffect(() => {
+    const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+    if (selected_site.name) {
+      console.log('Initializing selectedSite from localStorage:', selected_site.name);
+      setSelectedSite(selected_site.name);
+    }
+  }, []);
+
   // set column defs based on rowData
   useEffect(() => {
     if (rowData && rowData.length > 0) {
       setColumnDefs(
-        Object.keys(rowData[0]).map((key) => ({
-          field: key,
-          headerName: key,
-          sortable: true,
-          valueFormatter: key === 'Day' ? undefined : numberFormatter,
-          type: 'string',
-        }))
+        Object.keys(rowData[0]).map((key) => {
+          const sampleValue = rowData[0][key];
+          let valueFormatter = undefined;
+          
+          if (key === 'Day' || key.includes('manual_check')) {
+            // No formatter for Day column or manual check columns (already converted to strings)
+            valueFormatter = undefined;
+          } else if (typeof sampleValue === 'number') {
+            // Number formatter for numeric values
+            valueFormatter = numberFormatter;
+          }
+          
+          return {
+            field: key,
+            headerName: key,
+            sortable: true,
+            valueFormatter,
+            type: 'string',
+          };
+        })
       );
     }
   }, [rowData]);
@@ -91,12 +130,39 @@ export default function AirPermitsPage() {
       if (endDate) {
         payload.end_datetime = endDate;
       }
-      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
-      var site_name = selected_site.name;
+      
+      // Use selectedSite state first, fallback to localStorage if needed
+      let site_name = selectedSite;
+      if (!site_name) {
+        var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+        site_name = selected_site.name;
+      }
+      
+      console.log('Site name being used in fetchAirPermitsData:', site_name);
+      console.log('selectedSite state value in fetchAirPermitsData:', selectedSite);
+      
+      // Only proceed if we have a valid site name
+      if (!site_name) {
+        console.log('No site name available, skipping fetch');
+        return;
+      }
+      
       payload.site_name = site_name;
 
       const response = await api.post<AirPermitsResponse>(`/reporting/v2/air-permits/`, payload);
-      setRowData(response.summary_data);
+      
+      // Convert boolean values to strings to prevent checkbox rendering
+      const processedSummaryData = response.summary_data.map(row => {
+        const processedRow = { ...row };
+        Object.keys(processedRow).forEach(key => {
+          if (typeof processedRow[key] === 'boolean') {
+            processedRow[key] = processedRow[key] ? 'true' : 'false';
+          }
+        });
+        return processedRow;
+      });
+      
+      setRowData(processedSummaryData);
       setViewAggregate(response.aggregated_data);
       let aggegratedList = response.aggregated_data ? Object.entries(response.aggregated_data).map(([label, value]) => ({ label, value: Number(value) })) : []
       setSo2Inputs(aggegratedList)
@@ -123,8 +189,19 @@ export default function AirPermitsPage() {
       if (endDate) {
         payload.end_datetime = endDate;
       }
-      var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
-      var site_name = selected_site.name;
+      
+      // Use selectedSite state first, fallback to localStorage if needed
+      let site_name = selectedSite;
+      if (!site_name) {
+        var selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
+        site_name = selected_site.name;
+      }
+      
+      if (!site_name) {
+        toast.error('No site selected. Please select a site first.');
+        return;
+      }
+      
       payload.site_name = site_name;
 
       const response = await fetch(`${BASE_URL}/reporting/v2/air-permits/download/`, {
@@ -291,7 +368,7 @@ export default function AirPermitsPage() {
         </Card>
         
         {/* SO2 Calculator */}
-        <SO2Calculator inputs={so2Inputs} startDateTime={startDate} endDateTime={endDate} />
+        <SO2Calculator inputs={so2Inputs} startDateTime={startDate} endDateTime={endDate} siteName={selectedSite} />
       </div>
 
       {/* Data Table */}
