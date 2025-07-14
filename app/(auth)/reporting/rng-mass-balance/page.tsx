@@ -522,12 +522,14 @@ export default function RngMassBalancePage() {
         </div>
       </div>
 
-      {/* AG Grid Table */}
       <QueryTable
         initialRowData={rowData}
         initialColumnDefs={columnDefs}
         pinnedTopRowData={[viewAggregate]}
-        getRowStyle={getRowStyle} // Apply row styles
+        getRowStyle={getRowStyle}
+        autoSizeStrategy={{
+          type: "fitCellContents",
+        }}
       />
       <ToastContainer />
     </div>
