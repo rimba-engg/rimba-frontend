@@ -283,9 +283,9 @@ export default function AirPermitsPage() {
                 type="date" 
                 className="w-full"
                 onChange={(e) => {
-                  // Set to 10 AM EST on selected date in EST
-                  let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'America/New_York' }).set({ hour: 10 });
-                  // Set to 10 AM EST next day
+                  // Set to 12 AM local time on selected date
+                  let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'local' });
+                  // Set to 12 AM local time next day
                   let nextDay = selectedDate.plus({ days: 1 });
                   // set start and end dates
                   setStartDate(selectedDate.toISO()?.slice(0, 16) ?? '');
