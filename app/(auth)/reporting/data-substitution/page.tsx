@@ -13,11 +13,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ToastContainer, toast } from 'react-toastify';
-import { Loader2, ClockIcon, AlertTriangle, CheckCircle2, Download, Upload, X, Factory } from 'lucide-react';
+import { Loader2, ClockIcon, AlertTriangle, CheckCircle2, Download, Upload, X, Factory, Calendar } from 'lucide-react';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -48,21 +47,33 @@ interface SubstitutedDataEntry {
 // Updated demo data to match new structure
 const DEMO_MISSING_DATA: MissingDataEntry[] = [
   {
-    start_timestamp: '2025-04-20 10:00:00 EDT',
-    end_timestamp: '2025-04-20 11:30:00 EDT',
-    missing_duration: 1.5,
+    start_timestamp: '2025-07-12 10:00:00 EDT',
+    end_timestamp: '2025-07-13 10:00:00 EDT',
+    missing_duration: 0.48,
     is_substitued: false
   },
   {
-    start_timestamp: '2025-04-20 12:00:00 EDT',
-    end_timestamp: '2025-04-20 14:00:00 EDT',
-    missing_duration: 2,
+    start_timestamp: '2025-07-11 10:00:00 EDT',
+    end_timestamp: '2025-07-12 10:00:00 EDT',
+    missing_duration: 0.48,
     is_substitued: false
   },
   {
-    start_timestamp: '2025-04-20 15:00:00 EDT',
-    end_timestamp: '2025-04-20 16:45:00 EDT',
-    missing_duration: 1.75,
+    start_timestamp: '2025-07-09 12:00:00 EDT',
+    end_timestamp: '2025-07-10 12:00:00 EDT',
+    missing_duration: 0.48,
+    is_substitued: false
+  },
+  {
+    start_timestamp: '2025-07-09 10:00:00 EDT',
+    end_timestamp: '2025-07-10 10:00:00 EDT',
+    missing_duration: 0.48,
+    is_substitued: false
+  },
+  {
+    start_timestamp: '2025-07-01 10:00:00 EDT',
+    end_timestamp: '2025-07-02 10:00:00 EDT',
+    missing_duration: 0.48,
     is_substitued: true
   }
 ];
@@ -92,7 +103,6 @@ const DEMO_SUBSTITUTED_DATA: SubstitutedDataEntry[] = [
 ];
 
 export default function DataSubstitutionPage() {
-  const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSite, setSelectedSite] = useState<string>('');
@@ -105,7 +115,7 @@ export default function DataSubstitutionPage() {
 
   // Calculate dynamic values from API response
   const calculateMissingStats = () => {
-    if (!validationData) return { totalMissingDays: 0, totalMissingDuration: 0, siteInfo: '' };
+    if (!validationData) return { totalMissingDays: 0, totalMissingDuration: 0, siteInfo: '', missingCount: 0, substitutedCount: 0 };
 
     const missingData = validationData.missing_data || [];
     
@@ -125,14 +135,20 @@ export default function DataSubstitutionPage() {
       }
     });
     
+    // Count missing vs substituted
+    const missingCount = missingData.filter(entry => !entry.is_substitued).length;
+    const substitutedCount = missingData.filter(entry => entry.is_substitued).length;
+    
     return {
       totalMissingDays: uniqueDays.size,
       totalMissingDuration: totalMissingDuration,
-      siteInfo: validationData.site || 'Unknown Site'
+      siteInfo: validationData.site || 'Unknown Site',
+      missingCount,
+      substitutedCount
     };
   };
 
-  const { totalMissingDays, totalMissingDuration, siteInfo } = calculateMissingStats();
+  const { totalMissingDays, totalMissingDuration, siteInfo, missingCount, substitutedCount } = calculateMissingStats();
 
   // Helper function to get timezone from timestamp
   const getSiteTimezone = () => {
@@ -173,6 +189,20 @@ export default function DataSubstitutionPage() {
         missing_data: DEMO_MISSING_DATA,
         total_records: DEMO_MISSING_DATA.length
       });
+    } else {
+      // For non-demo customers, automatically load data if site is already selected
+      const storedSite = localStorage.getItem('selected_site');
+      if (storedSite) {
+        try {
+          const siteData = JSON.parse(storedSite);
+          if (siteData.name) {
+            setSelectedSite(siteData.name);
+            // Data will be loaded by the other useEffect when selectedSite changes
+          }
+        } catch (e) {
+          console.error('Error parsing stored site:', e);
+        }
+      }
     }
 
     // Listen for site change events
@@ -181,7 +211,6 @@ export default function DataSubstitutionPage() {
       console.log('Site changed to:', site.name);
       
       if (!isCustomerDemo) {
-        setLoading(true);
         setValidationData(null);
       }
       setSelectedSite(site.name);
@@ -192,28 +221,28 @@ export default function DataSubstitutionPage() {
   }, []);
 
   useEffect(() => {
-    if (!validationData && !isDemo && (selectedSite || localStorage.getItem('selected_site'))) {
+    if (!validating && (selectedSite || localStorage.getItem('selected_site'))) {
       validateTimeSeries();
     }
-  }, [selectedSite, isDemo]);
+  }, [selectedSite]);
 
   const validateTimeSeries = async () => {
-    // Skip API call for Demo-RNG
-    if (isDemo) {
-      console.log('Demo mode - setting demo validation data');
-      setValidationData({
-        site: 'GreenFlame BioEnergy',
-        view_name: 'Demo View',
-        missing_data: DEMO_MISSING_DATA,
-        total_records: DEMO_MISSING_DATA.length
-      });
-      return;
-    }
-
     try {
       setValidating(true);
       setError(null);
       setValidationData(null);
+
+      // Skip API call for Demo-RNG
+      if (isDemo) {
+        console.log('Demo mode - setting demo validation data');
+        setValidationData({
+          site: 'GreenFlame BioEnergy',
+          view_name: 'Demo View',
+          missing_data: DEMO_MISSING_DATA,
+          total_records: DEMO_MISSING_DATA.length
+        });
+        return;
+      }
 
       const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
       if (!siteName) {
@@ -235,24 +264,19 @@ export default function DataSubstitutionPage() {
     }
   };
 
-  const handleDownloadReport = async (type: 'missing' | 'substituted') => {
+  const handleDownloadReport = async () => {
     // For Demo-RNG, create and download a dummy CSV
     if (isDemo) {
-      const csvContent = type === 'missing' 
-        ? 'Start Time,End Time,Missing Duration (hours),Is Substituted\n' +
-          DEMO_MISSING_DATA.map(row => 
-            `${row.start_timestamp},${row.end_timestamp},${row.missing_duration},${row.is_substitued}`
-          ).join('\n')
-        : 'Start Time,End Time,Sensor Name,Duration,Method\n' +
-          DEMO_SUBSTITUTED_DATA.map(row => 
-            `${row.start_datetime},${row.end_datetime},${row.sensor_name},${row.substituted_duration},${row.substitution_method}`
-          ).join('\n');
+      const csvContent = 'Start Time,End Time,Missing Duration (hours),Status\n' +
+        DEMO_MISSING_DATA.map(row => 
+          `${row.start_timestamp},${row.end_timestamp},${row.missing_duration},${row.is_substitued ? 'Substituted' : 'Missing'}`
+        ).join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `demo-${type}-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`;
+      a.download = `demo-missing-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -262,33 +286,21 @@ export default function DataSubstitutionPage() {
     }
 
     // Original download logic for non-demo customers
-    toast.info(`Downloading ${type} data report...`);
+    toast.info('Downloading missing data report...');
     try {
       const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
       if (!siteName) {
         throw new Error('No site selected');
       }
 
-      const payload = {
-        site_name: siteName
-      };
-
-      let endpoint = '';
-      if (type === 'missing') {
-        endpoint = `/reporting/v2/missing-data-report/download/?site_name=${encodeURIComponent(siteName)}`;
-      } else if (type === 'substituted') {
-        endpoint = '/reporting/v2/substituted-data/download/';
-      }
+      const endpoint = `/reporting/v2/missing-data-report/download/?site_name=${encodeURIComponent(siteName)}`;
 
       const response = await fetch(`${BASE_URL}${endpoint}`, {
-        method: type === 'missing' ? 'GET' : 'POST',
+        method: 'GET',
         headers: {
           ...defaultHeaders,
           'Content-Type': 'application/json',
-        },
-        ...(type === 'substituted' && {
-          body: JSON.stringify(payload)
-        })
+        }
       });
 
       if (!response.ok) {
@@ -299,7 +311,7 @@ export default function DataSubstitutionPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${DateTime.now().minus({ days: 1 }).toFormat('yyyy-MM-dd')}-to-${DateTime.now().toFormat('yyyy-MM-dd')}-${type}-data-report-${siteName}.xlsx`;
+      a.download = `${DateTime.now().minus({ days: 1 }).toFormat('yyyy-MM-dd')}-to-${DateTime.now().toFormat('yyyy-MM-dd')}-missing-data-report-${siteName}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -381,7 +393,7 @@ export default function DataSubstitutionPage() {
     await handleSubstituteData(uploadedFile, selectedRowIndex);
   };
 
-  if (loading) {
+  if (validating && !validationData) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
@@ -436,7 +448,7 @@ export default function DataSubstitutionPage() {
             <div className="flex items-center">
               <div className="flex flex-col">
                 <span className="text-2xl font-bold">
-                  {isDemo ? '5.25' : totalMissingDuration.toFixed(2)} hours
+                  {isDemo ? '2.4' : totalMissingDuration.toFixed(2)} hours
                 </span>
               </div>
               <ClockIcon className="ml-auto h-8 w-8 text-blue-500" />
@@ -473,11 +485,30 @@ export default function DataSubstitutionPage() {
         {validationData ? (
           <Card className="w-full">
             <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Data Summary</span>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-bold">Data Records</CardTitle>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-red-100 rounded-full flex items-center justify-center">
+                      <AlertTriangle className="h-2 w-2 text-red-600" />
+                    </div>
+                    <span className="text-sm font-medium">Missing Data</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="h-2 w-2 text-green-600" />
+                    </div>
+                    <span className="text-sm font-medium">Substituted</span>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center mb-4">
                 <Button 
                   onClick={validateTimeSeries} 
                   disabled={validating}
+                  variant="outline"
                   size="sm"
                 >
                   {validating ? (
@@ -489,194 +520,130 @@ export default function DataSubstitutionPage() {
                     'Refresh Data'
                   )}
                 </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="missing" className="mt-6">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="missing" className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                    <span>Missing Data</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="substituted" className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>Substituted</span>
-                  </TabsTrigger>
-                </TabsList>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadReport}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Report
+                </Button>
+              </div>
+              <div className="rounded-lg border bg-white">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>Start Time</span>
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>End Time</span>
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                        <div className="flex items-center justify-center space-x-2">
+                          <ClockIcon className="h-4 w-4" />
+                          <span>Missing Duration (hours)</span>
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {(isDemo ? DEMO_MISSING_DATA : validationData?.missing_data || []).map((item, index) => {
+                      // Helper function to parse timestamp safely
+                      const parseTimestamp = (timestamp: string) => {
+                        // Try different parsing methods
+                        let dt = DateTime.fromSQL(timestamp);
+                        if (!dt.isValid) {
+                          dt = DateTime.fromISO(timestamp);
+                        }
+                        if (!dt.isValid) {
+                          dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss');
+                        }
+                        if (!dt.isValid) {
+                          dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss z');
+                        }
+                        if (!dt.isValid) {
+                          dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss T');
+                        }
+                        return dt.isValid ? dt.toFormat('yyyy-MM-dd HH:mm:ss') : timestamp;
+                      };
 
-                <TabsContent value="missing">
-                  <div className="space-y-4">
-                    <div className="flex justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownloadReport('missing')}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Report
-                      </Button>
-                    </div>
+                      // Convert minutes to hours for display
+                      const durationInHours = isDemo ? item.missing_duration : (item.missing_duration / 60);
 
-                    <div className="rounded-md border">
-                      <div className="p-4">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left pb-4">Start Time</th>
-                              <th className="text-left pb-4">End Time</th>
-                              <th className="text-center pb-4">Missing Duration(hours)</th>
-                              <th className="text-right pb-4">Status</th>
-                              <th className="text-right pb-4">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(isDemo ? DEMO_MISSING_DATA : validationData?.missing_data || []).map((item, index) => {
-                              // Helper function to parse timestamp safely
-                              const parseTimestamp = (timestamp: string) => {
-                                // Try different parsing methods
-                                let dt = DateTime.fromSQL(timestamp);
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromISO(timestamp);
-                                }
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss');
-                                }
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss z');
-                                }
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss T');
-                                }
-                                return dt.isValid ? dt.toFormat('MMM dd, yyyy HH:mm:ss') : timestamp;
-                              };
-
-                              // Convert minutes to hours for display
-                              const durationInHours = isDemo ? item.missing_duration : (item.missing_duration / 60);
-
-                              return (
-                                <tr key={index} className={index !== ((isDemo ? DEMO_MISSING_DATA : validationData?.missing_data || []).length - 1) ? "border-b" : ""}>
-                                  <td className="py-4">{parseTimestamp(item.start_timestamp)}</td>
-                                  <td className="py-4">{parseTimestamp(item.end_timestamp)}</td>
-                                  <td className="text-center">{durationInHours.toFixed(2)}</td>
-                                  <td className="text-right">
-                                    <Badge 
-                                      className={
-                                        item.is_substitued ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                      }
-                                    >
-                                      {item.is_substitued ? 'Substituted' : 'Missing'}
-                                    </Badge>
-                                  </td>
-                                  <td className="text-right">
-                                    {!item.is_substitued && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleSubstituteClick(index)}
-                                      >
-                                        <Upload className="h-4 w-4 mr-2" />
-                                        Substitute
-                                      </Button>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="substituted">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">Substituted Data</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownloadReport('substituted')}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Report
-                    </Button>
-                  </div>
-                  {isDemo ? (
-                    <div className="rounded-md border">
-                      <div className="p-4">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left pb-4">Start Time</th>
-                              <th className="text-left pb-4">End Time</th>
-                              <th className="text-left pb-4">Sensor Name</th>
-                              <th className="text-left pb-4">Duration</th>
-                              <th className="text-right pb-4">Method</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {DEMO_SUBSTITUTED_DATA.map((item, index) => {
-                              // Helper function to parse timestamp safely for substituted data
-                              const parseTimestamp = (timestamp: string) => {
-                                // Try different parsing methods
-                                let dt = DateTime.fromISO(timestamp);
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromSQL(timestamp);
-                                }
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss');
-                                }
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss z');
-                                }
-                                if (!dt.isValid) {
-                                  dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss T');
-                                }
-                                return dt.isValid ? dt.toFormat('HH:mm:ss') : timestamp;
-                              };
-
-                              return (
-                                <tr key={index} className={index !== DEMO_SUBSTITUTED_DATA.length - 1 ? "border-b" : ""}>
-                                  <td className="py-4">{parseTimestamp(item.start_datetime)}</td>
-                                  <td className="py-4">{parseTimestamp(item.end_datetime)}</td>
-                                  <td className="py-4">{item.sensor_name}</td>
-                                  <td className="py-4">{item.substituted_duration}</td>
-                                  <td className="text-right">
-                                    <Badge variant="outline">
-                                      {item.substitution_method}
-                                    </Badge>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center p-6 bg-gray-50 rounded-lg">
-                      <span className="text-gray-500">No substituted data available yet</span>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+                      return (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {parseTimestamp(item.start_timestamp)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {parseTimestamp(item.end_timestamp)}
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm text-gray-900">
+                            {durationInHours.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <Badge 
+                              variant={item.is_substitued ? "default" : "destructive"}
+                              className={
+                                item.is_substitued 
+                                  ? "bg-green-100 text-green-800 hover:bg-green-200" 
+                                  : "bg-red-100 text-red-800 hover:bg-red-200"
+                              }
+                            >
+                              {item.is_substitued ? (
+                                <div className="flex items-center space-x-1">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  <span>Substituted</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center space-x-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  <span>Missing</span>
+                                </div>
+                              )}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {!item.is_substitued && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSubstituteClick(index)}
+                                className="bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100"
+                              >
+                                <Upload className="h-4 w-4 mr-2" />
+                                Substitute
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-12 bg-gray-50 rounded-lg border border-dashed">
-            {validating ? (
-              <div className="text-center space-y-4">
-                <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-                <h3 className="text-lg font-medium">Loading Data Summary</h3>
-                <p className="text-gray-500">Please wait while we fetch the latest data...</p>
-              </div>
-            ) : (
-              <div className="text-center space-y-4">
-                <h3 className="text-lg font-medium">No Data Available</h3>
-                <p className="text-gray-500">Click below to fetch the latest data summary.</p>
-                <Button onClick={validateTimeSeries}>Fetch Data</Button>
-              </div>
-            )}
+            <div className="text-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <h3 className="text-lg font-medium">Loading Data Summary</h3>
+              <p className="text-gray-500">Please wait while we fetch the latest data...</p>
+            </div>
           </div>
         )}
       </div>
