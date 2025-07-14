@@ -125,10 +125,10 @@ export default function AirPermitsPage() {
       const payload: Record<string, any> = {};
       // Only add dates to payload if they are set
       if (startDate) {
-        payload.start_datetime = startDate;
+        payload.start_date = startDate;
       }
       if (endDate) {
-        payload.end_datetime = endDate;
+        payload.end_date = endDate;
       }
       
       // Use selectedSite state first, fallback to localStorage if needed
@@ -184,10 +184,10 @@ export default function AirPermitsPage() {
 
       // Only add dates to payload if they are set
       if (startDate) {
-        payload.start_datetime = startDate;
+        payload.start_date = startDate;
       }
       if (endDate) {
-        payload.end_datetime = endDate;
+        payload.end_date = endDate;
       }
       
       // Use selectedSite state first, fallback to localStorage if needed
@@ -256,16 +256,16 @@ export default function AirPermitsPage() {
             {/* Direct Date Input */}
             <div className="grid grid-cols-2 gap-4">
               <FloatingLabelInput
-                label="Start Date (EST)"
-                type="datetime-local"
+                label="Start Date"
+                type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full"
                 max={endDate}
               />
               <FloatingLabelInput
-                label="End Date (EST)"
-                type="datetime-local"
+                label="End Date"
+                type="date"
                 min={startDate}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -279,17 +279,15 @@ export default function AirPermitsPage() {
             <div>
               <div className="text-sm text-muted-foreground mb-2">Or select a gas day</div>
               <FloatingLabelInput
-                label="Gas Day (EST)"
+                label="Gas Day"
                 type="date" 
                 className="w-full"
                 onChange={(e) => {
-                  // Set to 12 AM local time on selected date
-                  let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'local' });
-                  // Set to 12 AM local time next day
-                  let nextDay = selectedDate.plus({ days: 1 });
-                  // set start and end dates
-                  setStartDate(selectedDate.toISO()?.slice(0, 16) ?? '');
-                  setEndDate(nextDay.toISO()?.slice(0, 16) ?? '');
+                  const selectedDate = DateTime.fromISO(e.target.value);
+                  const nextDay = selectedDate.plus({ days: 1 });
+                  // Store as YYYY-MM-DD strings
+                  setStartDate(selectedDate.toISODate() ?? '');
+                  setEndDate(nextDay.toISODate() ?? '');
                 }}
               />
             </div>
@@ -303,7 +301,7 @@ export default function AirPermitsPage() {
                 className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 onChange={(e) => {
                   const [unit, amount] = e.target.value.split('-');
-                  const now = DateTime.now().setZone('America/New_York');
+                  const now = DateTime.now();
                   let start;
                   let end = now;
 
@@ -319,8 +317,8 @@ export default function AirPermitsPage() {
                       break;
                   }
 
-                  setStartDate(start?.toISO()?.slice(0, 16) ?? '');
-                  setEndDate(end?.toISO()?.slice(0, 16) ?? '');
+                  setStartDate(start?.toISODate() ?? '');
+                  setEndDate(end?.toISODate() ?? '');
                 }}
               >
                 <option value="">Select Date Range</option>
