@@ -3,22 +3,13 @@
 import { useState, useEffect } from 'react';
 import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { DateTime } from 'luxon';
-import { type GasBalanceView } from '../rng-mass-balance/types';
 import { getStoredCustomer } from '@/lib/auth';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { ToastContainer, toast } from 'react-toastify';
 import { Loader2, ClockIcon, AlertTriangle, CheckCircle2, Download, Upload, X, Factory, Calendar } from 'lucide-react';
-import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -79,7 +70,7 @@ const DEMO_SUBSTITUTED_DATA: SubstitutedDataEntry[] = [
 ];
 
 export default function DataSubstitutionPage() {
-  const [validating, setValidating] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [validationData, setValidationData] = useState<MissingDataResponse | null>(null);
@@ -214,14 +205,14 @@ export default function DataSubstitutionPage() {
   }, []);
 
   useEffect(() => {
-    if (!validating && (selectedSite || localStorage.getItem('selected_site'))) {
-      validateTimeSeries();
+    if (!loading && (selectedSite || localStorage.getItem('selected_site'))) {
+      fetchMissingData();
     }
   }, [selectedSite]);
 
-  const validateTimeSeries = async () => {
+  const fetchMissingData = async () => {
     try {
-      setValidating(true);
+      setLoading(true);
       setError(null);
       setValidationData(null);
 
@@ -250,10 +241,10 @@ export default function DataSubstitutionPage() {
       toast.success('Data retrieved successfully');
     } catch (err: any) {
       setError('Something went wrong');
-      console.error('Error validating time series data:', err);
+      console.error('Error loading time series data:', err);
       toast.error('Something went wrong');
     } finally {
-      setValidating(false);
+      setLoading(false);
     }
   };
 
@@ -351,7 +342,7 @@ export default function DataSubstitutionPage() {
       
       // Optionally refresh the data
       if (!isDemo) {
-        validateTimeSeries();
+        fetchMissingData();
       }
       
     } catch (error) {
@@ -386,7 +377,7 @@ export default function DataSubstitutionPage() {
     await handleSubstituteData(uploadedFile, selectedRowIndex);
   };
 
-  if (validating && !validationData) {
+  if (loading && !validationData) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
@@ -453,72 +444,14 @@ export default function DataSubstitutionPage() {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Site Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="flex flex-col">
-                <span className="text-lg font-bold">
-                  {isDemo ? 'EcoMethan Hube' : siteInfo}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  View: Methane Balance
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Timezone: {isDemo ? 'EDT' : getSiteTimezone()}
-                </span>
-              </div>
-              <Factory className="ml-auto h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="flex flex-col space-y-6">
         {validationData ? (
           <Card className="w-full">
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl font-bold">Data Records</CardTitle>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-red-100 rounded-full flex items-center justify-center">
-                      <AlertTriangle className="h-2 w-2 text-red-600" />
-                    </div>
-                    <span className="text-sm font-medium">Missing Data</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-100 rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="h-2 w-2 text-green-600" />
-                    </div>
-                    <span className="text-sm font-medium">Substituted</span>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
-                  <Button 
-                    onClick={validateTimeSeries} 
-                    disabled={validating}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {validating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Refreshing...
-                      </>
-                    ) : (
-                      'Refresh Data'
-                    )}
-                  </Button>
                   {/* Tab switching for Demo-RNG only */}
                   {isDemo && (
                     <div className="flex items-center space-x-4">
@@ -557,6 +490,8 @@ export default function DataSubstitutionPage() {
                   Download Report
                 </Button>
               </div>
+            </CardHeader>
+            <CardContent>
               <div className="rounded-lg border bg-white">
                 <table className="w-full">
                   <thead className="bg-gray-50">
