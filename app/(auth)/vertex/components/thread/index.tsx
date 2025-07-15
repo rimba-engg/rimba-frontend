@@ -40,6 +40,7 @@ import {
 
 import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { type User, type Customer  } from '@/lib/types';
+import { SuggestedQuestions } from "../suggested-questions";
 
 // Type extension for Message with metadata
 type MessageWithMetadata = Message & {
@@ -223,6 +224,14 @@ export function Thread() {
     });
   };
 
+  const handleSuggestedQuestionClick = (question: string) => {
+    setInput(question);
+    // Optionally auto-submit the question
+    // You can uncomment the next lines if you want to auto-submit
+    // const form = document.querySelector('form');
+    // form?.requestSubmit();
+  };
+
   const chatStarted = !!threadId || !!messages.length;
   const hasNoAIOrToolMessages = !messages.find(
     (m) => m.type === "ai" || m.type === "tool",
@@ -395,12 +404,15 @@ export function Thread() {
             footer={
               <div className="sticky flex flex-col items-center gap-8 bottom-0 bg-white">
                 {!chatStarted && (
-                  <div className="flex gap-3 items-center">
-                    {/* <LangGraphLogoSVG className="flex-shrink-0 h-8" /> */}
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                      Vertex AI
-                    </h1>
-                  </div>
+                  <>
+                    <div className="flex gap-3 items-center">
+                      {/* <LangGraphLogoSVG className="flex-shrink-0 h-8" /> */}
+                      <h1 className="text-2xl font-semibold tracking-tight">
+                        Vertex AI
+                      </h1>
+                    </div>
+                    <SuggestedQuestions onQuestionClick={handleSuggestedQuestionClick} />
+                  </>
                 )}
 
                 <ScrollToBottom className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 animate-in fade-in-0 zoom-in-95" />
