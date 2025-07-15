@@ -45,7 +45,6 @@ interface DataSummary {
 interface MassBalanceResponse {
   view_aggregate: Record<string, any>;
   view_data: Array<Record<string, any>>;
-  full_precision_view_data_csv: string;
   data_summary: DataSummary | null;
   chart_title: string;
   tax_credit: Record<string, any>;
@@ -62,6 +61,9 @@ interface CsvExportResponse {
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
     return { backgroundColor: '#f5f5f5', fontWeight: 'bold' };
+  }
+  if (params.data.IsSubstituted) {
+    return { backgroundColor: 'rgba(242, 255, 0, 0.2)', fontWeight: 'bold' };
   }
   return undefined;
 };
@@ -88,40 +90,7 @@ function numberFormatter(params: any) {
 
 // Function to convert data_summary to chart config
 function createChartConfig(dataSummary: DataSummary): ChartData<"bar", number[], unknown> {
-  const siteConfigs = {
-    'novilla': {
-      'West Branch': {
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-      },
-      'Red Leaf': {
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        borderColor: 'rgba(255, 99, 132, 1)',
-      },
-      'Three Petals': {
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-      },
-      'Buckhorn': {
-        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-        borderColor: 'rgba(153, 102, 255, 1)',
-      },
-    },
-    'demo_rng': {
-      'default': {
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-      },
-    },
-  };
-
-  let colors = { backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)' };
-  
-  if (dataSummary.site_type === 'novilla') {
-    colors = siteConfigs.novilla[dataSummary.site_name as keyof typeof siteConfigs.novilla] || colors;
-  } else if (dataSummary.site_type === 'demo_rng') {
-    colors = siteConfigs.demo_rng.default;
-  }
+  let colors = { backgroundColor: 'rgba(54, 162, 235, 0.2)', borderColor: 'rgba(54, 162, 235, 1)' };
 
   return {
     labels: dataSummary.labels,
@@ -141,7 +110,6 @@ export default function RngMassBalancePage() {
   const [error, setError] = useState<string | null>(null);
   const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([]);
   const [rowData, setRowData] = useState<Array<Record<string, any>>>([]);
-  const [fullPrecisionRowDataCsv, setFullPrecisionRowDataCsv] = useState<string>('');
   const [selectedView, setSelectedView] = useState<GasBalanceView | null>(null);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -268,7 +236,6 @@ export default function RngMassBalancePage() {
 
       setRowData(response.view_data);
       setViewAggregate(response.view_aggregate);
-      setFullPrecisionRowDataCsv(response.full_precision_view_data_csv);
       setDataSummary(response.data_summary);
       setChartTitle(response.chart_title);
       setTaxCredit(response.tax_credit);
@@ -401,6 +368,8 @@ export default function RngMassBalancePage() {
       </div>
     );
   }
+
+  console.log(chartConfig);
 
   return (
     <div className="space-y-6">
@@ -556,12 +525,14 @@ export default function RngMassBalancePage() {
         </div>
       </div>
 
-      {/* AG Grid Table */}
       <QueryTable
         initialRowData={rowData}
         initialColumnDefs={columnDefs}
         pinnedTopRowData={[viewAggregate]}
-        getRowStyle={getRowStyle} // Apply row styles
+        getRowStyle={getRowStyle}
+        autoSizeStrategy={{
+          type: "fitCellContents",
+        }}
       />
       <ToastContainer />
     </div>
