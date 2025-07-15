@@ -308,11 +308,18 @@ export default function DataSubstitutionPage() {
         toast.success('Data substitution file uploaded successfully!');
       } else {
         console.log('Non-demo mode: making API call');
-        // Get the selected row data
-        const selectedRow = validationData?.missing_data[rowIndex];
+        // Get the selected row data from missing data only
+        const missingDataRows = validationData?.missing_data.filter(item => !item.is_substituted) || [];
+        const selectedRow = missingDataRows[rowIndex];
         if (!selectedRow) {
-          throw new Error('Selected row not found');
+          throw new Error('Selected row not found in missing data');
         }
+        console.log('Selected row for substitution:', {
+          rowIndex,
+          start: selectedRow.start_timestamp,
+          end: selectedRow.end_timestamp,
+          duration: selectedRow.missing_duration
+        });
 
         // Get site name
         const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
@@ -359,16 +366,19 @@ export default function DataSubstitutionPage() {
         // Log success for debugging
         console.log('Substitution successful:', result);
         
+        // Show success message
+        toast.success('Data substitution completed successfully!');
+        
         // Reset form and close modal
         setUploadedFile(null);
         setSelectedRowIndex(null);
         setSubstituteModalOpen(false);
         
-        // Refresh the data to show updated status
-        if (!isDemo) {
-          // Reload the complete page
+        // Wait for toast to be visible before reloading
+        setTimeout(() => {
+          // Reload the page to show updated data
           window.location.reload();
-        }
+        }, 2000);
       }
       
     } catch (error: any) {
