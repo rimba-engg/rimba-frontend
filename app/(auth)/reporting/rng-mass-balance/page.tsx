@@ -62,7 +62,7 @@ const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string
   if (params.node.rowPinned) {
     return { backgroundColor: '#f5f5f5', fontWeight: 'bold' };
   }
-  if (params.data.IsSubstituted) {
+  if (params.data.is_substituted) {
     return { backgroundColor: 'rgba(242, 255, 0, 0.2)', fontWeight: 'bold' };
   }
   return undefined;
