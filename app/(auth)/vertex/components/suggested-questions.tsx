@@ -74,14 +74,14 @@ export function SuggestedQuestions({ onQuestionClick }: SuggestedQuestionsProps)
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto mb-6">
+    <div className="w-full mx-auto px-20 mb-6">
       <div className="text-center mb-4">
         <p className="text-sm text-gray-600">Try asking one of these questions to get started:</p>
         {error && (
           <p className="text-xs text-amber-600 mt-1">Using fallback questions</p>
         )}
       </div>
-      <div className="gap-3">
+      <div className="flex flex-wrap gap-3">
         {questions.map((question, index) => (
           <Button
             key={index}
