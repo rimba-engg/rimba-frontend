@@ -253,7 +253,7 @@ export default function ChecklistClient({ checklistData, refreshChecklist, check
 
       await api.post('/audit/v2/checklist/item/schema/update/', {
         checklist_id: checklistData.id,
-        schema: newSchema
+        checklist_schema: newSchema
       });
 
       // Update the schema in the data object
