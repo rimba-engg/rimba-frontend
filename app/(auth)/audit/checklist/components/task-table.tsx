@@ -173,7 +173,7 @@ export function TaskTable({
         // Save the updated schema to the server
         await api.post('/audit/v2/checklist/item/schema/reorder/', {
           checklist_id: checklistId,
-          schema: updatedSchema
+          checklist_schema: updatedSchema
         });
         
         console.log('Column order updated successfully on the server');
