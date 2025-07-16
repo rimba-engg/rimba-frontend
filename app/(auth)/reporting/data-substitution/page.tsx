@@ -36,21 +36,18 @@ interface SubstitutedDataEntry extends MissingDataEntry {
   substitution_info?: string;
 }
 
-// Keep demo data only for substituted data tab - missing data now uses API
-const DEMO_MISSING_DATA: MissingDataEntry[] = [];
-
 export default function DataSubstitutionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [validationData, setValidationData] = useState<MissingDataResponse | null>(null);
-  const [isDemo, setIsDemo] = useState(false);
   const [substituteModalOpen, setSubstituteModalOpen] = useState(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'missing' | 'substituted'>('missing'); // Add tab state for demo
+  const [activeTab, setActiveTab] = useState<'missing' | 'substituted'>('missing');
   const [isSubstituting, setIsSubstituting] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
 
   // Calculate dynamic values from API response
   const calculateMissingStats = () => {
@@ -113,14 +110,8 @@ export default function DataSubstitutionPage() {
       const timestamp = firstEntry.start_timestamp;
       
       // Try to extract timezone from timestamp string
-      if (timestamp.includes('EDT')) return 'EDT';
-      if (timestamp.includes('EST')) return 'EST';
-      if (timestamp.includes('PDT')) return 'PDT';
-      if (timestamp.includes('PST')) return 'PST';
-      if (timestamp.includes('CDT')) return 'CDT';
-      if (timestamp.includes('CST')) return 'CST';
-      if (timestamp.includes('MDT')) return 'MDT';
-      if (timestamp.includes('MST')) return 'MST';
+      if (timestamp.includes('US/Eastern')) return 'EDT';
+      if (timestamp.includes('US/Central')) return 'CDT';
       
       return 'UTC';
     } catch (e) {
@@ -129,34 +120,17 @@ export default function DataSubstitutionPage() {
   };
 
   useEffect(() => {
-    // Check if current customer is Demo-RNG
-    const customerData = getStoredCustomer();
-    const isCustomerDemo = customerData?.name === 'Demo-RNG';
-    setIsDemo(isCustomerDemo);
-    console.log('Customer data:', customerData);
-    console.log('Is Demo Customer:', isCustomerDemo);
-
-    if (isCustomerDemo) {
-      console.log('Setting demo validation data');
-      setValidationData({
-        site: 'GreenFlame BioEnergy',
-        view_name: 'Demo View',
-        missing_data: DEMO_MISSING_DATA,
-        total_records: DEMO_MISSING_DATA.length
-      });
-    } else {
-      // For non-demo customers, automatically load data if site is already selected
-      const storedSite = localStorage.getItem('selected_site');
-      if (storedSite) {
-        try {
-          const siteData = JSON.parse(storedSite);
-          if (siteData.name) {
-            setSelectedSite(siteData.name);
-            // Data will be loaded by the other useEffect when selectedSite changes
-          }
-        } catch (e) {
-          console.error('Error parsing stored site:', e);
+    // Load data if site is already selected
+    const storedSite = localStorage.getItem('selected_site');
+    if (storedSite) {
+      try {
+        const siteData = JSON.parse(storedSite);
+        if (siteData.name) {
+          setSelectedSite(siteData.name);
+          // Data will be loaded by the other useEffect when selectedSite changes
         }
+      } catch (e) {
+        console.error('Error parsing stored site:', e);
       }
     }
 
@@ -164,15 +138,17 @@ export default function DataSubstitutionPage() {
     const handleSiteChange = (event: any) => {
       const { site } = event.detail;
       console.log('Site changed to:', site.name);
-      
-      if (!isCustomerDemo) {
-        setValidationData(null);
-      }
+      setValidationData(null);
       setSelectedSite(site.name);
     };
     
     window.addEventListener('siteChange', handleSiteChange);
     return () => window.removeEventListener('siteChange', handleSiteChange);
+  }, []);
+
+  useEffect(() => {
+    const customer = getStoredCustomer();
+    setIsDemo(customer?.name === 'Demo-RNG');
   }, []);
 
   useEffect(() => {
@@ -186,18 +162,6 @@ export default function DataSubstitutionPage() {
       setLoading(true);
       setError(null);
       setValidationData(null);
-
-      // Skip API call for Demo-RNG
-      if (isDemo) {
-        console.log('Demo mode - setting demo validation data');
-        setValidationData({
-          site: 'GreenFlame BioEnergy',
-          view_name: 'Demo View',
-          missing_data: DEMO_MISSING_DATA,
-          total_records: DEMO_MISSING_DATA.length
-        });
-        return;
-      }
 
       const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
       if (!siteName) {
@@ -220,41 +184,40 @@ export default function DataSubstitutionPage() {
   };
 
   const handleDownloadReport = async () => {
-    // For Demo-RNG, create and download a dummy CSV based on active tab
-    if (isDemo && validationData) {
-      // Filter data based on active tab
-      const filteredData = activeTab === 'missing' 
-        ? validationData.missing_data.filter(row => !row.is_substituted)
-        : validationData.missing_data.filter(row => row.is_substituted);
-
-      const fileName = activeTab === 'missing' 
-        ? `missing-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`
-        : `substituted-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`;
-
-      const csvContent = activeTab === 'missing'
-        ? 'Start Time,End Time,Missing Duration,Missing Sensors,Status\n' +
-          filteredData.map(row => 
-            `${row.start_timestamp},${row.end_timestamp},${formatDuration(row.missing_duration)},${row.missing_sensors?.join(';') || 'N/A'},${row.is_substituted ? 'Substituted' : 'Missing'}`
-          ).join('\n')
-        : 'Start Time,End Time,Substituted Duration,Missing Sensors,Substitution Info,Method\n' +
-          filteredData.map(row => 
-            `${row.start_timestamp},${row.end_timestamp},${formatDuration(row.missing_duration)},${row.missing_sensors?.join(';') || 'N/A'},${row.substitution_method || 'No Substitution Info'},${row.substitution_method === 'File Upload' ? 'Manual' : 'Automatic Substitution'}`
-          ).join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success('Demo report downloaded successfully');
+    if (!validationData) {
+      toast.error('No data available to download');
       return;
     }
 
-    // Original download logic for non-demo customers
+    // Filter data based on active tab
+    const filteredData = activeTab === 'missing' 
+      ? validationData.missing_data.filter(row => !row.is_substituted)
+      : validationData.missing_data.filter(row => row.is_substituted);
+
+    const fileName = activeTab === 'missing' 
+      ? `missing-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`
+      : `substituted-data-${DateTime.now().toFormat('yyyy-MM-dd')}.csv`;
+
+    const csvContent = activeTab === 'missing'
+      ? 'Start Time,End Time,Missing Duration,Missing Sensors,Status\n' +
+        filteredData.map(row => 
+          `${row.start_timestamp},${row.end_timestamp},${formatDuration(row.missing_duration)},${row.missing_sensors?.join(';') || 'N/A'},${row.is_substituted ? 'Substituted' : 'Missing'}`
+        ).join('\n')
+      : 'Start Time,End Time,Substituted Duration,Missing Sensors,Substitution Info,Method\n' +
+        filteredData.map(row => 
+          `${row.start_timestamp},${row.end_timestamp},${formatDuration(row.missing_duration)},${row.missing_sensors?.join(';') || 'N/A'},${row.substitution_method || 'No Substitution Info'},${row.substitution_method === 'file_upload' ? 'Manual' : 'Automatic Substitution'}`
+        ).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    toast.success('Report downloaded successfully');
     toast.info('Downloading missing data report...');
     try {
       const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
@@ -295,91 +258,73 @@ export default function DataSubstitutionPage() {
 
   // API function for file upload substitution
   const handleSubstituteData = async (file: File, rowIndex: number) => {
-    console.log('handleSubstituteData called with:', { fileName: file.name, rowIndex, isDemo });
+    console.log('handleSubstituteData called with:', { fileName: file.name, rowIndex });
     setUploading(true);
     setIsSubstituting(true);
     
     try {
-      // Demo mode - just simulate success
-      // Temporarily bypass demo mode for API testing
-      if (false) { // Change this to isDemo to restore demo mode
-        console.log('Demo mode: simulating upload');
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate upload time
-        toast.success('Data substitution file uploaded successfully!');
-      } else {
-        console.log('Non-demo mode: making API call');
-        // Get the selected row data from missing data only
-        const missingDataRows = validationData?.missing_data.filter(item => !item.is_substituted) || [];
-        const selectedRow = missingDataRows[rowIndex];
-        if (!selectedRow) {
-          throw new Error('Selected row not found in missing data');
-        }
-        console.log('Selected row for substitution:', {
-          rowIndex,
-          start: selectedRow.start_timestamp,
-          end: selectedRow.end_timestamp,
-          duration: selectedRow.missing_duration
-        });
-
-        // Get site name
-        const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
-        if (!siteName) {
-          throw new Error('No site selected');
-        }
-
-        // Prepare FormData payload for file upload
-        const formData = new FormData();
-        formData.append('site_name', siteName);
-        formData.append('start_timestamp', selectedRow.start_timestamp);
-        formData.append('end_timestamp', selectedRow.end_timestamp);
-        formData.append('file', file); // Append the actual file
-
-        // Make the API call
-        console.log('Making API call with FormData:', {
-          site_name: siteName,
-          start_timestamp: selectedRow.start_timestamp,
-          end_timestamp: selectedRow.end_timestamp,
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type
-        });
-        
-        // Create headers without Content-Type to let browser set it for FormData
-        const headers = { ...defaultHeaders };
-        delete headers['Content-Type'];  // Remove Content-Type to let browser set it for FormData
-        
-        const response = await fetch(`${BASE_URL}/reporting/v2/missing-data/substitute/`, {
-          method: 'POST',
-          headers: headers,
-          body: formData
-        });
-        
-        console.log('API response status:', response.status);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        
-        // Log success for debugging
-        console.log('Substitution successful:', result);
-        
-        // Show success message
-        toast.success('Data substitution completed successfully!');
-        
-        // Reset form and close modal
-        setUploadedFile(null);
-        setSelectedRowIndex(null);
-        setSubstituteModalOpen(false);
-        
-        // Wait for toast to be visible before reloading
-        setTimeout(() => {
-          // Reload the page to show updated data
-          window.location.reload();
-        }, 2000);
+      // Get the selected row data from missing data only
+      const missingDataRows = validationData?.missing_data.filter(item => !item.is_substituted) || [];
+      const selectedRow = missingDataRows[rowIndex];
+      if (!selectedRow) {
+        throw new Error('Selected row not found in missing data');
       }
+
+      // Get site name
+      const siteName = selectedSite || JSON.parse(localStorage.getItem('selected_site') || '{}').name;
+      if (!siteName) {
+        throw new Error('No site selected');
+      }
+
+      // Prepare FormData payload for file upload
+      const formData = new FormData();
+      formData.append('site_name', siteName);
+      formData.append('start_timestamp', selectedRow.start_timestamp);
+      formData.append('end_timestamp', selectedRow.end_timestamp);
+      formData.append('file', file);
+
+      // Log API call details
+      console.log('Making API call with data:', {
+        site_name: siteName,
+        start_timestamp: selectedRow.start_timestamp,
+        end_timestamp: selectedRow.end_timestamp,
+        file_name: file.name,
+        file_size: file.size,
+        file_type: file.type
+      });
+      
+      // Create headers without Content-Type to let browser set it for FormData
+      const headers = { ...defaultHeaders };
+      delete headers['Content-Type'];
+      
+      const response = await fetch(`${BASE_URL}/reporting/v2/missing-data/substitute/`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      
+      console.log('API response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Show success message
+      toast.success('Data substitution completed successfully!');
+      
+      // Reset form and close modal
+      setUploadedFile(null);
+      setSelectedRowIndex(null);
+      setSubstituteModalOpen(false);
+      
+      // Wait for toast to be visible before reloading
+      setTimeout(() => {
+        // Reload the page to show updated data
+        window.location.reload();
+      }, 2000);
       
     } catch (error: any) {
       console.error('Error uploading substitution file:', error);
@@ -467,7 +412,7 @@ export default function DataSubstitutionPage() {
                 <span className="text-2xl font-bold">
                   {validationData?.total_records || 0} Events
                 </span>
-                {isDemo && validationData?.missing_data && (
+                {validationData?.missing_data && (
                   <span className="text-xs text-muted-foreground">
                     {validationData.missing_data.filter(item => !item.is_substituted).length} Pending, {validationData.missing_data.filter(item => item.is_substituted).length} Auto-Substituted
                   </span>
@@ -521,34 +466,26 @@ export default function DataSubstitutionPage() {
             <CardHeader>
             <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
-                  {/* Tab switching for Demo-RNG only */}
-                  {isDemo && (
-                    <div className="flex items-center space-x-4">
-                      <div className="flex bg-gray-100 rounded-lg p-1">
-                        <Button
-                          variant={activeTab === 'missing' ? 'default' : 'ghost'}
-                          size="sm"
-                          onClick={() => setActiveTab('missing')}
-                          className="rounded-md"
-                        >
-                          Missing Data
-                        </Button>
-                        <Button
-                          variant={activeTab === 'substituted' ? 'default' : 'ghost'}
-                          size="sm"
-                          onClick={() => setActiveTab('substituted')}
-                          className="rounded-md"
-                        >
-                          Substituted Data
-                        </Button>
-                      </div>
-                      {activeTab === 'missing' && (
-                        <div className="text-xs text-muted-foreground bg-blue-50 px-2 py-1 rounded">
-                          {/* <span className="font-medium">Note:</span> Types 1-4 use automatic substitution, Types 5-6 require manual file upload */}
-                        </div>
-                      )}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex bg-gray-100 rounded-lg p-1">
+                      <Button
+                        variant={activeTab === 'missing' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('missing')}
+                        className="rounded-md"
+                      >
+                        Missing Data
+                      </Button>
+                      <Button
+                        variant={activeTab === 'substituted' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setActiveTab('substituted')}
+                        className="rounded-md"
+                      >
+                        Substituted Data
+                      </Button>
                     </div>
-                  )}
+                  </div>
                 </div>
                 <Button
                   variant="outline"
@@ -580,10 +517,9 @@ export default function DataSubstitutionPage() {
                       <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                         <div className="flex items-center justify-center space-x-2">
                           <ClockIcon className="h-4 w-4" />
-                          <span>{isDemo && activeTab === 'substituted' ? 'Substituted Duration' : 'Missing Duration'}</span>
+                          <span>{activeTab === 'substituted' ? 'Substituted Duration' : 'Missing Duration'}</span>
                         </div>
                       </th>
-                      {/* Show sensor name column for demo */}
                       {isDemo && (
                         <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                           <div className="flex items-center justify-center space-x-2">
@@ -592,8 +528,7 @@ export default function DataSubstitutionPage() {
                           </div>
                         </th>
                       )}
-                      {/* Show substitution info column for demo substituted data */}
-                      {isDemo && activeTab === 'substituted' && (
+                      {activeTab === 'substituted' && (
                         <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                           <div className="flex items-center justify-center space-x-2">
                             <CheckCircle2 className="h-4 w-4" />
@@ -602,9 +537,9 @@ export default function DataSubstitutionPage() {
                         </th>
                       )}
                       <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
-                        {isDemo && activeTab === 'substituted' ? 'Method' : 'Status'}
+                        {activeTab === 'substituted' ? 'Method' : 'Status'}
                       </th>
-                      {((isDemo && activeTab === 'missing') || !isDemo) && (
+                      {activeTab === 'missing' && (
                         <th className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                           Action
                         </th>
@@ -623,21 +558,22 @@ export default function DataSubstitutionPage() {
                         return dataToShow.map((item, index) => {
                           // Helper function to parse timestamp safely
                           const parseTimestamp = (timestamp: string) => {
+                            const timezone = getSiteTimezone();
                             // Try different parsing methods
-                            let dt = DateTime.fromSQL(timestamp);
+                            let dt = DateTime.fromSQL(timestamp, { zone: timezone });
                             if (!dt.isValid) {
-                              dt = DateTime.fromISO(timestamp);
+                              dt = DateTime.fromISO(timestamp, { zone: timezone });
                             }
                             if (!dt.isValid) {
-                              dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss');
+                              dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss', { zone: timezone });
                             }
                             if (!dt.isValid) {
-                              dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss z');
+                              dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss z', { zone: timezone });
                             }
                             if (!dt.isValid) {
-                              dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss T');
+                              dt = DateTime.fromFormat(timestamp, 'yyyy-MM-dd HH:mm:ss T', { zone: timezone });
                             }
-                            return dt.isValid ? dt.toFormat('yyyy-MM-dd HH:mm:ss') : timestamp;
+                            return dt.isValid ? dt.toFormat('yyyy-MM-dd HH:mm:ss z') : timestamp;
                           };
 
                           return (
@@ -651,10 +587,12 @@ export default function DataSubstitutionPage() {
                               <td className="px-6 py-4 text-center text-sm text-gray-900">
                                 {formatDuration(item.missing_duration)}
                               </td>
-                              {/* Show missing sensors column */}
-                              <td className="px-6 py-4 text-center text-sm text-gray-900">
-                                {item.missing_sensors?.join(', ') || 'N/A'}
-                              </td>
+                              {/* Show missing sensors column only for Demo-RNG */}
+                              {isDemo && (
+                                <td className="px-6 py-4 text-center text-sm text-gray-900">
+                                  {item.missing_sensors?.join(', ') || 'N/A'}
+                                </td>
+                              )}
                               {/* Substitution Info Column */}
                               <td className="px-6 py-4 text-center">
                                 {activeTab === 'missing' ? (

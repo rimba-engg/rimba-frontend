@@ -43,6 +43,9 @@ export default function AirPermitsPage() {
   const [useAverage, setUseAverage] = useState<boolean>(true)
   const [so2Inputs, setSo2Inputs] = useState<any[]>([])
   const [selectedSite, setSelectedSite] = useState<string>('')
+  
+  // Get today's date in YYYY-MM-DD format to restrict future date selection
+  const today = DateTime.now().toISODate() ?? ''
 
   useEffect(() => {
     const handleSiteChange = (event: any) => {
@@ -261,7 +264,7 @@ export default function AirPermitsPage() {
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full"
-                max={endDate}
+                max={endDate || today}
               />
               <FloatingLabelInput
                 label="End Date"
@@ -270,6 +273,7 @@ export default function AirPermitsPage() {
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full"
+                max={today}
               />
             </div>
             
@@ -282,6 +286,7 @@ export default function AirPermitsPage() {
                 label="Gas Day"
                 type="date" 
                 className="w-full"
+                max={today}
                 onChange={(e) => {
                   const selectedDate = DateTime.fromISO(e.target.value);
                   const nextDay = selectedDate.plus({ days: 1 });
