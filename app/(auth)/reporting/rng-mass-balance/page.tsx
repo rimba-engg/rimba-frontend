@@ -121,6 +121,7 @@ export default function RngMassBalancePage() {
   const [showPrevailingWage, setShowPrevailingWage] = useState(true);
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [csvLoading, setCsvLoading] = useState(false);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   // Set default dates (last 3 days to today) when component mounts
   useEffect(() => {
@@ -358,6 +359,18 @@ export default function RngMassBalancePage() {
     }
   };
 
+  const validateDate = (date: string, isEndDate: boolean = false): boolean => {
+    const selectedDate = DateTime.fromISO(date, { zone: 'America/New_York' });
+    const now = DateTime.now().setZone('America/New_York');
+    
+    if (selectedDate > now) {
+      setDateError('Cannot select future dates');
+      return false;
+    }
+    setDateError(null);
+    return true;
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -411,7 +424,11 @@ export default function RngMassBalancePage() {
               label="Start Date (EST)"
               type="datetime-local"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                if (validateDate(e.target.value)) {
+                  setStartDate(e.target.value);
+                }
+              }}
               className="w-full"
               max={endDate}
             />
@@ -421,7 +438,11 @@ export default function RngMassBalancePage() {
               type="datetime-local"
               min={startDate}
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                if (validateDate(e.target.value, true)) {
+                  setEndDate(e.target.value);
+                }
+              }}
               className="w-full"
             />
 
@@ -429,13 +450,23 @@ export default function RngMassBalancePage() {
               <span>OR</span>
             </div>
 
+            {dateError && (
+              <div className="text-destructive text-sm">{dateError}</div>
+            )}
+
             <FloatingLabelInput
               label="Single Day (EST)"
               type="date" 
               className="w-full"
+              max={DateTime.now().setZone('America/New_York').toFormat('yyyy-MM-dd')}
               onChange={(e) => {
                 // Set to 10 AM EST on selected date in EST
                 let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'America/New_York' }).set({ hour: 10 });
+
+                // Validate the selected date
+                if (!validateDate(selectedDate.toISO() || '')) {
+                  return;
+                }
 
                 // Set to 10 AM EST next day
                 let nextDay = selectedDate.plus({ days: 1 });

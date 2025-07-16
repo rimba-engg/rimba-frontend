@@ -319,7 +319,7 @@ export default function AnalyticsPage() {
                 label="Start Day (EST)"
                 type="date" 
                 className="w-full"
-                max={endDate}
+                max={DateTime.now().setZone('America/New_York').toISO()?.slice(0, 10) ?? ''}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -328,6 +328,7 @@ export default function AnalyticsPage() {
                 type="date"
                 className="w-full"
                 min={startDate}
+                max={DateTime.now().setZone('America/New_York').toISO()?.slice(0, 10) ?? ''}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
