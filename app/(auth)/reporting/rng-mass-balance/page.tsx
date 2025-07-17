@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DateTimeSelector, type DateTimeRange } from '@/components/ui/DateTimeSelector';
 import {
   Chart as ChartJS,
   ChartOptions,
@@ -104,6 +105,19 @@ function createChartConfig(dataSummary: DataSummary): ChartData<"bar", number[],
   };
 }
 
+// Add this helper function at the top level
+const formatDateRangeText = (startDateTime: string, endDateTime: string, timezone: string) => {
+  if (!startDateTime || !endDateTime) return '';
+
+  const start = DateTime.fromISO(startDateTime, { zone: timezone });
+  const end = DateTime.fromISO(endDateTime, { zone: timezone });
+  
+  // Get timezone abbreviation
+  const tzAbbr = start.toFormat('ZZZZ').split(' ').pop() || timezone.split('/')[1];
+
+  return `Gas Balance: ${start.toFormat('MMMM dd, hh:mm a')} to ${end.toFormat('MMMM dd, hh:mm a')} (${tzAbbr})`;
+};
+
 export default function RngMassBalancePage() {
   const [views, setViews] = useState<GasBalanceView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,8 +125,15 @@ export default function RngMassBalancePage() {
   const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([]);
   const [rowData, setRowData] = useState<Array<Record<string, any>>>([]);
   const [selectedView, setSelectedView] = useState<GasBalanceView | null>(null);
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [dateRange, setDateRange] = useState<DateTimeRange>(() => {
+    const now = DateTime.now().setZone('America/New_York').set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
+    const threeDaysAgo = now.minus({ days: 3 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
+    return {
+      startDateTime: threeDaysAgo.toISO()?.slice(0, 16) ?? '',
+      endDateTime: now.toISO()?.slice(0, 16) ?? '',
+      timezone: 'America/New_York'
+    };
+  });
   const [viewAggregate, setViewAggregate] = useState<Record<string, any>>({});
   const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
   const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
@@ -121,19 +142,10 @@ export default function RngMassBalancePage() {
   const [showPrevailingWage, setShowPrevailingWage] = useState(true);
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [csvLoading, setCsvLoading] = useState(false);
-  const [dateError, setDateError] = useState<string | null>(null);
+  const [formattedDateRange, setFormattedDateRange] = useState<string>('');
 
-  // Set default dates (last 3 days to today) when component mounts
+  // Remove the useEffect for default dates as it's handled by DateTimeSelector now
   useEffect(() => {
-    // Set default dates
-    if (!startDate && !endDate) {
-      const now = DateTime.now().setZone('America/New_York').set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
-      const threeDaysAgo = now.minus({ days: 3 }).set({ hour: 10, minute: 0, second: 0, millisecond: 0 });
-      
-      setStartDate(threeDaysAgo.toISO()?.slice(0, 16) ?? '');
-      setEndDate(now.toISO()?.slice(0, 16) ?? '');
-    }
-
     // Initialize selected site from localStorage
     const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
     if (selected_site && selected_site.name) {
@@ -180,6 +192,18 @@ export default function RngMassBalancePage() {
     }
   }, [dataSummary]);
 
+  // Add effect to update formatted date range when dateRange changes
+  useEffect(() => {
+    if (dateRange.startDateTime && dateRange.endDateTime) {
+      const formattedText = formatDateRangeText(
+        dateRange.startDateTime,
+        dateRange.endDateTime,
+        dateRange.timezone
+      );
+      setFormattedDateRange(formattedText);
+    }
+  }, [dateRange]);
+
   const fetchViews = async () => {
     try {
       setLoading(true);
@@ -222,15 +246,16 @@ export default function RngMassBalancePage() {
 
       const payload: Record<string, any> = {
         view_name: selectedView.view_name,
-        site_name: selectedSite
+        site_name: selectedSite,
+        timezone: dateRange.timezone
       };
 
       // Only add dates to payload if they are set
-      if (startDate) {
-        payload.start_datetime = startDate;
+      if (dateRange.startDateTime) {
+        payload.start_datetime = dateRange.startDateTime;
       }
-      if (endDate) {
-        payload.end_datetime = endDate;
+      if (dateRange.endDateTime) {
+        payload.end_datetime = dateRange.endDateTime;
       }
 
       const response = await api.post<MassBalanceResponse>('/reporting/v2/rng-mass-balance/', payload);
@@ -306,15 +331,16 @@ export default function RngMassBalancePage() {
 
       const payload: Record<string, any> = {
         view_name: selectedView.view_name,
-        site_name: selectedSite
+        site_name: selectedSite,
+        timezone: dateRange.timezone
       };
 
       // Only add dates to payload if they are set
-      if (startDate) {
-        payload.start_datetime = startDate;
+      if (dateRange.startDateTime) {
+        payload.start_datetime = dateRange.startDateTime;
       }
-      if (endDate) {
-        payload.end_datetime = endDate;
+      if (dateRange.endDateTime) {
+        payload.end_datetime = dateRange.endDateTime;
       }
 
       // Call the different API endpoint for CSV export
@@ -342,7 +368,7 @@ export default function RngMassBalancePage() {
       
       const selected_site = JSON.parse(localStorage.getItem('selected_site') || '{}');
       const site_name = selected_site.name;
-      const filename = `${selectedView?.view_name}_${site_name}_${startDate}_${endDate}.csv`;
+      const filename = `${selectedView?.view_name}_${site_name}_${dateRange.startDateTime}_${dateRange.endDateTime}.csv`;
       
       a.download = filename;
       a.click();
@@ -359,17 +385,7 @@ export default function RngMassBalancePage() {
     }
   };
 
-  const validateDate = (date: string, isEndDate: boolean = false): boolean => {
-    const selectedDate = DateTime.fromISO(date, { zone: 'America/New_York' });
-    const now = DateTime.now().setZone('America/New_York');
-    
-    if (selectedDate > now) {
-      setDateError('Cannot select future dates');
-      return false;
-    }
-    setDateError(null);
-    return true;
-  };
+  // Remove validateDate function as it's handled by DateTimeSelector now
 
   if (loading) {
     return (
@@ -388,7 +404,7 @@ export default function RngMassBalancePage() {
     <div className="space-y-6">
       <div>
         <div className="mb-4">
-          <span>{chartTitle}</span>
+          <span className="text-lg font-medium">{formattedDateRange}</span>
         </div>
 
       {error && (
@@ -420,66 +436,11 @@ export default function RngMassBalancePage() {
               </SelectContent>
             </Select>
 
-            <FloatingLabelInput
-              label="Start Date (EST)"
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => {
-                if (validateDate(e.target.value)) {
-                  setStartDate(e.target.value);
-                }
-              }}
-              className="w-full"
-              max={endDate}
-            />
-
-            <FloatingLabelInput
-              label="End Date (EST)"
-              type="datetime-local"
-              min={startDate}
-              value={endDate}
-              onChange={(e) => {
-                if (validateDate(e.target.value, true)) {
-                  setEndDate(e.target.value);
-                }
-              }}
-              className="w-full"
-            />
-
-            <div className="flex justify-center">
-              <span>OR</span>
-            </div>
-
-            {dateError && (
-              <div className="text-destructive text-sm">{dateError}</div>
-            )}
-
-            <FloatingLabelInput
-              label="Single Day (EST)"
-              type="date" 
-              className="w-full"
-              max={DateTime.now().setZone('America/New_York').toFormat('yyyy-MM-dd')}
-              onChange={(e) => {
-                // Set to 10 AM EST on selected date in EST
-                let selectedDate = DateTime.fromISO(e.target.value + 'T00:00:00', { zone: 'America/New_York' }).set({ hour: 10 });
-
-                // Validate the selected date
-                if (!validateDate(selectedDate.toISO() || '')) {
-                  return;
-                }
-
-                // Set to 10 AM EST next day
-                let nextDay = selectedDate.plus({ days: 1 });
-
-                // for debugging
-                console.log(e.target.value);
-                console.log(selectedDate.toISO());
-                console.log(nextDay.toISO());
-
-                // set start and end dates
-                setStartDate(selectedDate.toISO()?.slice(0, 16) ?? '');
-                setEndDate(nextDay.toISO()?.slice(0, 16) ?? '');
-              }}
+            <DateTimeSelector
+              onChange={setDateRange}
+              initialTimezone={dateRange.timezone}
+              initialStartDate={dateRange.startDateTime}
+              initialEndDate={dateRange.endDateTime}
             />
 
             <div className="flex justify-center mt-4 gap-2">
