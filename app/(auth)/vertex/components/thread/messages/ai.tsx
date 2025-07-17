@@ -15,6 +15,13 @@ import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
 import components from "@/app/(auth)/vertex/custom_components";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger
+} from "@/components/ui/accordion";
+import { Brain } from "lucide-react";
 
 function CustomComponent({
   message,
@@ -98,6 +105,46 @@ export function AssistantMessage({
     ? parseAnthropicStreamedToolCalls(content)
     : undefined;
 
+  // Check if this is a thinking message
+  const isThinkingMessage = message && 'name' in message && message.name === "thinking";
+  
+  // If this is a thinking message, collect all consecutive thinking messages
+  const getConsecutiveThinkingMessages = () => {
+    if (!isThinkingMessage) return [];
+    
+    const currentMessageIndex = thread.messages.findIndex(m => m.id === message?.id);
+    const thinkingMessages = [];
+    
+    // Look backwards from current message to find all consecutive thinking messages
+    for (let i = currentMessageIndex; i >= 0; i--) {
+      const msg = thread.messages[i];
+      if (msg.type === "ai" && 'name' in msg && msg.name === "thinking") {
+        thinkingMessages.unshift(msg);
+      } else {
+        break;
+      }
+    }
+    
+    // Look forwards from current message to find all consecutive thinking messages
+    for (let i = currentMessageIndex + 1; i < thread.messages.length; i++) {
+      const msg = thread.messages[i];
+      if (msg.type === "ai" && 'name' in msg && msg.name === "thinking") {
+        thinkingMessages.push(msg);
+      } else {
+        break;
+      }
+    }
+    
+    return thinkingMessages;
+  };
+
+  const consecutiveThinkingMessages = getConsecutiveThinkingMessages();
+  const shouldShowThinkingAccordion = isThinkingMessage && consecutiveThinkingMessages.length > 0;
+  
+  // Only render the accordion for the first thinking message in a sequence
+  const isFirstThinkingInSequence = shouldShowThinkingAccordion && 
+    consecutiveThinkingMessages[0]?.id === message?.id;
+
   const hasToolCalls =
     message &&
     "tool_calls" in message &&
@@ -115,10 +162,45 @@ export function AssistantMessage({
     return null;
   }
 
+  // Don't render individual thinking messages, only the accordion
+  if (isThinkingMessage && !isFirstThinkingInSequence) {
+    return null;
+  }
+
   return (
     <div className="flex items-start mr-auto gap-2 group">
       {isToolResult ? (
         <ToolResult message={message} />
+      ) : isFirstThinkingInSequence ? (
+        <div className="flex flex-col gap-2 w-full">
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="thinking-messages" className="border-b border-gray-200">
+              <AccordionTrigger className="py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    Thinking ({consecutiveThinkingMessages.length} step{consecutiveThinkingMessages.length > 1 ? 's' : ''})
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 py-2">
+                <div className="space-y-3">
+                  {consecutiveThinkingMessages.map((thinkingMsg, index) => {
+                    const thinkingContent = getContentString(thinkingMsg.content ?? []);
+                    return (
+                      <div key={thinkingMsg.id || index} className="border-l-2 border-blue-200 pl-3">
+                        <div className="text-xs text-gray-500 mb-1">Step {index + 1}</div>
+                        <SelectableContent messageId={thinkingMsg.id} className="py-1">
+                          <MarkdownText>{thinkingContent}</MarkdownText>
+                        </SelectableContent>
+                      </div>
+                    );
+                  })}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           {contentString.length > 0 && (
