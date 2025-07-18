@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { DateTime } from 'luxon';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
+import { BASE_URL, defaultHeaders } from '@/lib/api';
 interface CalculatorProps {
   inputs: { label: string; value: number }[];
   startDateTime: string;
@@ -15,8 +17,9 @@ interface CalculatorProps {
 
 export default function SO2Calculator({ inputs, startDateTime, endDateTime, siteName }: CalculatorProps) {
   const [userInputs, setUserInputs] = useState<Record<string, string>>({});
-  const [results, setResults] = useState<Record<string, { hourlySO2: number; totalSO2: number }>>({});
+  const [results, setResults] = useState<Record<string, { hourlySO2: number; totalSO2: number; maxSO2: number; isExceeded: boolean }>>({});
   const [processedInputs, setProcessedInputs] = useState<{ label: string; value: number; maxSO2?: number }[]>([]);
+  const [isCalculating, setIsCalculating] = useState(false);
   
   // Calculate total hours between start and end dates
   const totalHours = DateTime.fromISO(endDateTime).diff(DateTime.fromISO(startDateTime), 'hours').hours;
@@ -32,42 +35,36 @@ export default function SO2Calculator({ inputs, startDateTime, endDateTime, site
         console.log('🏭 getSiteSpecificMaxSO2 called with siteName:', siteName);
         
         const defaultValues = {
-          'HG Biogas': 0.0,
-          'Off Spec': 0.0,
-          'Tox Flow': 0.0,
-          'Maassen Flare': 0.0
+          'HG Biogas Flow to Flare (F702_FT301)': 0.0,
+          'Off Spec to Flare (FT714)': 0.0,
+          'Tox Flow (FIT1701)': 0.0,
+          'Maassen Flare Flow (F702_FT301)': 0.0
         };
 
         // Site-specific overrides
         const siteSpecificValues: Record<string, Record<string, number>> = {
+          'West Branch': {
+            'HG Biogas Flow to Flare (F702_FT301)': 52.20,
+            'Off Spec to Flare (FT714)': 52.20,
+            'Tox Flow (FIT1701)': 55.16,
+            'Maassen Flare Flow (F702_FT301)': 27.14
+          },
+          'Three Petals': {
+            'Biogas to Flare Flow (F506_FT301)': 39.7,
+            'Off Spec to Flare Flow (FI4623)': 39.7,
+            'Tox Flow (FIT1701)': 39.5
+          },
+          'Red Leaf': {
+            'BIOGAS to Flare Flow': 0.0,
+            'OFF SPEC to Flare Flow': 0.0,
+            'Tox Flow': 0.0
+          },
           'Buckhorn': {
             'Biogas to Flare (F204_FT301)': 39.7, // Special case for Hoogland when only gas from Hoogland digester is flowing
             'Off Spec Gas to Flare Flow (FIT203)': 39.7,
-            'Tox Flow (FIT1701)': 41.1,
-          },
-
-          'West Branch': {
-            'HG Biogas': 52.20,
-            'Off Spec': 52.20,
-            'Tox Flow': 55.16,
-            'Maassen Flare': 27.14
-          },
-
-          'Three Petals':
-          {
-            "Biogas to Flare Flow (F506_FT301)": 39.7,
-            "Off Spec to Flare Flow (FI4623)": 39.7,
-            "Tox Flow (FIT1701)": 39.5,
-
-          },
-
-          'Red Leaf':
-          {
-            "BIOGAS to Flare Flow": 0.0,
-            "OFF SPEC to Flare Flow": 0.0,
-            "Tox Flow": 0.0,
+            'Tox Flow (FIT1701)': 41.1
           }
-          // Add more sites as needed
+          
         };
 
         const result = siteSpecificValues[siteName || ''] || defaultValues;
@@ -78,78 +75,22 @@ export default function SO2Calculator({ inputs, startDateTime, endDateTime, site
       const maxPermissibleSO2 = getSiteSpecificMaxSO2(siteName);
       console.log('✅ maxPermissibleSO2 result:', maxPermissibleSO2);
 
-      // Debug: Log actual input labels for West Branch
-      if (siteName === 'West Branch') {
-        console.log('🔍 West Branch actual input labels:', filteredInputs.map(item => item.label));
-      }
-
-      // Create a flexible mapping function that can handle both exact matches and partial matches
-      const getMaxSO2ForLabel = (label: string): number => {
-        // First try exact match
-        if (maxPermissibleSO2[label]) {
-          return maxPermissibleSO2[label];
-        }
-        
-        // For West Branch, create mapping from actual labels to config keys
-        if (siteName === 'West Branch') {
-          const westBranchMapping: Record<string, string> = {
-            'HG Biogas': 'HG Biogas',
-            'Off Spec': 'Off Spec', 
-            'Tox Flow': 'Tox Flow',
-            'Maassen Flare': 'Maassen Flare'
-          };
-          
-          // Try partial matching - find config key that matches part of the label
-          for (const [configKey, maxValue] of Object.entries(maxPermissibleSO2)) {
-            if (label.toLowerCase().includes(configKey.toLowerCase()) || 
-                configKey.toLowerCase().includes(label.toLowerCase())) {
-              return maxValue;
-            }
-          }
-          
-          // Try specific West Branch patterns
-          if (label.toLowerCase().includes('hg') || label.toLowerCase().includes('biogas')) {
-            return maxPermissibleSO2['HG Biogas'] || 0;
-          }
-          if (label.toLowerCase().includes('off spec')) {
-            return maxPermissibleSO2['Off Spec'] || 0;
-          }
-          if (label.toLowerCase().includes('tox')) {
-            return maxPermissibleSO2['Tox Flow'] || 0;
-          }
-          if (label.toLowerCase().includes('maassen')) {
-            return maxPermissibleSO2['Maassen Flare'] || 0;
-          }
-        }
-        
-        return 0;
-      };
-
-      // Get max SO2 value using flexible mapping, then shorten label for display
-      var finalInputs = filteredInputs.map(item => {
-        const words = item.label.split(' ');
-        const shortenedLabel = words.slice(0, 2).join(' ');
-        return {
-          ...item,
-          label: shortenedLabel,
-          maxSO2: getMaxSO2ForLabel(item.label)
-        };
-      });
+      // Process inputs with full labels
+      var finalInputs = filteredInputs.map(item => ({
+        ...item,
+        maxSO2: maxPermissibleSO2[item.label] || 0
+      }));
       
-      const totalFlowValue = finalInputs.reduce((sum, item) => sum + item.value, 0);  
-      // Add the Total Flow item to the end of the list with site-specific total flow max
-      const getTotalFlowMax = (siteName?: string): number => {
-        const siteSpecificTotalFlow: Record<string, number> = {};
-        return siteSpecificTotalFlow[siteName || ''] || 0.0; // Default fallback
-      };
+      const totalFlowValue = finalInputs.reduce((sum, item) => sum + item.value, 0);
       
+      // Add the Total Flow item
       finalInputs.push({ 
-        label: 'Total Flow', 
+        label: 'Total Flow',
         value: totalFlowValue,
-        maxSO2: getTotalFlowMax(siteName)
+        maxSO2: 0 // Default to 0 for total flow
       });
       
-      console.log(finalInputs);
+      console.log('Final processed inputs:', finalInputs);
       setProcessedInputs(finalInputs);
     }
   }, [inputs]);
@@ -158,42 +99,115 @@ export default function SO2Calculator({ inputs, startDateTime, endDateTime, site
   useEffect(() => {
     const savedInputs = localStorage.getItem('so2CalculatorInputs');
     if (savedInputs) {
-      setUserInputs(JSON.parse(savedInputs));
+      try {
+        const parsedInputs = JSON.parse(savedInputs) as Record<string, string>;
+        // Clean up any old format data (remove shortened labels)
+        const cleanInputs = Object.entries(parsedInputs).reduce((acc, [key, value]) => {
+          // Only keep inputs that exactly match our current input labels
+          if (inputs.some(input => input.label === key)) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {} as Record<string, string>);
+        
+        setUserInputs(cleanInputs);
+        // Update localStorage with clean data
+        localStorage.setItem('so2CalculatorInputs', JSON.stringify(cleanInputs));
+      } catch (error) {
+        console.error('Error parsing saved inputs:', error);
+        localStorage.removeItem('so2CalculatorInputs');
+      }
     }
-  }, []);
+  }, [inputs]);
 
   const handleInputChange = (label: string, value: string) => {
-    setUserInputs((prev) => ({
-      ...prev,
-      [label]: value,
-    }));
+    setUserInputs((prev) => {
+      const newInputs = {
+        ...prev,
+        [label]: value,
+      };
+      // Save to localStorage with clean data
+      localStorage.setItem('so2CalculatorInputs', JSON.stringify(newInputs));
+      return newInputs;
+    });
   };
 
-  const calculateResults = () => {
-    if (isNaN(totalHours)) {
-      console.log(totalHours)
-      window.alert('Select a valid date range');
-      return;
+  // Cleanup effect to remove old data format when component unmounts
+  useEffect(() => {
+    return () => {
+      const savedInputs = localStorage.getItem('so2CalculatorInputs');
+      if (savedInputs) {
+        try {
+          const parsedInputs = JSON.parse(savedInputs) as Record<string, string>;
+          const cleanInputs = Object.entries(parsedInputs).reduce((acc, [key, value]) => {
+            if (inputs.some(input => input.label === key)) {
+              acc[key] = value;
+            }
+            return acc;
+          }, {} as Record<string, string>);
+          localStorage.setItem('so2CalculatorInputs', JSON.stringify(cleanInputs));
+        } catch (error) {
+          console.error('Error cleaning up saved inputs:', error);
+          localStorage.removeItem('so2CalculatorInputs');
+        }
+      }
+    };
+  }, [inputs]);
+
+  const calculateResults = async () => {
+    try {
+      // Check if date range is selected
+      if (!startDateTime || !endDateTime) {
+        toast.error('Please select a date range first');
+        return;
+      }
+
+      setIsCalculating(true);
+
+      // Filter out empty h2s values
+      const filteredH2sValues = Object.entries(userInputs).reduce((acc, [key, value]) => {
+        if (value !== '') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
+      const response = await fetch(`${BASE_URL}/reporting/v2/so2-calculator/`, {
+        method: 'POST',
+        headers: { ...defaultHeaders },
+        body: JSON.stringify({
+          inputs: processedInputs.map(input => ({
+            label: input.label,
+            value: input.value
+          })),
+          start_date_time: startDateTime,
+          end_date_time: endDateTime,
+          site_name: siteName,
+          h2s_values: filteredH2sValues
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to calculate SO2');
+      const data = await response.json();
+      
+      // Transform the API response to match our frontend format
+      const transformedResults = Object.entries(data.results).reduce((acc, [key, value]: [string, any]) => {
+        acc[key] = {
+          hourlySO2: value.hourly_so2,
+          totalSO2: value.total_so2,
+          maxSO2: value.max_so2,
+          isExceeded: value.is_exceeded
+        };
+        return acc;
+      }, {} as Record<string, { hourlySO2: number; totalSO2: number; maxSO2: number; isExceeded: boolean }>);
+
+      setResults(transformedResults);
+    } catch (error) {
+      toast.error('Failed to calculate SO2');
+      console.error(error);
+    } finally {
+      setIsCalculating(false);
     }
-    const newResults: Record<string, { hourlySO2: number; totalSO2: number }> = {};
-    
-    processedInputs.forEach(({ label, value }) => {
-      const userValue = parseFloat(userInputs[label] || '0');
-      
-      // Formula 1: Multiply the user input by the predefined value
-      const hourlySO2 = ((userValue * (value/totalHours)) / 1000000) *  0.16;
-      
-      // Formula 2: Square the user input and multiply by the predefined value
-      const totalSO2 = hourlySO2 * totalHours;
-      
-      newResults[label] = { hourlySO2, totalSO2 };
-      console.log(newResults)
-    });
-    
-    setResults(newResults);
-    
-    // Save inputs to localStorage
-    localStorage.setItem('so2CalculatorInputs', JSON.stringify(userInputs));
   };
 
   return (
@@ -223,12 +237,12 @@ export default function SO2Calculator({ inputs, startDateTime, endDateTime, site
               {results[label] ? (
                 <>
                   <div className={`text-sm flex items-center ${
-                    results[label].hourlySO2 > (maxSO2 || 0) 
+                    results[label].isExceeded 
                       ? 'text-red-600 font-bold flex gap-2' 
                       : ''
                   }`}>
                     {results[label].hourlySO2.toFixed(2)}
-                    {results[label].hourlySO2 > (maxSO2 || 0) && (
+                    {results[label].isExceeded && (
                       <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs">
                         Exceeded
                       </span>
@@ -249,10 +263,46 @@ export default function SO2Calculator({ inputs, startDateTime, endDateTime, site
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-2">
-        <Button onClick={calculateResults} className="w-full">Calculate</Button>
-        {Object.entries(results).some(([_, result]) => 
-          result.hourlySO2 > (processedInputs.find(i => i.label === _)?.maxSO2 || 0)
-        ) && (
+        <Button 
+          onClick={calculateResults} 
+          className="w-full"
+          disabled={!startDateTime || !endDateTime || isCalculating}
+        >
+          {isCalculating ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Calculating...
+            </>
+          ) : (
+            'Calculate'
+          )}
+        </Button>
+        {(!startDateTime || !endDateTime) && (
+          <div className="text-amber-600 text-sm flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-alert-triangle"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            Please select a date range to calculate SO2 values
+          </div>
+        )}
+        {Object.values(results).some(result => result.isExceeded) && (
           <div className="text-red-600 text-sm">
             ⚠️ Some values exceed their maximum permitted SO2 limits
           </div>
