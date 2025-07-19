@@ -41,6 +41,7 @@ import {
 import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { type User, type Customer  } from '@/lib/types';
 import { SuggestedQuestions } from "../suggested-questions";
+import { MentionInput } from "./mention-input";
 
 // Type extension for Message with metadata
 type MessageWithMetadata = Message & {
@@ -424,9 +425,9 @@ export function Thread() {
                   >
                     <div className="p-3.5 pb-0">
                       <ReferencedTextDisplay />
-                      <textarea
+                      <MentionInput
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={setInput}
                         onKeyDown={(e) => {
                           if (
                             e.key === "Enter" &&
