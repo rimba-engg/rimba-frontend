@@ -7,6 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Loader2, Search } from 'lucide-react';
 import QueryTable from '@/components/table/QueryTable';
 import { Button } from '@/components/ui/button';
+import { TimezoneSelect } from '@/components/ui/timezone-select';
 
 // Add a function to style delta cells
 function deltaCellStyle(params: any): { backgroundColor: string; color: string } {
@@ -217,6 +218,7 @@ export default function FactorsOfRevenuePage() {
   const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
   const [endMonth, setEndMonth] = useState<number>(new Date().getMonth());
   const [endYear, setEndYear] = useState<number>(new Date().getFullYear());
+  const [timezone, setTimezone] = useState<string>('US/Central'); // Default timezone
 
   useEffect(() => {
     // Fetch data on component mount if site is selected
@@ -251,7 +253,8 @@ export default function FactorsOfRevenuePage() {
       const payload = {
         site_name: selected_site.name,
         start_datetime: startDate,
-        end_datetime: endDate
+        end_datetime: endDate,
+        timezone: timezone
       };
 
       const response = await api.post<FactorsOfRevenueResponse>('/reporting/v2/factors-of-revenue/', payload);
@@ -403,6 +406,14 @@ export default function FactorsOfRevenuePage() {
                   <option key={year.value} value={year.value}>{year.label}</option>
                 ))}
               </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="mb-1">Timezone</label>
+              <TimezoneSelect
+                value={timezone}
+                onValueChange={setTimezone}
+                className="w-48"
+              />
             </div>
             <Button 
               onClick={handleSearch}

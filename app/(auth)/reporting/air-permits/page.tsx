@@ -5,12 +5,16 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Download, Loader2 } from 'lucide-react'
 import { api, BASE_URL, defaultHeaders } from '@/lib/api' 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import { TimezoneSelect } from '@/components/ui/timezone-select';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
 import { DateTime } from 'luxon';
 import SO2Calculator from './so2_calculator';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
     return { backgroundColor: '#f5f5f5', fontWeight: 'bold' };
@@ -37,6 +41,7 @@ export default function AirPermitsPage() {
   const [loading, setLoading] = useState<boolean>(false)
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
+  const [timezone, setTimezone] = useState<string>('US/Eastern')
   const [rowData, setRowData] = useState<any[]>([])
   const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([])
   const [viewAggregate, setViewAggregate] = useState<any[]>([])
@@ -77,7 +82,7 @@ export default function AirPermitsPage() {
   // Fetch data when view or dates change
   useEffect(() => {
     fetchAirPermitsData();
-  }, [startDate, endDate, selectedSite]);
+  }, [startDate, endDate, selectedSite, timezone]);
 
   // Log selectedSite changes for debugging
   useEffect(() => {
@@ -125,7 +130,9 @@ export default function AirPermitsPage() {
     try {
       setLoading(true);
 
-      const payload: Record<string, any> = {};
+      const payload: Record<string, any> = {
+        timezone: timezone // Add timezone to payload
+      };
       // Only add dates to payload if they are set
       if (startDate) {
         payload.start_date = startDate;
@@ -182,7 +189,8 @@ export default function AirPermitsPage() {
       setLoading(true);
 
       const payload: Record<string, any> = {
-        use_average: useAverage
+        use_average: useAverage,
+        timezone: timezone // Add timezone to payload
       };
 
       // Only add dates to payload if they are set
@@ -245,128 +253,114 @@ export default function AirPermitsPage() {
   }
 
   return (
-    <div className="mx-auto space-y-6">
+    <div className="mx-auto space-y-3">
       <div className="text-2xl font-bold">Air Permits</div>
       
       {/* Controls and Calculator Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {/* Date Selection Controls */}
         <Card className="p-4 shadow-sm">
-          <CardHeader className="px-0 pt-0">
-            <CardTitle className="text-lg">Date Range Selection</CardTitle>
+          <CardHeader className="px-0 pt-0 pb-2">
+            <CardTitle className="text-lg flex items-center justify-between">
+              <span>Date Range Selection</span>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Timezone:</span>
+                <TimezoneSelect
+                  value={timezone}
+                  onValueChange={setTimezone}
+                  className="w-48"
+                />
+              </div>
+            </CardTitle>
           </CardHeader>
           <CardContent className="px-0 space-y-4">
-            {/* Direct Date Input */}
-            <div className="grid grid-cols-2 gap-4">
-              <FloatingLabelInput
-                label="Start Date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full"
-                max={endDate || today}
-              />
-              <FloatingLabelInput
-                label="End Date"
-                type="date"
-                min={startDate}
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full"
-                max={today}
-              />
-            </div>
-            
-            <Separator className="my-2" />
-            
-            {/* Gas Day Selection */}
-            <div>
-              <div className="text-sm text-muted-foreground mb-2">Or select a gas day</div>
-              <FloatingLabelInput
-                label="Gas Day"
-                type="date" 
-                className="w-full"
-                max={today}
-                onChange={(e) => {
-                  const selectedDate = DateTime.fromISO(e.target.value);
-                  const nextDay = selectedDate.plus({ days: 1 });
-                  // Store as YYYY-MM-DD strings
-                  setStartDate(selectedDate.toISODate() ?? '');
-                  setEndDate(nextDay.toISODate() ?? '');
-                }}
-              />
-            </div>
-            
-            <Separator className="my-2" />
-            
-            {/* Preset Date Ranges */}
-            <div>
-              <div className="text-sm text-muted-foreground mb-2">Or select a preset range</div>
-              <select 
-                className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                onChange={(e) => {
-                  const [unit, amount] = e.target.value.split('-');
-                  const now = DateTime.now();
-                  let start;
-                  let end = now;
-
-                  switch(unit) {
-                    case 'day':
-                      start = now.minus({ days: parseInt(amount) });
-                      break;
-                    case 'week':
-                      start = now.minus({ weeks: parseInt(amount) });
-                      break;
-                    case 'month':
-                      start = now.minus({ months: parseInt(amount) });
-                      break;
-                  }
-
-                  setStartDate(start?.toISODate() ?? '');
-                  setEndDate(end?.toISODate() ?? '');
-                }}
-              >
-                <option value="">Select Date Range</option>
-                <optgroup label="Days">
-                  {[1,2,3,4,5,6].map(n => (
-                    <option key={`day-${n}`} value={`day-${n}`}>Last {n} day{n > 1 ? 's' : ''}</option>
+            <Tabs defaultValue="range" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="range">Date Range</TabsTrigger>
+                <TabsTrigger value="gas">Gas Day</TabsTrigger>
+                <TabsTrigger value="preset">Presets</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="range" className="mt-0">
+                <div className="grid grid-cols-2 gap-4">
+                  <FloatingLabelInput
+                    label="Start Date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full"
+                    max={endDate || today}
+                  />
+                  <FloatingLabelInput
+                    label="End Date"
+                    type="date"
+                    min={startDate}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full"
+                    max={today}
+                  />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="gas" className="mt-0">
+                <FloatingLabelInput
+                  label="Select Gas Day"
+                  type="date" 
+                  className="w-full"
+                  max={today}
+                  onChange={(e) => {
+                    const selectedDate = DateTime.fromISO(e.target.value);
+                    const nextDay = selectedDate.plus({ days: 1 });
+                    setStartDate(selectedDate.toISODate() ?? '');
+                    setEndDate(nextDay.toISODate() ?? '');
+                  }}
+                />
+              </TabsContent>
+              
+              <TabsContent value="preset" className="mt-0">
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: '1 Day', unit: 'day', value: 1 },
+                    { label: '3 Days', unit: 'day', value: 3 },
+                    { label: '7 Days', unit: 'day', value: 7 },
+                    { label: '2 Weeks', unit: 'week', value: 2 },
+                    { label: '1 Month', unit: 'month', value: 1 },
+                    { label: '3 Months', unit: 'month', value: 3 },
+                  ].map(({ label, unit, value }) => (
+                    <Button
+                      key={`${unit}-${value}`}
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        const now = DateTime.now();
+                        const start = now.minus({ [unit + 's']: value });
+                        setStartDate(start.toISODate() ?? '');
+                        setEndDate(now.toISODate() ?? '');
+                      }}
+                    >
+                      {label}
+                    </Button>
                   ))}
-                </optgroup>
-                <optgroup label="Weeks">
-                  {[1,2,3,4].map(n => (
-                    <option key={`week-${n}`} value={`week-${n}`}>Last {n} week{n > 1 ? 's' : ''}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Months">
-                  {[1,2,3].map(n => (
-                    <option key={`month-${n}`} value={`month-${n}`}>Last {n} month{n > 1 ? 's' : ''}</option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
           <CardFooter className="px-0 pt-2 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <h3 className="font-medium text-sm">Report Type:</h3>
               <div className="flex items-center gap-2">
                 <span className="text-sm">{useAverage ? 'Average' : 'Sum'}</span>
-                <button 
-                  onClick={() => setUseAverage(!useAverage)} 
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useAverage ? 'bg-blue-500' : 'bg-gray-200'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useAverage ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+                <Switch
+                  checked={useAverage}
+                  onCheckedChange={setUseAverage}
+                />
               </div>
             </div>
-            <button
-              onClick={downloadReport}
-              className="text-primary-foreground bg-primary px-4 py-2 rounded hover:bg-primary/90 transition-colors"
-            >
-              <div className="flex flex-row items-center gap-2">
-                <Download size={18} />
-                <span>Download Report</span>
-              </div>
-            </button>
+            <Button onClick={downloadReport} className="flex items-center gap-2">
+              <Download size={18} />
+              <span>Download Report</span>
+            </Button>
           </CardFooter>
         </Card>
         
