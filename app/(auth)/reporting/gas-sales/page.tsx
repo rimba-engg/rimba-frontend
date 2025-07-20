@@ -48,9 +48,8 @@ export default function GasSalesPage() {
     const [chartConfig, setChartConfig] = useState<any>(null);
   
     const [loading, setLoading] = useState(true);
-
-    const [startDate, setStartDate] = useState<string>(DateTime.now().setZone('America/New_York').minus({ weeks: 1 }).toISO()?.slice(0, 10) ?? '');
-    const [endDate, setEndDate] = useState<string>(DateTime.now().setZone('America/New_York').toISO()?.slice(0, 10) ?? '');
+    const [startDate, setStartDate] = useState<string>(DateTime.now().minus({ weeks: 1 }).toISO()?.slice(0, 10) ?? '');
+    const [endDate, setEndDate] = useState<string>(DateTime.now().toISO()?.slice(0, 10) ?? '');
 
     const [relative, setRelative] = useState('Select time range...');
 
@@ -63,7 +62,6 @@ export default function GasSalesPage() {
     const fetchAnalytics = () => {
         setLoading(true);
        
-
       api.get<GasSalesResponse>('/reporting/v2/rng/analytics/gas-sales/?start_date=' + startDate + '&end_date=' + endDate)
           .then(data => {
               setChartConfig(data.chart_config);
@@ -73,9 +71,6 @@ export default function GasSalesPage() {
               toast.error('Error fetching gas sales data');
           })
           .finally(() => setLoading(false));
-
-
-        
     };
 
     if (loading) {
@@ -95,71 +90,76 @@ export default function GasSalesPage() {
 
         <div className="grid gap-6">
           {/* Date selection controls in a card with better spacing */}
-          <div className="bg-white rounded-lg shadow-sm px-6 flex flex-wrap items-center gap-6">
-            <div className="flex-1 flex flex-wrap gap-4 min-w-[300px]">
-              <FloatingLabelInput
-                label="Start Day (EST)"
-                type="date" 
-                className="flex-1 min-w-[200px]"
-                max={endDate}
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-              <FloatingLabelInput
-                label="End Day (EST)"
-                type="date"
-                className="flex-1 min-w-[200px]"
-                min={startDate}
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex flex-col gap-4">
+              {/* Date Range controls */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4" style={{ width: '100%' }}>
+                  <FloatingLabelInput
+                    label="Start Day"
+                    type="date" 
+                    className="flex-1"
+                    max={endDate}
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                  <FloatingLabelInput
+                    label="End Day"
+                    type="date"
+                    className="flex-1"
+                    min={startDate}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
 
-            <div className="flex items-center text-gray-500 font-medium px-2">OR</div>
+              {/* Quick Select Time Range Row */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-700 w-20">Quick Select:</span>
+                <select 
+                  className="w-[200px] px-4 py-2.5 border rounded-md text-sm"
+                  onChange={(e) => {
+                    const [unit, amount] = e.target.value.split('-');
+                    setRelative(`Last ${amount} ${unit}`);
+                    const now = DateTime.now();
+                    let start;
+                    let end = now;
 
-            <div className="flex-1 min-w-[200px]">
-              <select 
-                className="px-4 py-3 border rounded w-full"
-                onChange={(e) => {
-                  const [unit, amount] = e.target.value.split('-');
-                  setRelative(`Last ${amount} ${unit}`);
-                  const now = DateTime.now().setZone('America/New_York');
-                  let start;
-                  let end = now;
+                    switch(unit) {
+                      case 'day':
+                        start = now.minus({ days: parseInt(amount) });
+                        break;
+                      case 'week':
+                        start = now.minus({ weeks: parseInt(amount) });
+                        break;
+                      case 'month':
+                        start = now.minus({ months: parseInt(amount) });
+                        break;
+                    }
 
-                  switch(unit) {
-                    case 'day':
-                      start = now.minus({ days: parseInt(amount) });
-                      break;
-                    case 'week':
-                      start = now.minus({ weeks: parseInt(amount) });
-                      break;
-                    case 'month':
-                      start = now.minus({ months: parseInt(amount) });
-                      break;
-                  }
-
-                  setStartDate(start?.toISO()?.slice(0, 10) ?? '');
-                  setEndDate(end?.toISO()?.slice(0, 10) ?? '');
-                }}
-              >
-                <option value="">{relative}</option>
-                <optgroup label="Days">
-                  {[1,2,3,4,5,6].map(n => (
-                    <option key={`day-${n}`} value={`day-${n}`}>Last {n} day{n > 1 ? 's' : ''}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Weeks">
-                  {[1,2,3,4].map(n => (
-                    <option key={`week-${n}`} value={`week-${n}`}>Last {n} week{n > 1 ? 's' : ''}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Months">
-                  {[1,2,3].map(n => (
-                    <option key={`month-${n}`} value={`month-${n}`}>Last {n} month{n > 1 ? 's' : ''}</option>
-                  ))}
-                </optgroup>
-              </select>
+                    setStartDate(start?.toISO()?.slice(0, 10) ?? '');
+                    setEndDate(end?.toISO()?.slice(0, 10) ?? '');
+                  }}
+                >
+                  <option value="">{relative}</option>
+                  <optgroup label="Days">
+                    {[1,2,3,4,5,6].map(n => (
+                      <option key={`day-${n}`} value={`day-${n}`}>Last {n} day{n > 1 ? 's' : ''}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Weeks">
+                    {[1,2,3,4].map(n => (
+                      <option key={`week-${n}`} value={`week-${n}`}>Last {n} week{n > 1 ? 's' : ''}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Months">
+                    {[1,2,3].map(n => (
+                      <option key={`month-${n}`} value={`month-${n}`}>Last {n} month{n > 1 ? 's' : ''}</option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
             </div>
           </div>
 

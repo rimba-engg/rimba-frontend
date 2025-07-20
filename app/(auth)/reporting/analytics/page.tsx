@@ -2,6 +2,7 @@
 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { api, defaultHeaders ,BASE_URL} from '@/lib/api';
+import { TimezoneSelect } from '@/components/ui/timezone-select';
 
 import {
   Chart as ChartJS,
@@ -157,6 +158,7 @@ export default function AnalyticsPage() {
     const [chartConfigManureData, setChartConfigManureData] = useState<any>(null);
     const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
     const [manureDataSummary, setManureDataSummary] = useState<DataSummary | null>(null);
+    const [timezone, setTimezone] = useState<string>('US/Eastern');
   
     const [loading, setLoading] = useState(true);
     const [loadingManureData, setLoadingManureData] = useState(true);
@@ -173,7 +175,7 @@ export default function AnalyticsPage() {
     useEffect(() => {
         fetchAnalytics();
         fetchAnalyticsManureData();
-    }, [startDate, endDate, selectedSite]);
+    }, [startDate, endDate, selectedSite, timezone]);
 
     // Create chart config when data_summary changes
     useEffect(() => {
@@ -217,7 +219,8 @@ export default function AnalyticsPage() {
         api.post<AnalyticsResponse>('/reporting/v2/rng/analytics/', {
             start_date: startDate,
             end_date: endDate,
-            site_name: site_name
+            site_name: site_name,
+            timezone: timezone
         })
             .then(data => {
                 setDataSummary(data.data_summary);
@@ -245,7 +248,8 @@ export default function AnalyticsPage() {
       api.post<AnalyticsResponse>('/reporting/v2/rng/analytics/manure-flow/', {
           start_date: startDate,
           end_date: endDate,
-          site_name: site_name
+          site_name: site_name,
+          timezone: timezone
       })
           .then(data => {
               setManureDataSummary(data.data_summary);
@@ -269,7 +273,8 @@ export default function AnalyticsPage() {
           body: JSON.stringify({
             start_date: startDate,
             end_date: endDate,
-            site_name: JSON.parse(localStorage.getItem('selected_site') || '{}').name
+            site_name: JSON.parse(localStorage.getItem('selected_site') || '{}').name,
+            timezone: timezone
           })
         });
 
@@ -314,21 +319,32 @@ export default function AnalyticsPage() {
 
         <div className="flex gap-4">
           <div className="flex flex-col py-4 gap-4 w-1/4">
+            <div className="relative">
+              <TimezoneSelect 
+                value={timezone}
+                onValueChange={setTimezone}
+                className="w-full h-[42px] px-3 py-2 rounded-md border border-input"
+              />
+              <span className="absolute text-xs font-medium text-gray-700 bg-white px-1 -top-2 left-2">
+                Timezone
+              </span>
+            </div>
+            
             <div className="flex flex-row gap-4">
               <FloatingLabelInput
-                label="Start Day (EST)"
+                label="Start Day"
                 type="date" 
                 className="w-full"
-                max={DateTime.now().setZone('America/New_York').toISO()?.slice(0, 10) ?? ''}
+                max={DateTime.now().setZone(timezone).toISO()?.slice(0, 10) ?? ''}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
               <FloatingLabelInput
-                label="End Day (EST)"
+                label="End Day"
                 type="date"
                 className="w-full"
                 min={startDate}
-                max={DateTime.now().setZone('America/New_York').toISO()?.slice(0, 10) ?? ''}
+                max={DateTime.now().setZone(timezone).toISO()?.slice(0, 10) ?? ''}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />

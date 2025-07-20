@@ -2,6 +2,7 @@
 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { api } from '@/lib/api';
+import { TimezoneSelect } from '@/components/ui/timezone-select';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -49,12 +50,13 @@ export default function SiteUptimePage() {
     const [loading, setLoading] = useState(true);
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
+    const [timezone, setTimezone] = useState('US/Eastern');  // Add timezone state
     const [relative, setRelative] = useState('Last 2 days');  // Updated default text
     const [dateError, setDateError] = useState<string | null>(null);
     
     useEffect(() => {
         // Set default dates to last 2 days (midnight to midnight)
-        const now = DateTime.now().setZone('America/New_York').set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+        const now = DateTime.now().setZone(timezone).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
         const twoDaysAgo = now.minus({ days: 2 }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
         
         setStartDate(twoDaysAgo.toISO()?.slice(0, 16) ?? '');
@@ -62,11 +64,11 @@ export default function SiteUptimePage() {
         
         // Initial data fetch
         fetchAnalytics();
-    }, []);
+    }, [timezone]); // Add timezone dependency
 
     const validateDate = (date: string, isEndDate: boolean = false): boolean => {
-        const selectedDate = DateTime.fromISO(date, { zone: 'America/New_York' });
-        const now = DateTime.now().setZone('America/New_York');
+        const selectedDate = DateTime.fromISO(date, { zone: timezone });
+        const now = DateTime.now().setZone(timezone);
         
         if (selectedDate > now) {
             setDateError('Cannot select future dates');
@@ -85,13 +87,13 @@ export default function SiteUptimePage() {
         
         // If still empty, calculate defaults
         if (!start || !end) {
-            const now = DateTime.now().setZone('America/New_York').set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+            const now = DateTime.now().setZone(timezone).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
             const twoDaysAgo = now.minus({ days: 2 }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
             start = twoDaysAgo.toISO()?.slice(0, 16) ?? '';
             end = now.toISO()?.slice(0, 16) ?? '';
         }
         
-        api.get<UptimeResponse>(`/reporting/v2/rng/analytics/uptime/?start_datetime=${start}&end_datetime=${end}`)
+        api.get<UptimeResponse>(`/reporting/v2/rng/analytics/uptime/?start_datetime=${start}&end_datetime=${end}&timezone=${timezone}`)
         .then(data => {
             setChartConfig(data.chart_config);
             toast.success('Data loaded successfully', { position: 'bottom-right' });
@@ -121,95 +123,109 @@ export default function SiteUptimePage() {
         <div className="grid gap-6">
           {/* Date selection controls in a card with better spacing */}
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="flex-1 flex flex-wrap gap-4 min-w-[300px]">
-                <FloatingLabelInput
-                  label="Start Time (EST)"
-                  type="datetime-local"
-                  className="flex-1 min-w-[200px]"
-                  max={endDate}
-                  value={startDate}
-                  onChange={(e) => {
-                    if (validateDate(e.target.value)) {
-                      setStartDate(e.target.value);
-                    }
-                  }}
-                />
-                <FloatingLabelInput
-                  label="End Time (EST)"
-                  type="datetime-local"
-                  className="flex-1 min-w-[200px]"
-                  min={startDate}
-                  value={endDate}
-                  onChange={(e) => {
-                    if (validateDate(e.target.value, true)) {
-                      setEndDate(e.target.value);
-                    }
-                  }}
-                />
+            <div className="flex flex-col gap-4">
+              {/* Timezone and Date Range in one line */}
+              <div className="flex items-center gap-4">
+                <div className="relative" style={{ width: '10%' }}>
+                  <TimezoneSelect
+                    value={timezone}
+                    onValueChange={(value) => setTimezone(value)}
+                    className="w-full h-[42px] px-3 py-2 rounded-md border border-input"
+                  />
+                  <span className="absolute text-xs font-medium text-gray-700 bg-white px-1 -top-2 left-2">
+                    Timezone
+                  </span>
+                </div>
+                <div className="flex items-center gap-4" style={{ width: '90%' }}>
+                  <FloatingLabelInput
+                    label="Start Time"
+                    type="datetime-local"
+                    className="flex-1"
+                    max={endDate}
+                    value={startDate}
+                    onChange={(e) => {
+                      if (validateDate(e.target.value)) {
+                        setStartDate(e.target.value);
+                      }
+                    }}
+                  />
+                  <FloatingLabelInput
+                    label="End Time"
+                    type="datetime-local"
+                    className="flex-1"
+                    min={startDate}
+                    value={endDate}
+                    onChange={(e) => {
+                      if (validateDate(e.target.value, true)) {
+                        setEndDate(e.target.value);
+                      }
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center text-gray-500 font-medium px-2">OR</div>
+              {/* Quick Select and Search Button Row */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-gray-700 w-20">Quick Select:</span>
+                <div className="flex items-center gap-4">
+                  <select 
+                    className="w-[200px] px-4 py-2.5 border rounded-md text-sm"
+                    onChange={(e) => {
+                      const [unit, amount] = e.target.value.split('-');
+                      setRelative(`Last ${amount} ${unit}`);
+                      const now = DateTime.now().setZone(timezone).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+                      let start;
+                      let end = now;
 
-              <div className="flex-1 min-w-[200px]">
-                <select 
-                  className="px-4 py-3 border rounded w-full"
-                  onChange={(e) => {
-                    const [unit, amount] = e.target.value.split('-');
-                    setRelative(`Last ${amount} ${unit}`);
-                    const now = DateTime.now().setZone('America/New_York').set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-                    let start;
-                    let end = now;
+                      switch(unit) {
+                        case 'day':
+                          start = now.minus({ days: parseInt(amount) }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+                          break;
+                        case 'week':
+                          start = now.minus({ weeks: parseInt(amount) }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+                          break;
+                        case 'month':
+                          start = now.minus({ months: parseInt(amount) }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+                          break;
+                      }
 
-                    switch(unit) {
-                      case 'day':
-                        start = now.minus({ days: parseInt(amount) }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-                        break;
-                      case 'week':
-                        start = now.minus({ weeks: parseInt(amount) }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-                        break;
-                      case 'month':
-                        start = now.minus({ months: parseInt(amount) }).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-                        break;
-                    }
+                      const startDateStr = start?.toISO()?.slice(0, 16) ?? '';
+                      const endDateStr = end?.toISO()?.slice(0, 16) ?? '';
+                      setStartDate(startDateStr);
+                      setEndDate(endDateStr);
+                      fetchAnalytics(startDateStr, endDateStr);
+                    }}
+                  >
+                    <option value="">{relative}</option>
+                    <optgroup label="Days">
+                      {[1,2,3,4,5,6].map(n => (
+                        <option key={`day-${n}`} value={`day-${n}`}>Last {n} day{n > 1 ? 's' : ''}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Weeks">
+                      {[1,2,3,4].map(n => (
+                        <option key={`week-${n}`} value={`week-${n}`}>Last {n} week{n > 1 ? 's' : ''}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Months">
+                      {[1,2,3,4].map(n => (
+                        <option key={`month-${n}`} value={`month-${n}`}>Last {n} month{n > 1 ? 's' : ''}</option>
+                      ))}
+                    </optgroup>
+                  </select>
+                  <button
+                    onClick={() => fetchAnalytics()}
+                    className="px-6 py-2.5 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors min-w-[120px]"
+                  >
+                    Search
+                  </button>
+                </div>
 
-                    const startDateStr = start?.toISO()?.slice(0, 16) ?? '';
-                    const endDateStr = end?.toISO()?.slice(0, 16) ?? '';
-                    setStartDate(startDateStr);
-                    setEndDate(endDateStr);
-                    fetchAnalytics(startDateStr, endDateStr);
-                  }}
-                >
-                  <option value="">{relative}</option>
-                  <optgroup label="Days">
-                    {[1,2,3,4,5,6].map(n => (
-                      <option key={`day-${n}`} value={`day-${n}`}>Last {n} day{n > 1 ? 's' : ''}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Weeks">
-                    {[1,2,3,4].map(n => (
-                      <option key={`week-${n}`} value={`week-${n}`}>Last {n} week{n > 1 ? 's' : ''}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Months">
-                    {[1,2,3].map(n => (
-                      <option key={`month-${n}`} value={`month-${n}`}>Last {n} month{n > 1 ? 's' : ''}</option>
-                    ))}
-                  </optgroup>
-                </select>
+                {dateError && (
+                  <div className="text-destructive text-sm">{dateError}</div>
+                )}
               </div>
-
-              <button
-                onClick={() => fetchAnalytics()}
-                className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-              >
-                Search
-              </button>
             </div>
-
-            {dateError && (
-              <div className="mt-2 text-destructive text-sm">{dateError}</div>
-            )}
           </div>
 
           {/* Chart in a card with better size and responsiveness */}
