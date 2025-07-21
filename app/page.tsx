@@ -16,10 +16,7 @@ export default function Home() {
       const customer = getStoredCustomer();
       if (customer) {
         console.log("customer selected", customer);
-        if (customer.is_rng_customer)
-          router.push('/reporting/rng-mass-balance');  
-        else
-          router.push('/library/documents');  
+        router.push('/reporting/rng-mass-balance');  
       } else {
         console.log('user needs to select a customer account');
         router.push('/select-customer');  

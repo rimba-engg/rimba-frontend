@@ -12,7 +12,6 @@ interface Customer {
   name: string;
   description?: string;
   address?: string;
-  is_rng_customer: boolean;
   status: string;
 }
 
@@ -99,9 +98,6 @@ export default function CustomerTab({ customers, loading, statusFilter, onCustom
                       <td className="py-3 px-4">{customer.name}</td>
                       <td className="py-3 px-4">{customer.description || '-'}</td>
                       <td className="py-3 px-4">{customer.address || '-'}</td>
-                      <td className="py-3 px-4">
-                        {customer.is_rng_customer ? 'Yes' : 'No'}
-                      </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           customer.status === 'ACTIVE' 

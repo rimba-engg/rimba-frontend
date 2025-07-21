@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { selectCustomer } from '@/lib/auth';
 import { type Customer } from '@/lib/types';
-import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -36,11 +35,7 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
     try {
       const response = await selectCustomer(selectedCustomerId);
       if (response.status === 'success') {
-        const customer = getStoredCustomer();
-        if (customer?.is_rng_customer)
-          router.push('/reporting/rng-mass-balance');
-        else
-          router.push('/library/documents');
+        router.push('/reporting/rng-mass-balance');
       } else {
         setError('Failed to select customer account');
       }

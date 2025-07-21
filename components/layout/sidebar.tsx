@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   Menu,
   FileText,
-  Rocket,
+  House,
   ClipboardCheck,
   Brain,
+  FolderSearch2,
   ScrollText,
   UserCog,
   ChevronRight,
@@ -19,6 +20,8 @@ import {
   Library,
   BarChart3,
   BarChart2,
+  HandPlatter,
+  Warehouse,
   Scale,
   Database,
   GitGraph,
@@ -30,6 +33,7 @@ import {
   RecycleIcon,
   CloudCog,
   Puzzle,
+  Sheet,
   Map,
   Calendar,
   Activity,
@@ -37,13 +41,14 @@ import {
   Fuel,
   BarChartHorizontal,
   Lock,
+  ShieldCheck,
   BotMessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
 import { type Customer } from '@/lib/types';
 import { UnlockFeatureModal } from '@/components/ui/UnlockFeatureModal';
-import { isFeatureRestricted, getFeatureUpgradeMessage } from '@/config/featureRestrictions';
+import { isFeatureRestricted } from '@/config/featureRestrictions';
 
 interface MenuItem {
   icon: any;
@@ -59,71 +64,69 @@ interface MenuGroup {
   border?: boolean;
 }
 
-const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Customer | null): (MenuItem | MenuGroup)[] => [
-  { icon: Rocket, label: 'Onboarding', href: '/onboarding' },
+// TODO: Clean up menu, a lotta crap
+const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuItem | MenuGroup)[] => [
+  { icon: House, label: 'Dashboard', href: '/dashboard' },
   { icon: Map, label: 'Projects', href: '/projects', },
-  { icon: ClipboardCheck, label: 'Log of Issues', href: '/audit/projects' },
+  { icon: Scale, label: 'Methane Balance', href: '/reporting/rng-mass-balance', border: true },
+  { icon: BarChart2, label: 'Balance Summary', href: '/reporting/analytics' },
+  { icon: BarChart2, label: 'Factors of Revenue', href: '/reporting/factors-of-revenue' },
+  { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
+  { icon: Brain, label: 'Vertex', href: '/vertex' },
   {
-    icon: DollarSign,
-    label: 'Credit Programs',
+    icon: BarChart3,
+    label: 'Reports',
+    items: [
+      { icon: FileText, label: 'Missing Data', href: '/reporting/data-substitution' },
+      { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
+      { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
+      { icon: Activity, label: 'Site Uptime', href: '/reporting/uptime' },
+      { icon: Fuel, label: 'Gas Sales', href: '/reporting/gas-sales' },
+    ],
+  },
+  {
+    icon: ShieldCheck,
+    label: 'Compliance',
     items: [
       { icon: Landmark, label: 'Regulatory', href: '/standards' },
       { icon: Earth, label: 'Voluntary', href: '/registries' },
       { icon: ScrollText, label: 'Reg. Search', href: '/regsqa' },
       { icon: Calendar, label: 'Calendar', href: '/compliance/calendar' },
+      { icon: ClipboardCheck, label: 'Audit Manager', href: '/audit/projects' },
     ],
     border: true,
   },
   {
-    icon: Library,
-    label: 'Assets',
+    icon: HandPlatter,
+    label: 'Services',
     items: [
-      { icon: FileText, label: 'Documents', href: '/library/documents' }, 
-      { icon: FileText, label: 'Extractions', href: '/library/extractions' },
-      { icon: Download, label: 'Inventory', href: '/library/incomings' },
-      { icon: Upload, label: 'Dispensing', href: '/library/outgoings' },
+      { icon: CloudCog, label: 'CI Optimizer', href: '/ci_calculator' },
+      { icon: GitGraph, label: 'Scope 2', href: '/reporting/emission-scope-2' },
     ],
   },
-  ...(isRNGCustomer ? [
-    // RNG Case
-    {
-      icon: BarChart3,
-      label: 'Reports',
-      items: [
-        { icon: Scale, label: 'Methane Balance', href: '/reporting/rng-mass-balance' },
-        { icon: BarChart2, label: 'Balance Summary', href: '/reporting/analytics' },
-        { icon: BarChart2, label: 'Factors of Revenue', href: '/reporting/factors-of-revenue' },
-        { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
-        { icon: FileText, label: 'Missing Data', href: '/reporting/data-substitution' },
-        // { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
-        { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
-        { icon: Activity, label: 'Site Uptime', href: '/reporting/uptime' },
-        { icon: Fuel, label: 'Gas Sales', href: '/reporting/gas-sales' },
-      ],
-    },
-  ] : [
-    // non RNG Case
-    {
-    icon: BarChart3,
-    label: 'Reporting',
+  {
+    icon: Library,
+    label: 'Documents',
+    items: [
+      { icon: FolderSearch2, label: 'Finder', href: '/library/documents' }, 
+      { icon: Sheet, label: 'Tables', href: '/library/extractions' },
+      { icon: Download, label: 'Inventory', href: '/library/incomings' },
+      { icon: Upload, label: 'Dispensing', href: '/library/outgoings' },
+      { icon: Brain, label: 'AI Extractor', href: '/ai-extractor', border: true },
+    ],
+    border: true,
+  },
+  {
+    icon: Warehouse,
+    label: 'Warehouses',
     items: [
       { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
       { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
     ],
   },
-  ]),
   {
-    icon: RecycleIcon,
-    label: 'GHG',
-    items: [
-      { icon: CloudCog, label: 'CI Optimizer', href: '/ci_calculator' },
-      { icon: GitGraph, label: 'Scope 2', href: '/reporting/emission-scope-2' }
-    ],
-  },
-  { icon: Brain, label: 'AI Extractor', href: '/ai-extractor', border: true },
-  {
-    icon: DollarSign,
-    label: 'Prevailing Wage',
+    icon: Landmark,
+    label: 'IRS PW&A',
     items: [
       { icon: Gauge, label: 'Dashboard', href: '/prevailing-wage/dashboard' },
       { icon: FileText, label: 'Payroll Documents', href: '/prevailing-wage/payroll-documents' },
@@ -134,7 +137,6 @@ const getMenuItems = (isAdmin: boolean, isRNGCustomer: boolean, customerData: Cu
       { icon: UserCog, label: 'Contractor Management', href: '/prevailing-wage/contractor-management' },
     ],
   },
-  { icon: BotMessageSquare, label: 'Vertex', href: '/vertex', border: true },
 
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management'}] : []),
   ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
@@ -146,7 +148,6 @@ export function Sidebar() {
   const [expandedGroup, setExpandedGroup] = useState<string | null>('Library');
   const [customerData, setCustomerData] = useState<Customer | null>(null);
   const pathname = usePathname();
-  const router = useRouter();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [lockedFeature, setLockedFeature] = useState('');
   
@@ -156,8 +157,7 @@ export function Sidebar() {
   }, []);
 
   const isAdmin = customerData?.role === 'ADMIN' || customerData?.role === 'SUPER_ADMIN';
-  const isRNGCustomer = customerData?.is_rng_customer ?? false;
-  const menuItems = getMenuItems(isAdmin, isRNGCustomer, customerData);
+  const menuItems = getMenuItems(isAdmin, customerData);
 
   const toggleGroup = (label: string) => {
     setExpandedGroup(current => current === label ? null : label);
