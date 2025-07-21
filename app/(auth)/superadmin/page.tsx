@@ -1,9 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CustomerTab from './customers/CustomerTab';
 import UserTab from './UserTab';
@@ -15,7 +12,6 @@ interface Customer {
   name: string;
   description?: string;
   address?: string;
-  is_rng_customer: boolean;
   status: string;
   created_at: string;
 }

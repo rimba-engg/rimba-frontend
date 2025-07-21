@@ -11,7 +11,6 @@ export interface Customer {
   id: string;
   name: string;
   role: string;
-  is_rng_customer: boolean;
   status?: 'ACTIVE' | 'INACTIVE';
   description?: string;
   address?: string;

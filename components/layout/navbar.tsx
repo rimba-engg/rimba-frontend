@@ -156,31 +156,27 @@ export function Navbar() {
   return (
     <header className="h-14 border-b bg-card px-4 flex items-center justify-between">
       <div className="flex w-full justify-between items-center gap-2">
-        {
-          customerData?.is_rng_customer && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors">
-                  <span className="text-sm font-medium">{selectedSite.name}</span>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                {sites.map((site) => (
-                  <DropdownMenuItem 
-                    key={site.name} 
-                    onClick={() => handleSiteChange(site)}
-                    className={selectedSite.name === site.name ? "bg-muted" : ""}
-                  >
-                    {site.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )
-        }
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors">
+              <span className="text-sm font-medium">{selectedSite.name}</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            {sites.map((site) => (
+              <DropdownMenuItem 
+                key={site.name} 
+                onClick={() => handleSiteChange(site)}
+                className={selectedSite.name === site.name ? "bg-muted" : ""}
+              >
+                {site.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="flex items-center gap-2">
           <Notifications />
