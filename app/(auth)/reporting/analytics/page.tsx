@@ -21,6 +21,8 @@ import { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
 import QueryTable from '@/components/table/QueryTable';
+import CustomColumnAdder from '@/components/table/CustomColumnAdder';
+import type { Column, DataFrameType } from '@/components/table/CustomColumnAdder';
 
 // Register ChartJS components
 ChartJS.register(
@@ -168,6 +170,7 @@ export default function AnalyticsPage() {
     const [rowData, setRowData] = useState<any>([]);
     const [totals, setTotals] = useState<any>(null);
     const [columnDefs, setColumnDefs] = useState<any>([]);
+    const [dataFrame, setDataFrame] = useState<DataFrameType>({});
     const [relative, setRelative] = useState('Select time range...');
     const [selectedSite, setSelectedSite] = useState<string>('');
     const [isDownloading, setIsDownloading] = useState(false);
@@ -176,6 +179,30 @@ export default function AnalyticsPage() {
         fetchAnalytics();
         fetchAnalyticsManureData();
     }, [startDate, endDate, selectedSite, timezone]);
+
+    // Add this new function to handle new column addition
+    const handleColumnAdded = (newData: DataFrameType, newColumn: Column) => {
+        // Update the dataframe with new data
+        setDataFrame(newData);
+        
+        // Convert the new data to row format
+        const newRowData = Object.keys(newData[Object.keys(newData)[0]]).map((index) => {
+            const row: Record<string, number | string> = {};
+            Object.keys(newData).forEach((key) => {
+                row[key] = newData[key][parseInt(index)];
+            });
+            return row;
+        });
+        
+        // Update row data
+        setRowData(newRowData);
+        
+        // Add the new column definition
+        setColumnDefs([...columnDefs, {
+            headerName: newColumn.label,
+            field: newColumn.key
+        }]);
+    };
 
     // Create chart config when data_summary changes
     useEffect(() => {
@@ -226,6 +253,16 @@ export default function AnalyticsPage() {
                 setDataSummary(data.data_summary);
                 setRowData(data.table_data);
                 setTotals(data.totals);
+                
+                // Convert row data to dataframe format
+                const newDataFrame: DataFrameType = {};
+                if (data.table_data.length > 0) {
+                    Object.keys(data.table_data[0]).forEach(key => {
+                        newDataFrame[key] = data.table_data.map((row: Record<string, number | string>) => row[key]);
+                    });
+                    setDataFrame(newDataFrame);
+                }
+                
                 // set column defs
                 setColumnDefs(Object.keys(data.table_data[0]).map((key: any) => {
                     return {
@@ -428,6 +465,16 @@ export default function AnalyticsPage() {
             )}
             <ToastContainer />
           </div>
+        </div>
+        
+        <div className="flex justify-end mb-4">
+            <CustomColumnAdder
+                dataFrame={dataFrame}
+                onColumnAdded={handleColumnAdded}
+                buttonVariant="outline"
+                buttonText="Add Custom Column"
+                className="bg-primary text-white hover:bg-primary/90"
+            />
         </div>
         
         <QueryTable
