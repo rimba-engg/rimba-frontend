@@ -12,6 +12,12 @@ export interface Customer {
   name: string;
   role: string;
   is_rng_customer: boolean;
+  status?: 'ACTIVE' | 'INACTIVE';
+  description?: string;
+  address?: string;
+  departments?: string[];
+  billing_address?: string;
+  websites?: string[];
 }
 
 export interface UserInfoResponse {

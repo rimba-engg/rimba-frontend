@@ -25,6 +25,7 @@ export default function CallbackPage() {
           const accessToken = response.access_token;
           const idToken = response.id_token;
           const customerId = localStorage.getItem('customer_id') || '';
+          console.log('customerId', customerId);
           if (!customerId) {
             router.push('/select-customer');
           }
@@ -62,8 +63,8 @@ export default function CallbackPage() {
           }
 
           // for debugging
-          console.log('user from backend', userInfoResponse?.user);
-          console.log('all_customers from backend', userInfoResponse?.customers);
+          console.log('user: User', userInfoResponse?.user);
+          console.log('customers: List', userInfoResponse?.customers);
 
           // if there is only one customer, select it
           if (userInfoResponse?.customers && userInfoResponse.customers.length === 1) {
