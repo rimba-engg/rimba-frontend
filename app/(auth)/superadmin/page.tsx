@@ -16,6 +16,7 @@ interface Customer {
   description?: string;
   address?: string;
   is_rng_customer: boolean;
+  status: string;
   created_at: string;
 }
 
@@ -24,11 +25,13 @@ export default function SuperAdminPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('ACTIVE');
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (status?: string) => {
     try {
       setLoading(true);
-      const response: any = await api.get('/user-mgt/v2/customer/');
+      const url = status ? `/user-mgt/v2/customer/?status=${status}` : '/user-mgt/v2/customer/';
+      const response: any = await api.get(url);
       if (response.success) {
         setCustomers(response.data);
       } else {
@@ -43,8 +46,12 @@ export default function SuperAdminPage() {
   };
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    fetchCustomers(statusFilter);
+  }, [statusFilter]);
+
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+  };
 
   return (
     <div className="flex h-screen">
@@ -70,7 +77,9 @@ export default function SuperAdminPage() {
             <CustomerTab 
               customers={customers}
               loading={loading}
-              onCustomerCreated={() => fetchCustomers()}
+              statusFilter={statusFilter}
+              onCustomerCreated={() => fetchCustomers(statusFilter)}
+              onStatusFilterChange={handleStatusFilterChange}
             />
           </TabsContent>
 

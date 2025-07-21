@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const { version } = require('./package.json');
+
 const nextConfig = {
   env: {
     APP_VERSION: version,
@@ -9,12 +10,18 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
+  // Add proper Turbopack configuration
+  turbopack: {
+    // Configure module resolution if needed
+    resolveAlias: {
+      // Add any custom aliases here if needed
+    },
+  },
 };
 
 module.exports = nextConfig;
 
 // Injected content via Sentry wizard below
-
 const { withSentryConfig } = require("@sentry/nextjs");
 
 module.exports = withSentryConfig(
@@ -35,11 +42,8 @@ module.exports = withSentryConfig(
     // Upload a larger set of source maps for prettier stack traces (increases build time)
     widenClientFileUpload: true,
 
-    // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-    // This can increase your server load as well as your hosting bill.
-    // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-    // side errors will fail.
-    tunnelRoute: "/monitoring",
+    // Disable tunnelRoute for static exports as it's incompatible
+    // tunnelRoute: "/monitoring", // Commented out due to static export incompatibility
 
     // Automatically tree-shake Sentry logger statements to reduce bundle size
     disableLogger: true,

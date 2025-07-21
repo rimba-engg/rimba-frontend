@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AddCustomerModal from './AddCustomerModal';
 import AddAdminUserModal from './AddAdminUserModal';
 
@@ -12,15 +13,18 @@ interface Customer {
   description?: string;
   address?: string;
   is_rng_customer: boolean;
+  status: string;
 }
 
 interface CustomerTabProps {
   customers: Customer[];
   loading: boolean;
+  statusFilter: string;
   onCustomerCreated: () => void;
+  onStatusFilterChange: (status: string) => void;
 }
 
-export default function CustomerTab({ customers, loading, onCustomerCreated }: CustomerTabProps) {
+export default function CustomerTab({ customers, loading, statusFilter, onCustomerCreated, onStatusFilterChange }: CustomerTabProps) {
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [createdCustomer, setCreatedCustomer] = useState<Customer | null>(null);
 
@@ -52,7 +56,24 @@ export default function CustomerTab({ customers, loading, onCustomerCreated }: C
               <CardTitle>Customer Management</CardTitle>
               <CardDescription>View and manage customer accounts</CardDescription>
             </div>
-            <Button onClick={() => setShowAddCustomerModal(true)}>Add Customer</Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label htmlFor="status-filter" className="text-sm font-medium">
+                  Status:
+                </label>
+                <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="">All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={() => setShowAddCustomerModal(true)}>Add Customer</Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -69,6 +90,7 @@ export default function CustomerTab({ customers, loading, onCustomerCreated }: C
                     <th className="py-3 px-4 text-left font-medium">Description</th>
                     <th className="py-3 px-4 text-left font-medium">Address</th>
                     <th className="py-3 px-4 text-left font-medium">RNG Customer</th>
+                    <th className="py-3 px-4 text-left font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -79,6 +101,15 @@ export default function CustomerTab({ customers, loading, onCustomerCreated }: C
                       <td className="py-3 px-4">{customer.address || '-'}</td>
                       <td className="py-3 px-4">
                         {customer.is_rng_customer ? 'Yes' : 'No'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          customer.status === 'ACTIVE' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {customer.status}
+                        </span>
                       </td>
                     </tr>
                   ))}

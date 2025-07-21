@@ -1,4 +1,4 @@
-import { api, BASE_URL,defaultHeaders } from './api';
+import { api } from './api';
 import { User, Customer, SelectCustomerResponse, UserInfoResponse } from './types';
 
 export function getStoredUser(): User | null {
@@ -15,6 +15,17 @@ export function getStoredUser(): User | null {
 export function getStoredCustomer(): Customer | null {
   if (typeof window === 'undefined') return null;
   const stored = localStorage.getItem('selected_customer');
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return null;
+  }
+}
+
+export function getStoredCustomers(): Customer[] | null {
+  if (typeof window === 'undefined') return null;
+  const stored = localStorage.getItem('all_customers');
   if (!stored) return null;
   try {
     return JSON.parse(stored);
@@ -94,7 +105,6 @@ export function logout() {
   api.logout();
   localStorage.removeItem('user');
   localStorage.removeItem('selected_customer');
-  localStorage.removeItem('all_customers');
   localStorage.removeItem('access_token');
   localStorage.removeItem('id_token');
   localStorage.removeItem('customer_id');

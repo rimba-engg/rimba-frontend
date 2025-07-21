@@ -84,11 +84,6 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
                       <span className="text-sm text-muted-foreground">
                         Role: {customer.role}
                       </span>
-                      {(customer?.is_rng_customer) && (
-                        <span className="px-2 text-xs bg-primary/10 text-primary rounded-full inline-block w-fit">
-                          RNG Customer
-                        </span>
-                      )}
                     </div>
                   </SelectItem>
                 ))}
