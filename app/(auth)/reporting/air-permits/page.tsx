@@ -15,6 +15,10 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import CustomColumnAdder, { DataFrameType } from '@/components/table/CustomColumnAdder';
+
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
     return { backgroundColor: '#f5f5f5', fontWeight: 'bold' };
@@ -48,7 +52,10 @@ export default function AirPermitsPage() {
   const [useAverage, setUseAverage] = useState<boolean>(true)
   const [so2Inputs, setSo2Inputs] = useState<any[]>([])
   const [selectedSite, setSelectedSite] = useState<string>('')
-  
+  const [newColumn, setNewColumn] = useState({ name: "", formula: "" });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dataFrame, setDataFrame] = useState<DataFrameType>({});
+
   // Get today's date in YYYY-MM-DD format to restrict future date selection
   const today = DateTime.now().toISODate() ?? ''
 
@@ -123,6 +130,17 @@ export default function AirPermitsPage() {
           };
         })
       );
+    }
+  }, [rowData]);
+
+  // Convert rowData to dataFrame format when it changes
+  useEffect(() => {
+    if (rowData.length > 0) {
+      const newDataFrame: DataFrameType = {};
+      Object.keys(rowData[0]).forEach(key => {
+        newDataFrame[key] = rowData.map(row => row[key]);
+      });
+      setDataFrame(newDataFrame);
     }
   }, [rowData]);
 
@@ -240,6 +258,24 @@ export default function AirPermitsPage() {
       setLoading(false);
     }
   }
+
+  const handleColumnAdded = (newData: DataFrameType, newColumn: { key: string; label: string }) => {
+    // Convert the returned dataframe back to row format
+    const newRowData = Object.keys(newData[newColumn.key]).map((_, idx: number) => {
+      const row = { ...rowData[idx] };
+      row[newColumn.key] = newData[newColumn.key][idx];
+      return row;
+    });
+
+    // Update state with new data
+    setRowData(newRowData);
+    setColumnDefs([...columnDefs, {
+      field: newColumn.key,
+      headerName: newColumn.label,
+      type: 'string',
+      valueFormatter: numberFormatter
+    } as ColumnWithType]);
+  };
 
   if (loading) {
     return (
@@ -366,6 +402,16 @@ export default function AirPermitsPage() {
         
         {/* SO2 Calculator */}
         <SO2Calculator inputs={so2Inputs} startDateTime={startDate} endDateTime={endDate} siteName={selectedSite} />
+      </div>
+
+      {/* Formula Column Addition */}
+      <div className="flex justify-end mb-4">
+        <CustomColumnAdder
+          dataFrame={dataFrame}
+          onColumnAdded={handleColumnAdded}
+          buttonVariant="default"
+          buttonText="Add Custom Column"
+        />
       </div>
 
       {/* Data Table */}

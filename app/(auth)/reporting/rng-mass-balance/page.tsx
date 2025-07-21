@@ -29,6 +29,7 @@ import { Info, Loader2 } from 'lucide-react';
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
+import CustomColumnAdder, { type DataFrameType } from '@/components/table/CustomColumnAdder';
 // Register necessary components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -144,6 +145,9 @@ export default function RngMassBalancePage() {
   const [csvLoading, setCsvLoading] = useState(false);
   const [formattedDateRange, setFormattedDateRange] = useState<string>('');
 
+  // Add new state for dataframe
+  const [dataFrame, setDataFrame] = useState<DataFrameType>({});
+
   // Remove the useEffect for default dates as it's handled by DateTimeSelector now
   useEffect(() => {
     // Initialize selected site from localStorage
@@ -166,19 +170,24 @@ export default function RngMassBalancePage() {
     }
   }, [selectedView, selectedSite]);
 
-  // set column defs based on rowData
+  // Update the useEffect that processes rowData to also update dataFrame
   useEffect(() => {
     if (rowData && rowData.length > 0) {
+      // Update column definitions
       setColumnDefs(
         Object.keys(rowData[0]).map((key) => ({
           field: key,
           headerName: key,
-          sortable: true,
-          filter: key === 'Timestamp' ? 'agDateColumnFilter' : 'agNumberColumnFilter',
-          type: key === 'Timestamp' ? 'date' : 'number',
-          valueFormatter: key === 'Timestamp' ? undefined : numberFormatter,
+          type: key === 'Timestamp' ? 'date' : 'number'
         })) as ColumnWithType[]
       );
+
+      // Create dataFrame structure
+      const newDataFrame: DataFrameType = {};
+      Object.keys(rowData[0]).forEach(key => {
+        newDataFrame[key] = rowData.map(row => row[key]);
+      });
+      setDataFrame(newDataFrame);
     }
   }, [rowData]);
 
@@ -387,6 +396,29 @@ export default function RngMassBalancePage() {
 
   // Remove validateDate function as it's handled by DateTimeSelector now
 
+  // Add handler for new columns
+  const handleColumnAdded = (newData: DataFrameType, newColumn: { key: string; label: string }) => {
+    // Update dataFrame with new data
+    setDataFrame(newData);
+
+    // Convert the new column data back to row format
+    const updatedRowData = rowData.map((row, index) => ({
+      ...row,
+      [newColumn.key]: newData[newColumn.key][index]
+    }));
+
+    // Update rowData and columnDefs
+    setRowData(updatedRowData);
+    setColumnDefs([
+      ...columnDefs,
+      {
+        field: newColumn.key,
+        headerName: newColumn.label,
+        type: 'number'
+      } as ColumnWithType
+    ]);
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -515,6 +547,16 @@ export default function RngMassBalancePage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <CustomColumnAdder
+          dataFrame={dataFrame}
+          onColumnAdded={handleColumnAdded}
+          buttonVariant="default"
+          buttonText="Add Custom Column"
+          className="bg-primary text-white hover:bg-primary/90"
+        />
       </div>
 
       <QueryTable
