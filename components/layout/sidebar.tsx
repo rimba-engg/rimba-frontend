@@ -10,6 +10,7 @@ import {
   House,
   ClipboardCheck,
   Brain,
+  FolderSearch2,
   ScrollText,
   UserCog,
   ChevronRight,
@@ -19,6 +20,8 @@ import {
   Library,
   BarChart3,
   BarChart2,
+  HandPlatter,
+  Warehouse,
   Scale,
   Database,
   GitGraph,
@@ -30,6 +33,7 @@ import {
   RecycleIcon,
   CloudCog,
   Puzzle,
+  Sheet,
   Map,
   Calendar,
   Activity,
@@ -44,7 +48,7 @@ import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
 import { type Customer } from '@/lib/types';
 import { UnlockFeatureModal } from '@/components/ui/UnlockFeatureModal';
-import { isFeatureRestricted, getFeatureUpgradeMessage } from '@/config/featureRestrictions';
+import { isFeatureRestricted } from '@/config/featureRestrictions';
 
 interface MenuItem {
   icon: any;
@@ -64,10 +68,11 @@ interface MenuGroup {
 const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuItem | MenuGroup)[] => [
   { icon: House, label: 'Dashboard', href: '/dashboard' },
   { icon: Map, label: 'Projects', href: '/projects', },
-  { icon: Scale, label: 'Methane Balance', href: '/reporting/rng-mass-balance' },
+  { icon: Scale, label: 'Methane Balance', href: '/reporting/rng-mass-balance', border: true },
   { icon: BarChart2, label: 'Balance Summary', href: '/reporting/analytics' },
   { icon: BarChart2, label: 'Factors of Revenue', href: '/reporting/factors-of-revenue' },
   { icon: Wind, label: 'Air Permits', href: '/reporting/air-permits' },
+  { icon: Brain, label: 'Vertex', href: '/vertex' },
   {
     icon: BarChart3,
     label: 'Reports',
@@ -80,14 +85,6 @@ const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuIte
     ],
   },
   {
-    icon: BarChart3,
-    label: 'Warehouses',
-    items: [
-      { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
-      { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
-    ],
-  },
-  {
     icon: ShieldCheck,
     label: 'Compliance',
     items: [
@@ -95,32 +92,41 @@ const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuIte
       { icon: Earth, label: 'Voluntary', href: '/registries' },
       { icon: ScrollText, label: 'Reg. Search', href: '/regsqa' },
       { icon: Calendar, label: 'Calendar', href: '/compliance/calendar' },
-      { icon: ClipboardCheck, label: 'Log of Issues', href: '/audit/projects' },
+      { icon: ClipboardCheck, label: 'Audit Manager', href: '/audit/projects' },
     ],
     border: true,
   },
   {
-    icon: Library,
-    label: 'Assets',
-    items: [
-      { icon: FileText, label: 'Documents', href: '/library/documents' }, 
-      { icon: FileText, label: 'Extractions', href: '/library/extractions' },
-      { icon: Download, label: 'Inventory', href: '/library/incomings' },
-      { icon: Upload, label: 'Dispensing', href: '/library/outgoings' },
-    ],
-  },
-  {
-    icon: RecycleIcon,
-    label: 'GHG',
+    icon: HandPlatter,
+    label: 'Services',
     items: [
       { icon: CloudCog, label: 'CI Optimizer', href: '/ci_calculator' },
-      { icon: GitGraph, label: 'Scope 2', href: '/reporting/emission-scope-2' }
+      { icon: GitGraph, label: 'Scope 2', href: '/reporting/emission-scope-2' },
     ],
   },
-  { icon: Brain, label: 'AI Extractor', href: '/ai-extractor', border: true },
   {
-    icon: DollarSign,
-    label: 'Prevailing Wage',
+    icon: Library,
+    label: 'Documents',
+    items: [
+      { icon: FolderSearch2, label: 'Finder', href: '/library/documents' }, 
+      { icon: Sheet, label: 'Tables', href: '/library/extractions' },
+      { icon: Download, label: 'Inventory', href: '/library/incomings' },
+      { icon: Upload, label: 'Dispensing', href: '/library/outgoings' },
+      { icon: Brain, label: 'AI Extractor', href: '/ai-extractor', border: true },
+    ],
+    border: true,
+  },
+  {
+    icon: Warehouse,
+    label: 'Warehouses',
+    items: [
+      { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
+      { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
+    ],
+  },
+  {
+    icon: Landmark,
+    label: 'IRS PW&A',
     items: [
       { icon: Gauge, label: 'Dashboard', href: '/prevailing-wage/dashboard' },
       { icon: FileText, label: 'Payroll Documents', href: '/prevailing-wage/payroll-documents' },
@@ -131,7 +137,6 @@ const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuIte
       { icon: UserCog, label: 'Contractor Management', href: '/prevailing-wage/contractor-management' },
     ],
   },
-  { icon: BotMessageSquare, label: 'Vertex', href: '/vertex', border: true },
 
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management'}] : []),
   ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
