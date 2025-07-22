@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import CustomColumnAdder, { DataFrameType } from '@/components/table/CustomColumnAdder';
+import { Column } from '@/components/table/CustomColumnAdder';
 
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
@@ -112,13 +113,19 @@ export default function AirPermitsPage() {
         Object.keys(rowData[0]).map((key) => {
           const sampleValue = rowData[0][key];
           let valueFormatter = undefined;
+          let type: 'string' | 'number' | 'boolean' | 'date' = 'string';
           
           if (key === 'Day' || key.includes('manual_check')) {
-            // No formatter for Day column or manual check columns (already converted to strings)
+            // No formatter for Day column or manual check columns
             valueFormatter = undefined;
           } else if (typeof sampleValue === 'number') {
             // Number formatter for numeric values
             valueFormatter = numberFormatter;
+            type = 'number';
+          } else if (sampleValue instanceof Date) {
+            type = 'date';
+          } else if (typeof sampleValue === 'boolean') {
+            type = 'boolean';
           }
           
           return {
@@ -126,8 +133,8 @@ export default function AirPermitsPage() {
             headerName: key,
             sortable: true,
             valueFormatter,
-            type: 'string',
-          };
+            type,
+          } as ColumnWithType;
         })
       );
     }
@@ -259,7 +266,8 @@ export default function AirPermitsPage() {
     }
   }
 
-  const handleColumnAdded = (newData: DataFrameType, newColumn: { key: string; label: string }) => {
+  const handleColumnAdded = (newData: DataFrameType, newColumn: Column) => {
+    console.log('handleColumnAdded called with:', { newData, newColumn });
     // Convert the returned dataframe back to row format
     const newRowData = Object.keys(newData[newColumn.key]).map((_, idx: number) => {
       const row = { ...rowData[idx] };
@@ -267,14 +275,111 @@ export default function AirPermitsPage() {
       return row;
     });
 
-    // Update state with new data
-    setRowData(newRowData);
-    setColumnDefs([...columnDefs, {
+    // Determine the type based on the first value
+    const sampleValue = newData[newColumn.key][0];
+    let type: 'string' | 'number' | 'boolean' | 'date' = 'string';
+    if (typeof sampleValue === 'number') {
+      type = 'number';
+    } else if (Object.prototype.toString.call(sampleValue) === '[object Date]') {
+      type = 'date';
+    } else if (typeof sampleValue === 'boolean') {
+      type = 'boolean';
+    }
+
+    // Create new column definition
+    const newColumnDef = {
       field: newColumn.key,
       headerName: newColumn.label,
-      type: 'string',
-      valueFormatter: numberFormatter
-    } as ColumnWithType]);
+      type,
+      sortable: true,
+      formula: newColumn.formula
+    } as ColumnWithType;
+
+    // Add number formatter if needed
+    if (type === 'number') {
+      Object.assign(newColumnDef, { valueFormatter: numberFormatter });
+    }
+
+    // Update state with new data
+    setRowData(newRowData);
+    setColumnDefs(prevDefs => [...prevDefs, newColumnDef]);
+    setDataFrame(newData);
+
+    // Log for debugging
+    console.log('Added new column definition:', newColumnDef);
+    console.log('Updated columnDefs:', columnDefs);
+    console.log('Updated dataFrame:', newData);
+  };
+
+  // Add handler for formula updates from the table header
+  const handleFormulaUpdate = async (field: string, formula: string) => {
+    console.log('handleFormulaUpdate called with:', { field, formula });
+    console.log('Current dataFrame:', dataFrame);
+    try {
+      const response = await api.post<{ status: string; message: string; data: DataFrameType }>('/reporting/v2/formula-calculator/', {
+        dataframe: dataFrame,
+        formula: formula,
+        new_column: field,
+      });
+
+      console.log('Formula calculator response:', response);
+
+      if (response.status === 'success') {
+        // Update the dataframe with new data
+        setDataFrame(response.data);
+        
+        // Convert the new data to row format
+        const updatedRowData = Object.keys(response.data[Object.keys(response.data)[0]]).map((index) => {
+          const row: Record<string, number | string> = {};
+          Object.keys(response.data).forEach((key) => {
+            row[key] = response.data[key][parseInt(index)];
+          });
+          return row;
+        });
+        
+        // Update rowData
+        setRowData(updatedRowData);
+        
+        // Update the column definition
+        setColumnDefs(prevDefs => prevDefs.map(col => 
+          col.field === field 
+            ? { ...col, formula: formula }
+            : col
+        ));
+
+        console.log('Formula update successful');
+        console.log('Updated dataFrame:', response.data);
+        console.log('Updated rowData:', updatedRowData);
+
+        toast.success('Formula updated successfully');
+      } else {
+        throw new Error(response.message || 'Failed to apply formula');
+      }
+    } catch (error) {
+      console.error('Error updating formula:', error);
+      toast.error(error instanceof Error ? error.message : 'An error occurred');
+    }
+  };
+
+  // Add handler for column deletion
+  const handleColumnDelete = (field: string) => {
+    // Remove the column from dataFrame
+    const newDataFrame = { ...dataFrame };
+    delete newDataFrame[field];
+    setDataFrame(newDataFrame);
+
+    // Remove the column from rowData
+    const newRowData = rowData.map(row => {
+      const newRow = { ...row };
+      delete newRow[field];
+      return newRow;
+    });
+    setRowData(newRowData);
+
+    // Remove the column from columnDefs
+    setColumnDefs(prevDefs => prevDefs.filter(col => col.field !== field));
+
+    toast.success('Column deleted successfully');
   };
 
   if (loading) {
@@ -419,6 +524,8 @@ export default function AirPermitsPage() {
         <QueryTable
           initialRowData={rowData}
           initialColumnDefs={columnDefs}
+          onColumnFormulaUpdate={handleFormulaUpdate}
+          onColumnDelete={handleColumnDelete}
           pinnedTopRowData={[viewAggregate]}
           getRowStyle={getRowStyle}
         />
