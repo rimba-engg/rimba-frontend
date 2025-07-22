@@ -23,6 +23,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import QueryTable from '@/components/table/QueryTable';
 import CustomColumnAdder from '@/components/table/CustomColumnAdder';
 import type { Column, DataFrameType } from '@/components/table/CustomColumnAdder';
+import { ColumnWithType } from '@/components/table/QueryTable';
 
 // Register ChartJS components
 ChartJS.register(
@@ -197,11 +198,93 @@ export default function AnalyticsPage() {
         // Update row data
         setRowData(newRowData);
         
-        // Add the new column definition
+        // Add the new column definition with formula
         setColumnDefs([...columnDefs, {
             headerName: newColumn.label,
-            field: newColumn.key
-        }]);
+            field: newColumn.key,
+            type: 'number',
+            formula: newColumn.formula // Add formula to column definition
+        } as ColumnWithType]);
+    };
+
+    // Add this new function to handle column updates
+    const handleColumnUpdated = (newData: DataFrameType, updatedColumn: Column) => {
+      // Update the dataframe with new data
+      setDataFrame(newData);
+      
+      // Convert the new data to row format
+      const updatedRowData = Object.keys(newData[Object.keys(newData)[0]]).map((index) => {
+        const row: Record<string, number | string> = {};
+        Object.keys(newData).forEach((key) => {
+          row[key] = newData[key][parseInt(index)];
+        });
+        return row;
+      });
+      
+      // Update rowData
+      setRowData(updatedRowData);
+      
+      // Update the column definition
+      setColumnDefs((prevDefs: ColumnWithType[]) => prevDefs.map((col: ColumnWithType) => 
+        col.field === updatedColumn.key 
+          ? { ...col, formula: updatedColumn.formula }
+          : col
+      ));
+    };
+
+    // Add this function to handle formula updates from the table header
+    const handleFormulaUpdate = async (field: string, formula: string) => {
+      try {
+        const response = await fetch(`${BASE_URL}/reporting/v2/formula-calculator/`, {
+          method: 'POST',
+          headers: {
+            ...defaultHeaders,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dataframe: dataFrame,
+            formula: formula,
+            new_column: field,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to calculate formula: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          // Update the dataframe with new data
+          setDataFrame(result.data);
+          
+          // Convert the new data to row format
+          const updatedRowData = Object.keys(result.data[Object.keys(result.data)[0]]).map((index) => {
+            const row: Record<string, number | string> = {};
+            Object.keys(result.data).forEach((key) => {
+              row[key] = result.data[key][parseInt(index)];
+            });
+            return row;
+          });
+          
+          // Update rowData
+          setRowData(updatedRowData);
+          
+          // Update the column definition
+          setColumnDefs((prevDefs: ColumnWithType[]) => prevDefs.map(col => 
+            col.field === field 
+              ? { ...col, formula: formula }
+              : col
+          ));
+
+          toast.success('Formula updated successfully');
+        } else {
+          throw new Error(result.message || 'Failed to apply formula');
+        }
+      } catch (error) {
+        console.error('Error updating formula:', error);
+        toast.error(error instanceof Error ? error.message : 'An error occurred');
+      }
     };
 
     // Create chart config when data_summary changes
@@ -467,25 +550,28 @@ export default function AnalyticsPage() {
           </div>
         </div>
         
-        <div className="flex justify-end mb-4">
+        {/* Data Table */}
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-end">
             <CustomColumnAdder
-                dataFrame={dataFrame}
-                onColumnAdded={handleColumnAdded}
-                buttonVariant="outline"
-                buttonText="Add Custom Column"
-                className="bg-primary text-white hover:bg-primary/90"
+              dataFrame={dataFrame}
+              onColumnAdded={handleColumnAdded}
+              buttonVariant="outline"
+              buttonText="Add Custom Column"
+              className="bg-primary text-white hover:bg-primary/90"
             />
+          </div>
+          <QueryTable
+            initialRowData={rowData}
+            initialColumnDefs={columnDefs}
+            onColumnFormulaUpdate={handleFormulaUpdate}
+            pinnedTopRowData={[totals]}
+            getRowStyle={getRowStyle}
+            autoSizeStrategy={{
+              type: "fitCellContents",
+            }}
+          />
         </div>
-        
-        <QueryTable
-          initialRowData={rowData}
-          initialColumnDefs={columnDefs}
-          pinnedTopRowData={[totals]}
-          getRowStyle={getRowStyle}
-          autoSizeStrategy={{
-            type: "fitCellContents",
-          }}
-        />
       </div>
     );
 }
