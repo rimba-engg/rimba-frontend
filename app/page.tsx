@@ -11,6 +11,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!isAuthenticated) {
+      // Clear local storage to avoid any stale tokens
+      localStorage.clear();
+      console.log('user is not authenticated, redirecting to login');
       loginWithRedirect();
     } else {
       const customer = getStoredCustomer();
