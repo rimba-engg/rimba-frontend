@@ -32,6 +32,9 @@ Sentry.init({
 
   // Enable Sentry only in production
   enabled: process.env.NODE_ENV === 'production',
+
+  // Enable Sentry logs
+  _experiments: { enableLogs: true },
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
