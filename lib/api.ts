@@ -178,12 +178,7 @@ class ApiClient {
     this.csId = null;
     
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('id_token');
-      localStorage.removeItem('selected_customer');
-      localStorage.removeItem('user');
-      localStorage.removeItem('customer_id');
-      localStorage.removeItem("session_id");
+      localStorage.clear();
 
       // Only redirect after everything else is done
       window.location.href = '/';
@@ -249,15 +244,13 @@ class ApiClient {
     defaultHeaders['X-Customer-Id'] = this.csId || '';
   }
 
-  public setTokens(accessToken: string, idToken: string, customerId: string): void {
+  public setTokens(accessToken: string, idToken: string): void {
     this.accessToken = accessToken;
     this.idToken = idToken;
-    this.csId = customerId;
     this.updateDefaultHeaders();
     if (typeof window !== 'undefined') {
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('id_token', idToken);
-      localStorage.setItem('customer_id', customerId);
     }
   }
 
@@ -286,9 +279,7 @@ class ApiClient {
 
       if (accessToken) {
         const finalIdToken = idToken ?? this.idToken ?? '';
-        // Preserve existing customer id if present
-        const customerId = this.csId || localStorage.getItem('customer_id') || '';
-        this.setTokens(accessToken, finalIdToken, customerId);
+        this.setTokens(accessToken, finalIdToken);
       }
     } catch (err) {
       console.error('Unable to silently refresh Auth0 token', err);

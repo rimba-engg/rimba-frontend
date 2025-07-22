@@ -21,13 +21,12 @@ export default function TokenRefresher() {
         
         const res = await getAccessTokenSilently({ 
           detailedResponse: true,
-          cacheMode: 'off' // Force fresh token - remove this for production
+          cacheMode: process.env.NODE_ENV === 'production' ? 'on' : 'off'
         });
         if (!isMounted) return;
         
         const accessToken = res.access_token as string;
         const idToken = res.id_token as string;
-        const customerId = localStorage.getItem('customer_id') || '';
         
         if (accessToken && idToken) {
           console.log('✅ TokenRefresher: Successfully obtained new tokens');
@@ -43,7 +42,7 @@ export default function TokenRefresher() {
             console.log('⚠️  TokenRefresher: Could not parse token expiration');
           }
           
-          api.setTokens(accessToken, idToken, customerId);
+          api.setTokens(accessToken, idToken);
           console.log('✅ TokenRefresher: Tokens updated successfully');
         } else {
           console.log('❌ TokenRefresher: Received invalid tokens from Auth0');
