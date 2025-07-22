@@ -24,17 +24,12 @@ export default function CallbackPage() {
           const response = await getAccessTokenSilently({detailedResponse: true});
           const accessToken = response.access_token;
           const idToken = response.id_token;
-          const customerId = localStorage.getItem('customer_id') || '';
-          console.log('customerId', customerId);
-          if (!customerId) {
-            router.push('/select-customer');
-          }
 
           // store the token in local storage
           localStorage.setItem('access_token', accessToken);
           localStorage.setItem('id_token', idToken);
-          console.log('access_token', accessToken);
-          api.setTokens(accessToken, idToken, customerId);
+          api.setTokens(accessToken, idToken);
+          
           // for debugging
           console.log('access_token', accessToken);
           console.log('id_token', idToken);
@@ -70,6 +65,15 @@ export default function CallbackPage() {
           if (userInfoResponse?.customers && userInfoResponse.customers.length === 1) {
             await selectCustomer(userInfoResponse.customers[0].id);
           }
+
+          // if multiple customer accounts, but none is selected in browser cache, redirect to select customer page
+          const customerId = localStorage.getItem('customer_id') || '';
+          console.log('customerId', customerId);
+          if (!customerId) {
+            router.push('/select-customer');
+          }
+
+          // default 
           console.log('redirecting to home');
           router.push('/'); // redirect after processing
         } catch (err) {
