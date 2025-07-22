@@ -21,7 +21,7 @@ export default function TokenRefresher() {
         
         const res = await getAccessTokenSilently({ 
           detailedResponse: true,
-          cacheMode: 'off' // Force fresh token - remove this for production
+          cacheMode: process.env.NODE_ENV === 'production' ? 'on' : 'off'
         });
         if (!isMounted) return;
         
