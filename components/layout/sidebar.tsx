@@ -21,16 +21,12 @@ import {
   BarChart3,
   BarChart2,
   HandPlatter,
-  Warehouse,
   Scale,
-  Database,
   GitGraph,
   Shield,
   Earth,
-  DollarSign,
   Landmark,
   Calculator,
-  RecycleIcon,
   CloudCog,
   Puzzle,
   Sheet,
@@ -42,7 +38,6 @@ import {
   BarChartHorizontal,
   Lock,
   ShieldCheck,
-  BotMessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -90,9 +85,7 @@ const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuIte
     items: [
       { icon: Landmark, label: 'Regulatory', href: '/standards' },
       { icon: Earth, label: 'Voluntary', href: '/registries' },
-      { icon: ScrollText, label: 'Reg. Search', href: '/regsqa' },
       { icon: Calendar, label: 'Calendar', href: '/compliance/calendar' },
-      { icon: ClipboardCheck, label: 'Audit Manager', href: '/audit/projects' },
     ],
     border: true,
   },
@@ -110,19 +103,9 @@ const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuIte
     items: [
       { icon: FolderSearch2, label: 'Finder', href: '/library/documents' }, 
       { icon: Sheet, label: 'Tables', href: '/library/extractions' },
-      { icon: Download, label: 'Inventory', href: '/library/incomings' },
-      { icon: Upload, label: 'Dispensing', href: '/library/outgoings' },
       { icon: Brain, label: 'AI Extractor', href: '/ai-extractor', border: true },
     ],
     border: true,
-  },
-  {
-    icon: Warehouse,
-    label: 'Warehouses',
-    items: [
-      { icon: Scale, label: 'Mass Balance', href: '/reporting/mass-balance' },
-      { icon: Database, label: 'Storage Inventory', href: '/reporting/storage-inventory' },
-    ],
   },
   {
     icon: Landmark,
