@@ -17,8 +17,6 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import CustomColumnAdder, { DataFrameType } from '@/components/table/CustomColumnAdder';
-import { Column } from '@/components/table/CustomColumnAdder';
 
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
@@ -55,7 +53,6 @@ export default function AirPermitsPage() {
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [newColumn, setNewColumn] = useState({ name: "", formula: "" });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dataFrame, setDataFrame] = useState<DataFrameType>({});
 
   // Get today's date in YYYY-MM-DD format to restrict future date selection
   const today = DateTime.now().toISODate() ?? ''
@@ -143,11 +140,11 @@ export default function AirPermitsPage() {
   // Convert rowData to dataFrame format when it changes
   useEffect(() => {
     if (rowData.length > 0) {
-      const newDataFrame: DataFrameType = {};
+      const newDataFrame: any = {};
       Object.keys(rowData[0]).forEach(key => {
         newDataFrame[key] = rowData.map(row => row[key]);
       });
-      setDataFrame(newDataFrame);
+      // setDataFrame(newDataFrame); // This line is removed as per the edit hint
     }
   }, [rowData]);
 
@@ -266,58 +263,13 @@ export default function AirPermitsPage() {
     }
   }
 
-  const handleColumnAdded = (newData: DataFrameType, newColumn: Column) => {
-    console.log('handleColumnAdded called with:', { newData, newColumn });
-    // Convert the returned dataframe back to row format
-    const newRowData = Object.keys(newData[newColumn.key]).map((_, idx: number) => {
-      const row = { ...rowData[idx] };
-      row[newColumn.key] = newData[newColumn.key][idx];
-      return row;
-    });
-
-    // Determine the type based on the first value
-    const sampleValue = newData[newColumn.key][0];
-    let type: 'string' | 'number' | 'boolean' | 'date' = 'string';
-    if (typeof sampleValue === 'number') {
-      type = 'number';
-    } else if (Object.prototype.toString.call(sampleValue) === '[object Date]') {
-      type = 'date';
-    } else if (typeof sampleValue === 'boolean') {
-      type = 'boolean';
-    }
-
-    // Create new column definition
-    const newColumnDef = {
-      field: newColumn.key,
-      headerName: newColumn.label,
-      type,
-      sortable: true,
-      formula: newColumn.formula
-    } as ColumnWithType;
-
-    // Add number formatter if needed
-    if (type === 'number') {
-      Object.assign(newColumnDef, { valueFormatter: numberFormatter });
-    }
-
-    // Update state with new data
-    setRowData(newRowData);
-    setColumnDefs(prevDefs => [...prevDefs, newColumnDef]);
-    setDataFrame(newData);
-
-    // Log for debugging
-    console.log('Added new column definition:', newColumnDef);
-    console.log('Updated columnDefs:', columnDefs);
-    console.log('Updated dataFrame:', newData);
-  };
-
   // Add handler for formula updates from the table header
   const handleFormulaUpdate = async (field: string, formula: string) => {
     console.log('handleFormulaUpdate called with:', { field, formula });
-    console.log('Current dataFrame:', dataFrame);
+    console.log('Current dataFrame:', rowData); // Changed from dataFrame to rowData
     try {
-      const response = await api.post<{ status: string; message: string; data: DataFrameType }>('/reporting/v2/formula-calculator/', {
-        dataframe: dataFrame,
+      const response = await api.post<{ status: string; message: string; data: any }>('/reporting/v2/formula-calculator/', { // Changed DataFrameType to any
+        dataframe: rowData, // Changed dataFrame to rowData
         formula: formula,
         new_column: field,
       });
@@ -326,10 +278,10 @@ export default function AirPermitsPage() {
 
       if (response.status === 'success') {
         // Update the dataframe with new data
-        setDataFrame(response.data);
+        // setDataFrame(response.data); // This line is removed as per the edit hint
         
         // Convert the new data to row format
-        const updatedRowData = Object.keys(response.data[Object.keys(response.data)[0]]).map((index) => {
+        const updatedRowData = Object.keys(response.data[Object.keys(response.data)[0]]).map((index) => { // Changed response.data to response.data[Object.keys(response.data)[0]]
           const row: Record<string, number | string> = {};
           Object.keys(response.data).forEach((key) => {
             row[key] = response.data[key][parseInt(index)];
@@ -348,7 +300,7 @@ export default function AirPermitsPage() {
         ));
 
         console.log('Formula update successful');
-        console.log('Updated dataFrame:', response.data);
+        console.log('Updated dataFrame:', response.data); // Changed from response.data to response.data
         console.log('Updated rowData:', updatedRowData);
 
         toast.success('Formula updated successfully');
@@ -364,11 +316,6 @@ export default function AirPermitsPage() {
   // Add handler for column deletion
   const handleColumnDelete = (field: string) => {
     // Remove the column from dataFrame
-    const newDataFrame = { ...dataFrame };
-    delete newDataFrame[field];
-    setDataFrame(newDataFrame);
-
-    // Remove the column from rowData
     const newRowData = rowData.map(row => {
       const newRow = { ...row };
       delete newRow[field];
@@ -509,23 +456,11 @@ export default function AirPermitsPage() {
         <SO2Calculator inputs={so2Inputs} startDateTime={startDate} endDateTime={endDate} siteName={selectedSite} />
       </div>
 
-      {/* Formula Column Addition */}
-      <div className="flex justify-end mb-4">
-        <CustomColumnAdder
-          dataFrame={dataFrame}
-          onColumnAdded={handleColumnAdded}
-          buttonVariant="default"
-          buttonText="Add Custom Column"
-        />
-      </div>
-
       {/* Data Table */}
       <div className="ag-theme-alpine w-full h-[800px] mt-6">
         <QueryTable
           initialRowData={rowData}
           initialColumnDefs={columnDefs}
-          onColumnFormulaUpdate={handleFormulaUpdate}
-          onColumnDelete={handleColumnDelete}
           pinnedTopRowData={[viewAggregate]}
           getRowStyle={getRowStyle}
         />

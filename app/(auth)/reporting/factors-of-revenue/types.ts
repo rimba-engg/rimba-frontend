@@ -8,6 +8,7 @@ export interface ExtendedColumnWithType extends BaseColumnWithType {
   maxWidth?: number;
   suppressMovable?: boolean;
   headerClass?: string;
+  groupId?: string;
 }
 
 export interface Metric {

@@ -21,9 +21,8 @@ import { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
 import QueryTable from '@/components/table/QueryTable';
-import CustomColumnAdder from '@/components/table/CustomColumnAdder';
-import type { Column, DataFrameType } from '@/components/table/CustomColumnAdder';
 import { ColumnWithType } from '@/components/table/QueryTable';
+import type { Column, DataFrameType } from '@/components/table/CustomColumnAdder';
 
 // Register ChartJS components
 ChartJS.register(
@@ -552,19 +551,9 @@ export default function AnalyticsPage() {
         
         {/* Data Table */}
         <div className="flex flex-col gap-4">
-          <div className="flex justify-end">
-            <CustomColumnAdder
-              dataFrame={dataFrame}
-              onColumnAdded={handleColumnAdded}
-              buttonVariant="outline"
-              buttonText="Add Custom Column"
-              className="bg-primary text-white hover:bg-primary/90"
-            />
-          </div>
           <QueryTable
             initialRowData={rowData}
             initialColumnDefs={columnDefs}
-            onColumnFormulaUpdate={handleFormulaUpdate}
             pinnedTopRowData={[totals]}
             getRowStyle={getRowStyle}
             autoSizeStrategy={{
