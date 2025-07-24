@@ -7,7 +7,6 @@ export interface UserData {
   email: string;
   role: string;
   project: string;
-  checklist_details: Array<{ id: string; name: string }>;
   status: 'Active' | 'Inactive';
   avatar?: string;
 }
@@ -42,5 +41,4 @@ export interface UserFormData {
   password?: string;
   role: string;
   project: string;
-  checklist_details: Array<{ id: string; name: string }>;
 }

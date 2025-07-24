@@ -16,7 +16,6 @@ const emptyUser: UserFormData = {
   email: '',
   role: 'USER',
   project: '',
-  checklist_details: [],
   password: '',
 };
 
@@ -88,7 +87,6 @@ export default function UserManagementPage() {
           last_name: formData.last_name,
           role_name: formData.role,
           project: projects.find(proj => proj.name === formData.project)?.id,
-          checklist_ids: formData.checklist_details.map(c => c.id),
         });
       } else {
         await api.post('/user-mgt/v2/user/', {
@@ -98,7 +96,6 @@ export default function UserManagementPage() {
           password: formData.password,
           role_name: formData.role,
           project: projects.find(proj => proj.name === formData.project)?.id,
-          checklist_ids: formData.checklist_details.map(c => c.id),
         });
       }
       
@@ -120,7 +117,6 @@ export default function UserManagementPage() {
       email: user.email,
       role: user.role,
       project: user.project || '',
-      checklist_details: user.checklist_details,
     });
     setShowModal(true);
   };

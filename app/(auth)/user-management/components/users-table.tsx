@@ -84,18 +84,6 @@ export function UsersTable({ users, onEdit, onDelete }: UsersTableProps) {
                   </span>
                 )}
               </td>
-              <td className="py-3 px-4">
-                <div className="flex flex-wrap gap-1">
-                  {user.checklist_details.map((checklist) => (
-                    <span
-                      key={checklist.id}
-                      className="bg-muted px-2 py-1 rounded-full text-xs"
-                    >
-                      {checklist.name}
-                    </span>
-                  ))}
-                </div>
-              </td>
               </>
               )}
               <td className="py-3 px-4">
