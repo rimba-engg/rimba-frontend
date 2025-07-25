@@ -13,6 +13,7 @@ provideGlobalGridOptions({ theme: "legacy"});
 interface NewColumn {
   headerName: string;
   field: string;
+  formula?: string;  // Added formula as an optional property
 }
 
 interface SortingConfig {
