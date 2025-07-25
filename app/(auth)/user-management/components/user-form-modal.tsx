@@ -48,21 +48,6 @@ export function UserFormModal({
   
   console.log(formData);
 
-  const handleChecklistToggle = (checklistId: string, checklistName: string) => {
-    const currentDetails = formData.checklist_details || [];
-    const exists = currentDetails.some(c => c.id === checklistId);
-    
-    const newDetails = exists
-      ? currentDetails.filter(c => c.id !== checklistId)
-      : [...currentDetails, { id: checklistId, name: checklistName }];
-    
-    onChange('checklist_details', newDetails);
-  };
-
-  const isChecklistSelected = (checklistId: string) => {
-    return formData.checklist_details?.some(c => c.id === checklistId) || false;
-  };
-
   return (
     <div className="fixed !mt-0 inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-background rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto">
@@ -174,29 +159,6 @@ export function UserFormModal({
                 </SelectContent>
               </Select>
             </div>
-         
-
-          <div className="space-y-2">
-            <Label>Allowed Projects Sites</Label>
-            <div className="border rounded-lg p-4 space-y-2 max-h-[200px] overflow-y-auto">
-              {checklists.map((checklist) => (
-                <div key={checklist.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={checklist.id}
-                    checked={isChecklistSelected(checklist.id)}
-                    onCheckedChange={() => handleChecklistToggle(checklist.id, checklist.name)}
-                    disabled={isLoading}
-                  />
-                  <label
-                    htmlFor={checklist.id}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {checklist.name}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
           </>
 
             )}

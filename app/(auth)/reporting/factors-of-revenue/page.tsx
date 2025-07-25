@@ -45,7 +45,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     headerClass: 'ag-center-header'
   },
   {
-    field: 'inletActual',
+    groupId: 'inletGroup',
     headerName: 'Inlet MMBtu',
     type: 'number',
     minWidth: 250,
@@ -76,7 +76,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     ]
   },
   {
-    field: 'downtimeActual',
+    groupId: 'downtimeGroup',
     headerName: 'Downtime MMBtu',
     type: 'number',
     minWidth: 250,
@@ -107,7 +107,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     ]
   },
   {
-    field: 'toxActual',
+    groupId: 'toxGroup',
     headerName: 'Tox MMBtu',
     type: 'number',
     minWidth: 250,
@@ -138,7 +138,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     ]
   },
   {
-    field: 'injectedActual',
+    groupId: 'injectedGroup',
     headerName: 'Injected MMBtu',
     type: 'number',
     minWidth: 250,
@@ -169,7 +169,7 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
     ]
   },
   {
-    field: 'downtimeMinutesActual',
+    groupId: 'downtimeMinutesGroup',
     headerName: 'Downtime Minutes',
     type: 'number',
     minWidth: 180,

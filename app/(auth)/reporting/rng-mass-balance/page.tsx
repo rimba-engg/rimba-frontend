@@ -26,10 +26,8 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
 import { Info, Loader2 } from 'lucide-react';
-import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
-import CustomColumnAdder, { type DataFrameType, type Column } from '@/components/table/CustomColumnAdder';
 // Register necessary components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -145,9 +143,6 @@ export default function RngMassBalancePage() {
   const [csvLoading, setCsvLoading] = useState(false);
   const [formattedDateRange, setFormattedDateRange] = useState<string>('');
 
-  // Add new state for dataframe
-  const [dataFrame, setDataFrame] = useState<DataFrameType>({});
-
   // Remove the useEffect for default dates as it's handled by DateTimeSelector now
   useEffect(() => {
     // Initialize selected site from localStorage
@@ -181,13 +176,6 @@ export default function RngMassBalancePage() {
           type: key === 'Timestamp' ? 'date' : 'number'
         })) as ColumnWithType[]
       );
-
-      // Create dataFrame structure
-      const newDataFrame: DataFrameType = {};
-      Object.keys(rowData[0]).forEach(key => {
-        newDataFrame[key] = rowData.map(row => row[key]);
-      });
-      setDataFrame(newDataFrame);
     }
   }, [rowData]);
 
@@ -396,95 +384,9 @@ export default function RngMassBalancePage() {
 
   // Remove validateDate function as it's handled by DateTimeSelector now
 
-  // Add handler for new columns
-  const handleColumnAdded = (newData: DataFrameType, newColumn: Column) => {
-    // Update dataFrame with new data
-    setDataFrame(newData);
-
-    // Convert the new column data back to row format
-    const updatedRowData = rowData.map((row, index) => ({
-      ...row,
-      [newColumn.key]: newData[newColumn.key][index]
-    }));
-
-    // Update rowData and columnDefs
-    setRowData(updatedRowData);
-    setColumnDefs([
-      ...columnDefs,
-      {
-        field: newColumn.key,
-        headerName: newColumn.label,
-        type: 'number',
-        formula: newColumn.formula // Ensure formula is included
-      } as ColumnWithType
-    ]);
-
-    // Log for debugging
-    console.log('Added new column with formula:', newColumn.formula);
-  };
-
-  // Add handler for formula updates from the table header
-  const handleFormulaUpdate = async (field: string, formula: string) => {
-    try {
-      const response = await api.post<{ status: string; message: string; data: DataFrameType }>('/reporting/v2/formula-calculator/', {
-        dataframe: dataFrame,
-        formula: formula,
-        new_column: field,
-      });
-
-      if (response.status === 'success') {
-        // Update the dataframe with new data
-        setDataFrame(response.data);
-        
-        // Convert the new data to row format
-        const updatedRowData = Object.keys(response.data[Object.keys(response.data)[0]]).map((index) => {
-          const row: Record<string, number | string> = {};
-          Object.keys(response.data).forEach((key) => {
-            row[key] = response.data[key][parseInt(index)];
-          });
-          return row;
-        });
-        
-        // Update rowData
-        setRowData(updatedRowData);
-        
-        // Update the column definition
-        setColumnDefs(prevDefs => prevDefs.map(col => 
-          col.field === field 
-            ? { ...col, formula: formula }
-            : col
-        ));
-
-        toast.success('Formula updated successfully');
-      } else {
-        throw new Error(response.message || 'Failed to apply formula');
-      }
-    } catch (error) {
-      console.error('Error updating formula:', error);
-      toast.error(error instanceof Error ? error.message : 'An error occurred');
-    }
-  };
-
-  // Add handler for column deletion
-  const handleColumnDelete = (field: string) => {
-    // Remove the column from dataFrame
-    const newDataFrame = { ...dataFrame };
-    delete newDataFrame[field];
-    setDataFrame(newDataFrame);
-
-    // Remove the column from rowData
-    const newRowData = rowData.map(row => {
-      const newRow = { ...row };
-      delete newRow[field];
-      return newRow;
-    });
-    setRowData(newRowData);
-
-    // Remove the column from columnDefs
-    setColumnDefs(prevDefs => prevDefs.filter(col => col.field !== field));
-
-    toast.success('Column deleted successfully');
-  };
+  // Remove handleColumnAdded function
+  // Remove handleFormulaUpdate function
+  // Remove handleColumnDelete function
 
   if (loading) {
     return (
@@ -616,21 +518,9 @@ export default function RngMassBalancePage() {
         </div>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <CustomColumnAdder
-          dataFrame={dataFrame}
-          onColumnAdded={handleColumnAdded}
-          buttonVariant="default"
-          buttonText="Add Custom Column"
-          className="bg-primary text-white hover:bg-primary/90"
-        />
-      </div>
-
       <QueryTable
         initialRowData={rowData}
         initialColumnDefs={columnDefs}
-        onColumnFormulaUpdate={handleFormulaUpdate}
-        onColumnDelete={handleColumnDelete}
         pinnedTopRowData={[viewAggregate]}
         getRowStyle={getRowStyle}
         autoSizeStrategy={{
