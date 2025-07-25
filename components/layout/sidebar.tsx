@@ -72,7 +72,8 @@ const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuIte
     icon: BarChart3,
     label: 'Reports',
     items: [
-      { icon: FileText, label: 'Missing Data', href: '/reporting/data-substitution' },
+      { icon: FileText, label: 'Missing Data', href: '/reporting/missing-data' },
+      { icon: FileText, label: 'Data Substitution', href: '/reporting/data-substitution' },
       { icon: FileText, label: 'EPA QAP', href: '/reporting/rng-qap' },
       { icon: Calculator, label: 'Operational CI', href: '/reporting/ci-calculator' },
       { icon: Activity, label: 'Site Uptime', href: '/reporting/uptime' },
