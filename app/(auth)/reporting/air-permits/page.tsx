@@ -11,12 +11,9 @@ import { ColumnWithType } from '@/components/table/QueryTable';
 import { DateTime } from 'luxon';
 import SO2Calculator from './so2_calculator';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 
 const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string } | undefined => {
   if (params.node.rowPinned) {
@@ -51,8 +48,6 @@ export default function AirPermitsPage() {
   const [useAverage, setUseAverage] = useState<boolean>(true)
   const [so2Inputs, setSo2Inputs] = useState<any[]>([])
   const [selectedSite, setSelectedSite] = useState<string>('')
-  const [newColumn, setNewColumn] = useState({ name: "", formula: "" });
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Get today's date in YYYY-MM-DD format to restrict future date selection
   const today = DateTime.now().toISODate() ?? ''

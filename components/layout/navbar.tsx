@@ -16,6 +16,7 @@ import { api } from '@/lib/api';
 import { type User, type Customer  } from '@/lib/types';
 import { useAuth0 } from '@auth0/auth0-react';
 import { DemoRNGSites, NovillaSites } from '@/config/rngSites';
+import { trackProjectChange, trackProjectDropdownOpen } from '@/lib/mixpanel';
 
 
 export function Navbar() {
@@ -143,6 +144,19 @@ export function Navbar() {
   };
 
   const handleSiteChange = (site: { name: string }) => {
+    const previousSite = selectedSite.name;
+    
+    // Track the change in Mixpanel before updating state
+    if (userData && customerData && previousSite !== site.name) {
+      trackProjectChange(
+        userData.id,
+        userData.email,
+        customerData.name,
+        previousSite,
+        site.name
+      );
+    }
+    
     setSelectedSite(site);
     localStorage.setItem('selected_site', JSON.stringify({ name: site.name }));
     
@@ -156,7 +170,17 @@ export function Navbar() {
   return (
     <header className="h-14 border-b bg-card px-4 flex items-center justify-between">
       <div className="flex w-full justify-between items-center gap-2">
-        <DropdownMenu>
+        <DropdownMenu onOpenChange={(open) => {
+          // Track dropdown open event
+          if (open && userData && customerData) {
+            trackProjectDropdownOpen(
+              userData.id,
+              userData.email,
+              customerData.name,
+              sites.map(site => site.name)
+            );
+          }
+        }}>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border hover:bg-muted transition-colors">
               <span className="text-sm font-medium">{selectedSite.name}</span>

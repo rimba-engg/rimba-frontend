@@ -8,8 +8,9 @@ import { MapPin, BarChart, FileText, Scale } from "lucide-react";
 import { projectsData } from './ProjectData';
 import { toast } from "sonner";
 import L from 'leaflet';
-import { getStoredCustomer } from '@/lib/auth';
+import { getStoredCustomer, getStoredUser } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { trackProjectChange } from '@/lib/mixpanel';
 
 // Fix for default marker icons in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -261,6 +262,26 @@ const MapView = () => {
 
   // Add this function inside the MapView component
   const handleSiteChange = (site: Site) => {
+    // Get current site for tracking
+    const currentSite = localStorage.getItem('selected_site');
+    const previousSiteName = currentSite ? JSON.parse(currentSite).name : null;
+    
+    // Track the change in Mixpanel if site actually changed
+    if (previousSiteName && previousSiteName !== site.plant_name) {
+      const userData = getStoredUser();
+      const customerData = getStoredCustomer();
+      
+      if (userData && customerData) {
+        trackProjectChange(
+          userData.id,
+          userData.email,
+          customerData.name,
+          previousSiteName,
+          site.plant_name
+        );
+      }
+    }
+    
     // Store only the site name in local storage
     localStorage.setItem('selected_site', JSON.stringify({ name: site.plant_name }));
     console.log(`Switched to site: ${site.plant_name}`);

@@ -309,9 +309,9 @@ export default function AnalyticsPage() {
     useEffect(() => {
       const handleSiteChange = (event: any) => {
         const { site } = event.detail;
-        console.log('Site changed to:', site.name);
+        console.log('Site changed to:', site.plant_name);
         // Do something with the new site
-        setSelectedSite(site.name);
+        setSelectedSite(site.plant_name);
       };
       
       window.addEventListener('siteChange', handleSiteChange);
