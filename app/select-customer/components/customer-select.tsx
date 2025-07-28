@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { selectCustomer } from '@/lib/auth';
+import { selectCustomer, getStoredUser } from '@/lib/auth';
 import { type Customer } from '@/lib/types';
+import { trackCustomerChange } from '@/lib/mixpanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -33,6 +34,19 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
 
     setLoading(true);
     try {
+      const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+      const userData = getStoredUser();
+      
+      // Track customer selection in Mixpanel
+      if (userData && selectedCustomer) {
+        trackCustomerChange(
+          userData.id,
+          userData.email,
+          null, // No previous customer in this context
+          selectedCustomer.name
+        );
+      }
+      
       const response = await selectCustomer(selectedCustomerId);
       if (response.status === 'success') {
         router.push('/reporting/rng-mass-balance');

@@ -9,11 +9,11 @@ import { AllCommunityModule, ColDef, ModuleRegistry, provideGlobalGridOptions } 
 ModuleRegistry.registerModules([AllCommunityModule]);
 provideGlobalGridOptions({ theme: "legacy"});
 
-// Updated interfaces for API response and related types
+
 interface NewColumn {
   headerName: string;
   field: string;
-  formula?: string;  // Added formula as an optional property
+  formula?: string;
 }
 
 interface SortingConfig {
@@ -57,10 +57,6 @@ interface QueryTableProps extends AgGridReactProps {
   initialColumnDefs: ColumnWithType[];
 }
 
-const removeTypeFromColumnDefs = (columnDefs: ColDef<any, any>[]): ColDef<any, any>[] => {
-  return columnDefs.map(({ type, ...rest }) => rest);
-};
-
 const QueryTable: React.FC<QueryTableProps> = ({ 
   initialRowData, 
   initialColumnDefs,
@@ -101,40 +97,36 @@ const QueryTable: React.FC<QueryTableProps> = ({
   }, [columnDefs]);
 
   return (
-    <div className="p-2">
-      <div className="ag-theme-alpine w-[85vw] h-[80vh]">
-        <AgGridReact 
-          ref={gridRef}
-          rowData={rowData} 
-          columnDefs={prepareColumnDefs}
-          columnTypes={{
-            string: {
-              filter: 'agTextColumnFilter',
-              cellDataType: 'text',
-            },
-            number: {
-              filter: 'agNumberColumnFilter',
-              cellDataType: 'number',
-            },
-            date: {
-              filter: 'agDateColumnFilter',
-              cellDataType: 'date',
-            },
-            boolean: {
-              filter: 'agTextColumnFilter',
-              cellDataType: 'boolean',
-            }
-          }}
-          defaultColDef={{
-            filter: true,
-            sortable: true,
-            resizable: true,
-            flex: 1,
-            minWidth: 200,
-          }}
-          {...props}
-        />
-      </div>
+    <div className="ag-theme-alpine w-[85vw] h-[80vh]">
+      <AgGridReact 
+        ref={gridRef}
+        rowData={rowData} 
+        columnDefs={prepareColumnDefs}
+        columnTypes={{
+          string: {
+            filter: 'agTextColumnFilter',
+            cellDataType: 'text',
+          },
+          number: {
+            filter: 'agNumberColumnFilter',
+            cellDataType: 'number',
+          },
+          date: {
+            filter: 'agDateColumnFilter',
+            cellDataType: 'date',
+          },
+          boolean: {
+            filter: 'agTextColumnFilter',
+            cellDataType: 'boolean',
+          }
+        }}
+        defaultColDef={{
+          filter: true,
+          sortable: true,
+          resizable: true,
+        }}
+        {...props}
+      />
     </div>
   );
 };
