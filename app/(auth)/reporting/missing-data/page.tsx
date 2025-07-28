@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { DateTime } from 'luxon';
-import { getStoredCustomer } from '@/lib/auth';
 import { ToastContainer, toast } from 'react-toastify';
 import { Loader2, ClockIcon, AlertTriangle, CheckCircle2, Download, Upload, X, Factory, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { trackMissingDataViewOpened } from '@/lib/mixpanel';
+import { getStoredCustomer, getStoredUser } from '@/lib/auth';
 
 interface MissingDataEntry {
   start_timestamp: string;
@@ -30,12 +31,6 @@ interface MissingDataResponse {
   total_records: number;
 }
 
-// Remove mocked substituted data
-interface SubstitutedDataEntry extends MissingDataEntry {
-  substitution_method?: string;
-  substitution_info?: string;
-}
-
 export default function DataSubstitutionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +43,7 @@ export default function DataSubstitutionPage() {
   const [activeTab, setActiveTab] = useState<'missing' | 'substituted'>('missing');
   const [isSubstituting, setIsSubstituting] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
+  const user = getStoredUser();
 
   // Calculate dynamic values from API response
   const calculateMissingStats = () => {
@@ -359,6 +355,17 @@ export default function DataSubstitutionPage() {
     console.log('Submitting substitution for row:', selectedRowIndex, 'with file:', uploadedFile.name);
     await handleSubstituteData(uploadedFile, selectedRowIndex);
   };
+
+  // Track page view in Mixpanel
+  useEffect(() => {
+    if (user) {
+      trackMissingDataViewOpened(user?.id, user?.email, getStoredCustomer()?.name, selectedSite);
+    } else {
+      throw new Error('No user found');
+    }
+    // We intentionally omit selectedSite from deps to ensure a single fire on initial load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   if (loading && !validationData) {
     return (
