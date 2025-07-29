@@ -452,7 +452,7 @@ export default function AirPermitsPage() {
       </div>
 
       {/* Data Table */}
-      <div className="ag-theme-alpine w-full h-[800px] mt-6">
+      <div className="w-full h-[800px] mt-6">
         <QueryTable
           initialRowData={rowData}
           initialColumnDefs={columnDefs}

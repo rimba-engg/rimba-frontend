@@ -28,6 +28,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Info, Loader2 } from 'lucide-react';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 // Register necessary components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -142,6 +143,10 @@ export default function RngMassBalancePage() {
   const [selectedSite, setSelectedSite] = useState<string>('');
   const [csvLoading, setCsvLoading] = useState(false);
   const [formattedDateRange, setFormattedDateRange] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'sensor' | 'project'>('sensor');
+  const [projectTableData, setProjectTableData] = useState<any[]>([]);
+  const [projectTableCols, setProjectTableCols] = useState<ColumnWithType[]>([]);
+  const [projectLoading, setProjectLoading] = useState(false);
 
   // Remove the useEffect for default dates as it's handled by DateTimeSelector now
   useEffect(() => {
@@ -271,6 +276,48 @@ export default function RngMassBalancePage() {
       toast.success('Mass balance data loaded successfully', {position: 'bottom-right'});
     }
   };
+
+  const fetchProjectStats = async () => {
+    if (!selectedSite || !dateRange.startDateTime || !dateRange.endDateTime) return;
+    setProjectLoading(true);
+    setError(null);
+    try {
+      const payload = {
+        sites: [selectedSite],
+        start_date: dateRange.startDateTime,
+        end_date: dateRange.endDateTime,
+      };
+      const resp = await api.post<{ data: Record<string, any> }>('/reporting/v2/project-stats/', payload);
+      // Flatten to table rows
+      const rows: any[] = [];
+      Object.entries(resp.data).forEach(([site, dates]) => {
+        Object.entries(dates as Record<string, any>).forEach(([date, stats]) => {
+          rows.push({ site, date, ...stats });
+        });
+      });
+      setProjectTableData(rows);
+      setProjectTableCols([
+        { field: 'site', headerName: 'Site', type: 'string' },
+        { field: 'date', headerName: 'Date', type: 'string' },
+        { field: 'injected_pipeline', headerName: 'Injected Pipeline', type: 'number' },
+        { field: 'balance_percentage', headerName: 'Balance %', type: 'number' },
+        { field: 'inlet_sum', headerName: 'Inlet Sum', type: 'number' },
+        { field: 'flare_sum', headerName: 'Flare Sum', type: 'number' },
+        { field: 'tox_sum', headerName: 'Tox Sum', type: 'number' },
+      ]);
+    } catch (err) {
+      setError('Failed to load project stats');
+      console.error('Error fetching project stats:', err);
+    } finally {
+      setProjectLoading(false);
+    }
+  };
+
+  // Fetch project stats when tab is switched to 'project' and dependencies change
+  useEffect(() => {
+    if (activeTab === 'project') fetchProjectStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedSite, dateRange.startDateTime, dateRange.endDateTime]);
 
   // Handle site changes from other components
   useEffect(() => {
@@ -407,127 +454,142 @@ export default function RngMassBalancePage() {
         <div className="mb-4">
           <span className="text-lg font-medium">{formattedDateRange}</span>
         </div>
+        {error && (
+          <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg">{error}</div>
+        )}
+        <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'sensor' | 'project')}>
+          <TabsList>
+            <TabsTrigger value="sensor">Sensor View</TabsTrigger>
+            <TabsTrigger value="project">Project View</TabsTrigger>
+          </TabsList>
+          <TabsContent value="sensor">
+            {/* Existing Sensor View content below */}
+            <div className="flex gap-6">
+              <div className="flex flex-col mt-2 space-y-4 w-1/4">
+                <Select
+                  value={selectedView?.id}
+                  onValueChange={(value: string) => {
+                    const view = views.find((view) => view.id === value);
+                    if (view) {
+                      setSelectedView(view);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select view" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {views.map((view) => (
+                      <SelectItem key={view.id} value={view.id}>
+                        {view.view_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-      {error && (
-        <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg">
-          {error}
-        </div>
-      )}
+                <DateTimeSelector
+                  onChange={setDateRange}
+                  initialTimezone={dateRange.timezone}
+                  initialStartDate={dateRange.startDateTime}
+                  initialEndDate={dateRange.endDateTime}
+                />
 
-        <div className="flex gap-6">
-          <div className="flex flex-col mt-2 space-y-4 w-1/4">
-            <Select
-              value={selectedView?.id}
-              onValueChange={(value: string) => {
-                const view = views.find((view) => view.id === value);
-                if (view) {
-                  setSelectedView(view);
-                }
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select view" />
-              </SelectTrigger>
-              <SelectContent>
-                {views.map((view) => (
-                  <SelectItem key={view.id} value={view.id}>
-                    {view.view_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <DateTimeSelector
-              onChange={setDateRange}
-              initialTimezone={dateRange.timezone}
-              initialStartDate={dateRange.startDateTime}
-              initialEndDate={dateRange.endDateTime}
-            />
-
-            <div className="flex justify-center mt-4 gap-2">
-              <button
-                onClick={fetchMassBalanceData}
-                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 "
-              >
-                Search
-              </button>
-              <button
-                onClick={handleDownloadCsv}
-                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
-                disabled={csvLoading}
-              >
-                {csvLoading ? <Loader2 className="animate-spin" size={20} /> : 'Download CSV'}
-              </button>
-            </div>
-          </div>
-
-          {chartConfig && Object.keys(chartConfig).length > 0 && (
-            <div className="w-1/2 h-[300px]">
-              <Bar data={chartConfig} options={options} />
-            </div>
-          )}
-
-          {taxCredit && Object.keys(taxCredit).length > 0 && (
-            <div className="w-1/4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white rounded-lg shadow">
-                  <h3 className="font-semibold text-base">RINs</h3>
-                  <p className="text-xl">{taxCredit.RINs.toLocaleString()}</p>
-                </div>
-                <div className="p-4 bg-white rounded-lg shadow">
-                  <h3 className="font-semibold text-base">D-Code</h3>
-                  <p className="text-xl">{taxCredit['D-Code']}</p>
-                </div>
-                <div className="p-4 bg-white rounded-lg shadow">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-base">Prevailing Wage</h3>
-                    <a href="https://www.irs.gov/newsroom/treasury-irs-release-guidance-on-the-prevailing-wage-and-apprenticeship-requirements-for-increased-credit-and-deduction-amounts-under-the-inflation-reduction-act" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700">
-                      <Info size={16} />
-                    </a>
-                  </div>
-                  <button 
-                    onClick={() => setShowPrevailingWage(!showPrevailingWage)} 
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showPrevailingWage ? 'bg-blue-500' : 'bg-gray-200'}`}
+                <div className="flex justify-center mt-4 gap-2">
+                  <button
+                    onClick={fetchMassBalanceData}
+                    className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 "
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showPrevailingWage ? 'translate-x-6' : 'translate-x-1'}`} />
+                    Search
+                  </button>
+                  <button
+                    onClick={handleDownloadCsv}
+                    className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+                    disabled={csvLoading}
+                  >
+                    {csvLoading ? <Loader2 className="animate-spin" size={20} /> : 'Download CSV'}
                   </button>
                 </div>
-                <div className="p-4 bg-white rounded-lg shadow">
-                  <h3 className="font-semibold text-base mb-1">kg of CO2 / mmBtu</h3>
-                  <p className="text-lg">0. kg / mmBtu</p>
-                </div>
               </div>
 
-              <div className="p-4 bg-white rounded-lg shadow">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-base">45Z Tax Credit</h3>
-                  <a href="https://crsreports.congress.gov/product/pdf/IF/IF12502" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700">
-                    <Info size={16} />
-                  </a>
+              {chartConfig && Object.keys(chartConfig).length > 0 && (
+                <div className="w-1/2 h-[300px]">
+                  <Bar data={chartConfig} options={options} />
                 </div>
-                <div className="space-y-2 text-lg">
-                  {showPrevailingWage ? (
-                    <p className="text-lg">$ {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}</p>
-                  ) : (
-                    <p className="text-lg">$ {taxCredit['45Z Credit']['Non-Prevailing Wage'].toLocaleString()}</p>
-                  )}
+              )}
+
+              {taxCredit && Object.keys(taxCredit).length > 0 && (
+                <div className="w-1/4 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <h3 className="font-semibold text-base">RINs</h3>
+                      <p className="text-xl">{taxCredit.RINs.toLocaleString()}</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <h3 className="font-semibold text-base">D-Code</h3>
+                      <p className="text-xl">{taxCredit['D-Code']}</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-base">Prevailing Wage</h3>
+                        <a href="https://www.irs.gov/newsroom/treasury-irs-release-guidance-on-the-prevailing-wage-and-apprenticeship-requirements-for-increased-credit-and-deduction-amounts-under-the-inflation-reduction-act" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700">
+                          <Info size={16} />
+                        </a>
+                      </div>
+                      <button 
+                        onClick={() => setShowPrevailingWage(!showPrevailingWage)} 
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showPrevailingWage ? 'bg-blue-500' : 'bg-gray-200'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showPrevailingWage ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg shadow">
+                      <h3 className="font-semibold text-base mb-1">kg of CO2 / mmBtu</h3>
+                      <p className="text-lg">0. kg / mmBtu</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-white rounded-lg shadow">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold text-base">45Z Tax Credit</h3>
+                      <a href="https://crsreports.congress.gov/product/pdf/IF/IF12502" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-700">
+                        <Info size={16} />
+                      </a>
+                    </div>
+                    <div className="space-y-2 text-lg">
+                      {showPrevailingWage ? (
+                        <p className="text-lg">$ {taxCredit['45Z Credit']['Prevailing Wage'].toLocaleString()}</p>
+                      ) : (
+                        <p className="text-lg">$ {taxCredit['45Z Credit']['Non-Prevailing Wage'].toLocaleString()}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
-        </div>
+            <QueryTable
+              initialRowData={rowData}
+              initialColumnDefs={columnDefs}
+              pinnedTopRowData={[viewAggregate]}
+              getRowStyle={getRowStyle}
+              autoSizeStrategy={{ type: "fitCellContents" }}
+            />
+          </TabsContent>
+          <TabsContent value="project">
+            <div className="flex flex-col gap-4">
+              {projectLoading ? (
+                <div>Loading...</div>
+              ) : (
+                <QueryTable
+                  initialRowData={projectTableData}
+                  initialColumnDefs={projectTableCols}
+                  autoSizeStrategy={{ type: "fitCellContents" }}
+                />
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+        <ToastContainer />
       </div>
-
-      <QueryTable
-        initialRowData={rowData}
-        initialColumnDefs={columnDefs}
-        pinnedTopRowData={[viewAggregate]}
-        getRowStyle={getRowStyle}
-        autoSizeStrategy={{
-          type: "fitCellContents",
-        }}
-      />
-      <ToastContainer />
     </div>
   );
 }
