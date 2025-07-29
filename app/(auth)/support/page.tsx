@@ -194,6 +194,21 @@ export default function SupportDetailPage() {
     return (
       <div className="p-6 max-w-3xl mx-auto">
         <Button variant="outline" className="mb-4" onClick={() => router.push('/support')}>Back to all tickets</Button>
+        <Button
+          variant="destructive"
+          className="mb-4 ml-2"
+          onClick={async () => {
+            if (!window.confirm('Are you sure you want to delete this ticket?')) return;
+            try {
+              await api.delete(`/v2/supportTicket/${selectedTicket.id}/`);
+              router.push('/support');
+            } catch (err: any) {
+              alert(err?.message || 'Failed to delete ticket');
+            }
+          }}
+        >
+          Delete Ticket
+        </Button>
         <Accordion type="single" collapsible defaultValue={selectedTicket.id}>
           <AccordionItem value={selectedTicket.id}>
             <AccordionTrigger>
@@ -246,11 +261,13 @@ export default function SupportDetailPage() {
   // Otherwise, show a table of all tickets
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">Support Tickets</h1>
-      <div className="mb-4 flex gap-2">
-        <Button onClick={() => setShowCreate((v) => !v)} variant="default" className="bg-primary text-primary-foreground hover:bg-primary/90">
-          {showCreate ? 'Cancel' : 'Create Ticket'}
-        </Button>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold mb-4">Support Tickets</h1>
+        <div className="mb-4 flex gap-2">
+          <Button onClick={() => setShowCreate((v) => !v)} variant="default" className="bg-primary text-primary-foreground hover:bg-primary/90">
+            {showCreate ? 'Cancel' : 'Create Ticket'}
+          </Button>
+        </div>
       </div>
 
       {showCreate && (
