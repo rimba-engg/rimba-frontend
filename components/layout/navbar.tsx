@@ -206,8 +206,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           <Link href="/support" className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
-            <HelpCircle className="w-5 h-5" />
-            <span className="hidden sm:inline text-sm">Support</span>
+            <HelpCircle className="w-5 h-5" color="currentColor" />
           </Link>
           <Notifications />
           <DropdownMenu>

@@ -11,6 +11,8 @@
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0",
     "@auth0/auth0-spa-js": "^2.3.0",
+    "@cloudscape-design/components": "^3.0.1039",
+    "@cloudscape-design/global-styles": "^1.0.45",
     "@hookform/resolvers": "^3.9.0",
     "@langchain/core": "^0.3.42",
     "@langchain/langgraph": "^0.2.55",
