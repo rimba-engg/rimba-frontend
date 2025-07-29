@@ -10,6 +10,7 @@ import {
   BarChart3, BarChart2, HandPlatter, Scale,
   Shield, Earth, Landmark, Calculator, CloudCog, Puzzle, Sheet, Book,
   Map, Calendar, Activity, Gauge, Fuel, BarChartHorizontal, Lock, ShieldCheck,
+  HelpCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getStoredCustomer } from '@/lib/auth';
@@ -106,6 +107,7 @@ const getMenuItems = (isAdmin: boolean, customerData: Customer | null): (MenuIte
   ...(isAdmin ? [{ icon: UserCog, label: 'User Access', href: '/user-management'}] : []),
   ...(customerData?.role === 'SUPER_ADMIN' ? [{ icon: Shield, label: 'Superadmin Management', href: '/superadmin' }] : []),
   { icon: Puzzle, label: 'Integrations', href: '/integrations'},
+  { icon: HelpCircle, label: 'Support', href: '/support' },
 ];
 
 export function Sidebar() {
