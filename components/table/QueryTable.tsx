@@ -61,6 +61,7 @@ export interface ColumnWithType extends ColumnDefinition {
   children?: ColumnWithType[];
   cellRenderer?: string;
   cellRendererParams?: any;
+  type?: string;
 }
 
 // New interface for QueryTable props to pass in table data
