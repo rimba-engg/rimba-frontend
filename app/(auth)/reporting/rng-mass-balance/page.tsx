@@ -174,7 +174,7 @@ export default function RngMassBalancePage() {
           field: key,
           headerName: key,
           type: key === 'Timestamp' ? 'date' : 'number'
-        })) as ColumnWithType[]
+        } as ColumnWithType))
       );
     }
   }, [rowData]);
@@ -407,15 +407,11 @@ export default function RngMassBalancePage() {
         <div className="mb-4">
           <span className="text-lg font-medium">{formattedDateRange}</span>
         </div>
-
-      {error && (
-        <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg">
-          {error}
-        </div>
-      )}
-
-        <div className="flex gap-6">
-          <div className="flex flex-col mt-2 space-y-4 w-1/4">
+        {error && (
+          <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-lg">{error}</div>
+        )}
+        <div className="flex flex-row justify-between gap-4">
+          <div className="flex flex-col gap-6">
             <Select
               value={selectedView?.id}
               onValueChange={(value: string) => {
@@ -516,18 +512,14 @@ export default function RngMassBalancePage() {
             </div>
           )}
         </div>
+        <QueryTable
+          initialRowData={rowData}
+          initialColumnDefs={columnDefs}
+          pinnedTopRowData={[viewAggregate]}
+          getRowStyle={getRowStyle}
+        />
+        <ToastContainer />
       </div>
-
-      <QueryTable
-        initialRowData={rowData}
-        initialColumnDefs={columnDefs}
-        pinnedTopRowData={[viewAggregate]}
-        getRowStyle={getRowStyle}
-        autoSizeStrategy={{
-          type: "fitCellContents",
-        }}
-      />
-      <ToastContainer />
     </div>
   );
 }

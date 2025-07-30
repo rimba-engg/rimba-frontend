@@ -11,6 +11,8 @@
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0",
     "@auth0/auth0-spa-js": "^2.3.0",
+    "@cloudscape-design/components": "^3.0.1039",
+    "@cloudscape-design/global-styles": "^1.0.45",
     "@hookform/resolvers": "^3.9.0",
     "@langchain/core": "^0.3.42",
     "@langchain/langgraph": "^0.2.55",
@@ -48,7 +50,9 @@
     "@types/node": "^22.13.5",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "ag-charts-enterprise": "^12.0.2",
     "ag-grid-community": "^34.0.2",
+    "ag-grid-enterprise": "^34.0.2",
     "ag-grid-react": "^34.0.2",
     "autoprefixer": "^10.4.20",
     "chart.js": "^4.4.8",

@@ -435,9 +435,6 @@ export default function FactorsOfRevenuePage() {
                   initialColumnDefs={initialColumnDefs}
                   pinnedTopRowData={[totals]}
                   getRowStyle={getRowStyle}
-                  autoSizeStrategy={{
-                    type: "fitCellContents",
-                  }}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">

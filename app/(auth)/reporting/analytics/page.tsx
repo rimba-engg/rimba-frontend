@@ -556,9 +556,6 @@ export default function AnalyticsPage() {
             initialColumnDefs={columnDefs}
             pinnedTopRowData={[totals]}
             getRowStyle={getRowStyle}
-            autoSizeStrategy={{
-              type: "fitCellContents",
-            }}
           />
         </div>
       </div>

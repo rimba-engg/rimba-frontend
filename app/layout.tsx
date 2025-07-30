@@ -1,6 +1,7 @@
 'use client';
 
 import './globals.css';
+import "@cloudscape-design/global-styles/index.css";
 import ClientAuthProvider from './ClientAuthProvider';
 import TokenRefresher from '@/components/TokenRefresher';
 import { Rubik } from 'next/font/google';
