@@ -30,11 +30,7 @@ const rangeValidator = (range: any) => {
           "The selected date range is incomplete. Select a start and end date for the date range."
       };
     }
-    if (
-      new Date(range.startDate) -
-        new Date(range.endDate) >
-      0
-    ) {
+    if (new Date(range.startDate).getTime() > new Date(range.endDate).getTime()) {
       return {
         valid: false,
         errorMessage:
@@ -70,7 +66,7 @@ const relativeOptions = [
 export default function SummaryView() {
   const [loading, setLoading] = useState<boolean>(false);
   const [timezone, setTimezone] = useState<string>('America/New_York');
-  const [value, setValue] = useState(undefined);
+  const [value, setValue] = useState<any>(undefined);
   const [dateRange, setDateRange] = useState({
     // Set default date range to last day
     startDate: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0],
@@ -153,9 +149,9 @@ export default function SummaryView() {
             setValue(detail.value);
             updateDateRange(detail.value);
           }}
-          value={value}
-          isValidRange={rangeValidator}
-          relativeOptions={relativeOptions}
+          value={value ?? undefined}
+          isValidRange={rangeValidator as any}
+          relativeOptions={relativeOptions as any}
           i18nStrings={{
             todayAriaLabel: "Today",
             cancelButtonLabel: "Cancel",
