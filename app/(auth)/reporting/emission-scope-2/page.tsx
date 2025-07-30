@@ -33,7 +33,6 @@ export default function EmissionScope2Page() {
         {
           field: 'document_link',
           headerName: 'Document',
-          type: 'string',
         },
         ...Object.keys(emissionsData.data[0])
           .filter(key => !['Document Name', 'Document ID'].includes(key))

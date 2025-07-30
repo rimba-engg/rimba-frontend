@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "predev": "npm run lint"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0",
