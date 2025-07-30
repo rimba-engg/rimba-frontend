@@ -108,24 +108,20 @@ const QueryTable: React.FC<QueryTableProps> = ({
       autoHeaderHeight: true,
     }));
   }, [columnDefs]);
-
-  const autoSizeStrategy = useMemo(() => { 
-    return {
-      type: 'fitCellContents',
-      skipHeader: true,
-      defaultMinWidth: 120,
-    };
-  }, []);
   
   return (
     <div className="h-[80vh] p-4">
-      <AgGridReact 
+      <AgGridReact
         ref={gridRef}
-        autoSizeStrategy={autoSizeStrategy}
-        rowData={rowData} 
+        autoSizeStrategy={{
+          type: "fitCellContents",
+          skipHeader: true,
+          defaultMinWidth: 120,
+        }}
+        rowData={rowData}
         columnDefs={prepareColumnDefs}
-        enableCharts={true}
-        cellSelection={true}
+        enableCharts
+        cellSelection
         columnTypes={{
           string: {
             filter: 'agTextColumnFilter',
