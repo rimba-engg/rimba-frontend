@@ -1,13 +1,24 @@
 // pages/table.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AgGridReact, AgGridReactProps } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { AllCommunityModule, ColDef, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
+import { AllEnterpriseModule, SparklinesModule, LicenseManager, IntegratedChartsModule, ExcelExportModule, MasterDetailModule } from "ag-grid-enterprise";
+import { AgChartsEnterpriseModule } from "ag-charts-enterprise";
+import { AllCommunityModule, CsvExportModule, ClientSideRowModelModule, ModuleRegistry, provideGlobalGridOptions, themeBalham } from 'ag-grid-community';
 
 // Register all community features
-ModuleRegistry.registerModules([AllCommunityModule]);
-provideGlobalGridOptions({ theme: "legacy"});
+ModuleRegistry.registerModules([
+  AllCommunityModule,
+  AllEnterpriseModule,
+  IntegratedChartsModule.with(AgChartsEnterpriseModule),
+  SparklinesModule.with(AgChartsEnterpriseModule),
+  ClientSideRowModelModule,
+  CsvExportModule,
+  ExcelExportModule,
+  MasterDetailModule
+]);
+LicenseManager.setLicenseKey(process.env.NEXT_PUBLIC_AG_GRID_LICENSE_KEY || '');
+
+provideGlobalGridOptions({ theme: themeBalham, sideBar: {toolPanels: ['columns', 'filters'], hiddenByDefault: true}, suppressContextMenu: false});
 
 
 interface NewColumn {
@@ -44,11 +55,12 @@ interface ColumnDefinition {
 
 // Add this interface for column type information
 export interface ColumnWithType extends ColumnDefinition {
-  type: 'string' | 'number' | 'boolean' | 'date';
   sample?: any;
   field?: string; // Make field optional since group columns don't need it
   groupId?: string;
   children?: ColumnWithType[];
+  cellRenderer?: string;
+  cellRendererParams?: any;
 }
 
 // New interface for QueryTable props to pass in table data
@@ -91,17 +103,28 @@ const QueryTable: React.FC<QueryTableProps> = ({
       filter: true,
       sortable: true,
       resizable: true,
-      flex: 1,
-      minWidth: 200,
+      wrapHeaderText: true,
+      autoHeaderHeight: true,
     }));
   }, [columnDefs]);
 
+  const autoSizeStrategy = useMemo(() => { 
+    return {
+      type: 'fitCellContents',
+      skipHeader: true,
+      defaultMinWidth: 120,
+    };
+  }, []);
+  
   return (
-    <div className="ag-theme-alpine w-[85vw] h-[80vh]">
+    <div className="h-[80vh] p-4">
       <AgGridReact 
         ref={gridRef}
+        autoSizeStrategy={autoSizeStrategy}
         rowData={rowData} 
         columnDefs={prepareColumnDefs}
+        enableCharts={true}
+        cellSelection={true}
         columnTypes={{
           string: {
             filter: 'agTextColumnFilter',
@@ -124,6 +147,16 @@ const QueryTable: React.FC<QueryTableProps> = ({
           filter: true,
           sortable: true,
           resizable: true,
+        }}
+        statusBar={{
+          statusPanels: [
+            {
+              statusPanel: 'agAggregationComponent',
+              statusPanelParams: {
+                aggFuncs: ['sum', 'avg', 'min', 'max'],
+              },
+            },
+          ],
         }}
         {...props}
       />

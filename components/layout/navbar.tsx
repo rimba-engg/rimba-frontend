@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Notifications } from './notifications';
+import { HelpCircle } from 'lucide-react';
 import { getStoredUser, getStoredCustomer } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { type User, type Customer  } from '@/lib/types';
@@ -203,6 +205,9 @@ export function Navbar() {
         </DropdownMenu>
 
         <div className="flex items-center gap-2">
+          <Link href="/support" className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-muted transition-colors">
+            <HelpCircle className="w-5 h-5" color="currentColor" />
+          </Link>
           <Notifications />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

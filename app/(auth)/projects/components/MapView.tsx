@@ -325,7 +325,7 @@ const MapView = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full">
-            Total Sites: {customerSites.length}
+            Total Projects: {customerSites.length}
           </span>
           {selectedSites.length > 0 && (
             <Button variant="outline" onClick={handleResetView}>

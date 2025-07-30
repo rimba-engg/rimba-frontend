@@ -5,15 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ToastContainer, toast } from 'react-toastify';
 import { api } from '@/lib/api' 
 import { useEffect } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { AllCommunityModule, ModuleRegistry, provideGlobalGridOptions } from 'ag-grid-community';
 import { Recycle, Zap } from 'lucide-react';
-
-// Register all community features
-ModuleRegistry.registerModules([AllCommunityModule]);
-provideGlobalGridOptions({ theme: "legacy"});
+import QueryTable from '@/components/table/QueryTable';
+import { ColumnWithType } from '@/components/table/QueryTable';
 
 
 interface EmissionScope2Response {
@@ -22,24 +16,9 @@ interface EmissionScope2Response {
   data: Array<Record<string, string | number>>;
 }
 
-const defaultColDef = {
-  flex: 1,
-  minWidth: 200,
-  resizable: true,
-  sortable: true,
-};
-
-const DocumentLinkRenderer = (props: any) => {
-  return (
-    <a href={`/library/document?document_id=${props.data['Document ID']}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
-      {props.data['Document Name']}
-    </a>
-  );
-};
-
 export default function EmissionScope2Page() {
   const [loading, setLoading] = useState<boolean>(false);
-  const [columnDefs, setColumnDefs] = useState<Record<string, any>[]>([]);
+  const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([]);
   const [rowData, setRowData] = useState<Array<Record<string, any>>>([]);
   const [emissionsData, setEmissionsData] = useState<EmissionScope2Response>({
     total_consumption: 0,
@@ -54,19 +33,15 @@ export default function EmissionScope2Page() {
         {
           field: 'document_link',
           headerName: 'Document',
-          sortable: true,
-          resizable: true,
-          minWidth: 300,
-          cellRenderer: DocumentLinkRenderer,
+          type: 'string',
         },
         ...Object.keys(emissionsData.data[0])
           .filter(key => !['Document Name', 'Document ID'].includes(key))
           .map((key) => ({
             field: key,
             headerName: key,
-            sortable: true,
-            resizable: true,
-          }))
+            type: 'number' as const,
+          } as ColumnWithType))
       ]);
 
       // need to add document link to the row data
@@ -135,11 +110,10 @@ export default function EmissionScope2Page() {
           </Card>
         </div>
       </CardContent>
-      <div className="ag-theme-alpine w-full h-[600px]">
-        <AgGridReact
-          rowData={rowData}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
+      <div className="w-full h-[600px]">
+        <QueryTable
+          initialRowData={rowData}
+          initialColumnDefs={columnDefs}
         />
       </div>
       {loading && (
