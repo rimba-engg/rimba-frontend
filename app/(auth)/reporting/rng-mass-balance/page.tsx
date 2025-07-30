@@ -517,7 +517,6 @@ export default function RngMassBalancePage() {
           initialColumnDefs={columnDefs}
           pinnedTopRowData={[viewAggregate]}
           getRowStyle={getRowStyle}
-          autoSizeStrategy={{ type: "fitCellContents" }}
         />
         <ToastContainer />
       </div>

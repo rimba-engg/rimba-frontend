@@ -105,15 +105,22 @@ const QueryTable: React.FC<QueryTableProps> = ({
       resizable: true,
       wrapHeaderText: true,
       autoHeaderHeight: true,
-      flex: 1,
-      minWidth: 100,
     }));
   }, [columnDefs]);
 
+  const autoSizeStrategy = useMemo(() => { 
+    return {
+      type: 'fitCellContents',
+      skipHeader: true,
+      defaultMinWidth: 120,
+    };
+  }, []);
+  
   return (
-    <div className="w-[85vw] h-[80vh] p-4">
+    <div className="h-[80vh] p-4">
       <AgGridReact 
         ref={gridRef}
+        autoSizeStrategy={autoSizeStrategy}
         rowData={rowData} 
         columnDefs={prepareColumnDefs}
         enableCharts={true}

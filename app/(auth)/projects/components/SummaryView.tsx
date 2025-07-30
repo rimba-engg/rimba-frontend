@@ -1,19 +1,84 @@
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
 import DateRangePicker from "@cloudscape-design/components/date-range-picker";
 import { api } from "@/lib/api";
-import QueryTable from "@/components/table/QueryTable";
+import QueryTable, { ColumnWithType } from "@/components/table/QueryTable";
+import Spinner from "@cloudscape-design/components/spinner";
+import Box from "@cloudscape-design/components/box";
+import Alert from "@cloudscape-design/components/alert";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+
+interface ProjectStatsResponse {
+  headers: string[];
+  rows: string[][];
+}
+
+const rangeValidator = (range: any) => {
+  if (range.type === "absolute") {
+    const [
+      startDateWithoutTime
+    ] = range.startDate.split("T");
+    const [
+      endDateWithoutTime
+    ] = range.endDate.split("T");
+    if (
+      !startDateWithoutTime ||
+      !endDateWithoutTime
+    ) {
+      return {
+        valid: false,
+        errorMessage:
+          "The selected date range is incomplete. Select a start and end date for the date range."
+      };
+    }
+    if (
+      new Date(range.startDate) -
+        new Date(range.endDate) >
+      0
+    ) {
+      return {
+        valid: false,
+        errorMessage:
+          "The selected date range is invalid. The start date must be before the end date."
+      };
+    }
+  }
+  return { valid: true };
+};
+
+const relativeOptions = [
+  {
+    key: "previous-1-day",
+    amount: 1,
+    unit: "day",
+    type: "relative"
+  },
+  {
+    key: "previous-7-days",
+    amount: 7,
+    unit: "day",
+    type: "relative"
+  },
+  {
+    key: "previous-4-weeks",
+    amount: 28,
+    unit: "day",
+    type: "relative"
+  },
+];
 
 
 export default function SummaryView() {
-  const [value, setValue] = React.useState(undefined);
-  const [dateRange, setDateRange] = React.useState({
+  const [loading, setLoading] = useState<boolean>(false);
+  const [timezone, setTimezone] = useState<string>('America/New_York');
+  const [value, setValue] = useState(undefined);
+  const [dateRange, setDateRange] = useState({
     // Set default date range to last day
     startDate: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
   });
-  const [projectTableData, setProjectTableData] = React.useState<any[]>([]);
-  const [projectTableCols, setProjectTableCols] = React.useState<any[]>([]);
-  const [selectedSite, setSelectedSite] = React.useState<string>('');
+  const [columnDefs, setColumnDefs] = useState<ColumnWithType[]>([])
+  const [rowData, setRowData] = useState<any[]>([])
+  const [selectedSite, setSelectedSite] = useState<string>('');
 
   // Remove the useEffect for default dates as it's handled by DateTimeSelector now
   useEffect(() => {
@@ -52,123 +117,75 @@ export default function SummaryView() {
 
   useEffect(() => {
     if (selectedSite) {
-      fetchProjectStats(selectedSite, dateRange);
+      fetchProjectStats(dateRange);
     }
-  }, [selectedSite, dateRange]);
+  }, [dateRange]);
 
-  const fetchProjectStats = async (selectedSite: string, dateRange: any) => {
-    if (!selectedSite || !dateRange.startDate || !dateRange.endDate) return;
-    console.log('fetching project stats for', selectedSite, dateRange);
+  const fetchProjectStats = async (dateRange: any) => {
+    if (!dateRange.startDate || !dateRange.endDate) return;
+    console.log('fetching project stats for', dateRange);
+    setLoading(true);
     try {
       const payload = {
-        sites: [selectedSite],
         start_date: dateRange.startDate,
         end_date: dateRange.endDate,
+        timezone: timezone,
       };
-      const resp = await api.post<{ data: Record<string, any> }>('/reporting/v2/project-stats/', payload);
+      const resp = await api.post<ProjectStatsResponse>('/reporting/v2/project-stats/', payload);
       // Flatten to table rows
-      const rows: any[] = [];
-      Object.entries(resp.data).forEach(([site, dates]) => {
-        Object.entries(dates as Record<string, any>).forEach(([date, stats]) => {
-          rows.push({ site, date, ...stats });
-        });
-      });
-      setProjectTableData(rows);
-      setProjectTableCols([
-        { field: 'site', headerName: 'Site', type: 'string' },
-        { field: 'date', headerName: 'Date', type: 'string' },
-        { field: 'injected_pipeline', headerName: 'Injected Pipeline', type: 'number' },
-        { field: 'balance_percentage', headerName: 'Balance %', type: 'number' },
-        { field: 'inlet_sum', headerName: 'Inlet Sum', type: 'number' },
-        { field: 'flare_sum', headerName: 'Flare Sum', type: 'number' },
-        { field: 'tox_sum', headerName: 'Tox Sum', type: 'number' },
-      ]);
+      setRowData(resp.rows);
+      setColumnDefs(resp.headers.map((header) => ({ field: header, headerName: header, type: 'string' })));
     } catch (err) {
       console.error('Error fetching project stats:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div>
-      <DateRangePicker
-      onChange={({ detail }) => {
-        setValue(detail.value);
-        updateDateRange(detail.value);
-      }}
-      value={value}
-      relativeOptions={[
-        {
-          key: "previous-1-day",
-          amount: 1,
-          unit: "day",
-          type: "relative"
-        },
-        {
-          key: "previous-7-days",
-          amount: 7,
-          unit: "day",
-          type: "relative"
-        },
-        {
-          key: "previous-4-weeks",
-          amount: 28,
-          unit: "day",
-          type: "relative"
-        },
-      ]}
-      isValidRange={range => {
-        if (range.type === "absolute") {
-          const [
-            startDateWithoutTime
-          ] = range.startDate.split("T");
-          const [
-            endDateWithoutTime
-          ] = range.endDate.split("T");
-          if (
-            !startDateWithoutTime ||
-            !endDateWithoutTime
-          ) {
-            return {
-              valid: false,
-              errorMessage:
-                "The selected date range is incomplete. Select a start and end date for the date range."
-            };
-          }
-          if (
-            new Date(range.startDate) -
-              new Date(range.endDate) >
-            0
-          ) {
-            return {
-              valid: false,
-              errorMessage:
-                "The selected date range is invalid. The start date must be before the end date."
-            };
-          }
-        }
-        return { valid: true };
-      }}
-        dateOnly
-        placeholder="Filter by date"
-        i18nStrings={{
-          todayAriaLabel: "Today",
-          cancelButtonLabel: "Cancel",
-          applyButtonLabel: "Apply",
-          relativeModeTitle: "Relative",
-          absoluteModeTitle: "Absolute",
-          customRelativeRangeOptionLabel: "Custom range",
-          formatRelativeRange: (value: any) => {
-            const { amount, unit } = value;
-            return `Last ${amount} ${unit}${amount > 1 ? "s" : ""} ago`;
-          }
-        }}
-      />
+      <div className="flex flex-row gap-2">
+        <DateRangePicker
+          dateOnly
+          placeholder="Filter by date"
+          locale="en-US"
+          onChange={({ detail }) => {
+            setValue(detail.value);
+            updateDateRange(detail.value);
+          }}
+          value={value}
+          isValidRange={rangeValidator}
+          relativeOptions={relativeOptions}
+          i18nStrings={{
+            todayAriaLabel: "Today",
+            cancelButtonLabel: "Cancel",
+            applyButtonLabel: "Apply",
+            relativeModeTitle: "Relative",
+            absoluteModeTitle: "Absolute",
+            customRelativeRangeOptionLabel: "Custom range",
+            formatRelativeRange: (value: any) => {
+              const { amount, unit } = value;
+              return `Last ${amount} ${unit}${amount > 1 ? "s" : ""} ago`;
+            }
+          }}
+        />
+        <TimezoneSelect
+          value={timezone}
+          onValueChange={setTimezone}
+          className="w-48"
+        />
+      </div>
+      
 
-      <QueryTable
-        initialRowData={projectTableData}
-        initialColumnDefs={projectTableCols}
-        autoSizeStrategy={{ type: "fitCellContents" }}
-      />
+      {loading && (<Box textAlign="center" className="flex flex-col items-center justify-center"><Spinner size="large" /> Digging gas molecules for you...</Box>)}
+      {!loading && columnDefs.length === 0 && <Alert statusIconAriaLabel="Info" header="No data yet" >Try selecting a date range.</Alert>}
+
+      {!loading && columnDefs.length > 0 && (
+        <QueryTable
+          initialRowData={rowData}
+          initialColumnDefs={columnDefs}
+        />
+      )}
     </div>
   );
 }
