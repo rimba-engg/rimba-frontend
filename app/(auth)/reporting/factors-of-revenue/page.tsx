@@ -31,7 +31,6 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   { 
     field: 'gasDay', 
     headerName: 'Gas Day',
-    type: 'string',
     minWidth: 120,
     maxWidth: 120,
     headerClass: 'ag-center-header'
@@ -39,7 +38,6 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   {
     field: '%Balance',
     headerName: '% Balance',
-    type: 'number',
     minWidth: 120,
     maxWidth: 120,
     headerClass: 'ag-center-header'
@@ -47,28 +45,24 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   {
     groupId: 'inletGroup',
     headerName: 'Inlet MMBtu',
-    type: 'number',
     minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'inletActual', 
         headerName: 'Actual', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'inletBudget', 
         headerName: 'Budget', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'inletDelta', 
         headerName: 'Delta', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: deltaCellStyle
@@ -78,28 +72,24 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   {
     groupId: 'downtimeGroup',
     headerName: 'Downtime MMBtu',
-    type: 'number',
     minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'downtimeActual', 
         headerName: 'Actual', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'downtimeBudget', 
         headerName: 'Budget', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'downtimeDelta', 
         headerName: 'Delta', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: negativeDeltaCellStyle
@@ -109,28 +99,24 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   {
     groupId: 'toxGroup',
     headerName: 'Tox MMBtu',
-    type: 'number',
     minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'toxActual', 
         headerName: 'Actual', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'toxBudget', 
         headerName: 'Budget', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'toxDelta', 
         headerName: 'Delta', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: negativeDeltaCellStyle
@@ -140,28 +126,24 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   {
     groupId: 'injectedGroup',
     headerName: 'Injected MMBtu',
-    type: 'number',
     minWidth: 250,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'injectedActual', 
         headerName: 'Actual', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'injectedBudget', 
         headerName: 'Budget', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'injectedDelta', 
         headerName: 'Delta', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: deltaCellStyle
@@ -171,28 +153,24 @@ const initialColumnDefs: ExtendedColumnWithType[] = [
   {
     groupId: 'downtimeMinutesGroup',
     headerName: 'Downtime Minutes',
-    type: 'number',
     minWidth: 180,
     headerClass: 'ag-center-header',
     children: [
       { 
         field: 'downtimeMinutesActual', 
         headerName: 'Actual', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       { 
         field: 'downtimeMinutesBudget', 
         headerName: 'Budget', 
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header'
       },
       {
         field: 'downtimeMinutesDelta',
         headerName: 'Delta',
-        type: 'number',
         minWidth: 80,
         headerClass: 'ag-center-header',
         cellStyle: negativeDeltaCellStyle
