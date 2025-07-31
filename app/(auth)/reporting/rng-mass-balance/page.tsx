@@ -390,10 +390,6 @@ export default function RngMassBalancePage() {
 
   // Remove validateDate function as it's handled by DateTimeSelector now
 
-  // Remove handleColumnAdded function
-  // Remove handleFormulaUpdate function
-  // Remove handleColumnDelete function
-
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
