@@ -1,7 +1,9 @@
 'use client';
 
-import { FloatingLabelInput } from '@/components/ui/floating-label-input';
+import "ag-charts-enterprise";
 import { api, defaultHeaders ,BASE_URL} from '@/lib/api';
+
+import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { TimezoneSelect } from '@/components/ui/timezone-select';
 
 import {
@@ -21,8 +23,8 @@ import { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
 import QueryTable from '@/components/table/QueryTable';
-import { ColumnWithType } from '@/components/table/QueryTable';
-import type { Column, DataFrameType } from '@/components/table/CustomColumnAdder';
+import { AgCharts } from "ag-charts-react";
+import { AgChartOptions } from "ag-charts-enterprise";
 
 // Register ChartJS components
 ChartJS.register(
@@ -67,61 +69,30 @@ const getRowStyle = (params: any): { backgroundColor: string; fontWeight: string
 
 // Function to create chart config for analytics data
 function createAnalyticsChartConfig(dataSummary: DataSummary): any {
-  const siteConfigs = {
-    'novilla': {
-      'West Branch': {
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-      },
-      'Red Leaf': {
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        borderColor: 'rgba(255, 99, 132, 1)',
-      },
-      'Three Petals': {
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-      },
-      'Buckhorn': {
-        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-        borderColor: 'rgba(153, 102, 255, 1)',
-      },
-    },
-    'demo_rng': {
-      'Green Flame Bio Energy': {
-        backgroundColor: 'rgba(34, 139, 34, 0.2)',
-        borderColor: 'rgba(34, 139, 34, 1)',
-      },
-      'Eco Methane Hub': {
-        backgroundColor: 'rgba(255, 140, 0, 0.2)',
-        borderColor: 'rgba(255, 140, 0, 1)',
+  console.log(dataSummary);
+  let config = {
+    data: dataSummary.values,
+    // Series: Defines which chart type and data to use
+    series: [
+      { type: 'line', xKey: 'Date', yKey: 'balance', yName: dataSummary.site_name + ' Balance'},
+      { type: 'line', xKey: 'Date', yKey: 'tavg', yName: 'Ambient Temp. (C)'},
+    ],
+    axes: [
+      { type: "category", position: "bottom"},
+      { type: "number", position: "left", keys: ['balance']},
+      { type: "number", position: "right", keys: ['tavg']},
+    ],
+    legend: {
+      item: {
+        marker: {
+          shape: "square",
+          strokeWidth: 0,
+        },
       },
     },
-  };
-
-  if (dataSummary.site_type === 'novilla' || dataSummary.site_type === 'demo_rng') {
-    let colors = { backgroundColor: 'rgba(75, 192, 192, 0.2)', borderColor: 'rgba(75, 192, 192, 1)' };
-    
-    if (dataSummary.site_type === 'novilla') {
-      colors = siteConfigs.novilla[dataSummary.site_name as keyof typeof siteConfigs.novilla] || colors;
-    } else if (dataSummary.site_type === 'demo_rng') {
-      colors = siteConfigs.demo_rng[dataSummary.site_name as keyof typeof siteConfigs.demo_rng] || colors;
-    }
-
-    return {
-      labels: dataSummary.labels,
-      datasets: [{
-        label: `${dataSummary.site_name} Balance`,
-        data: dataSummary.values,
-        backgroundColor: colors.backgroundColor,
-        borderColor: colors.borderColor,
-        borderWidth: 1,
-        fill: false,
-        tension: 0.1
-      }]
-    };
   }
 
-  return null;
+  return config;
 }
 
 // Function to create chart config for manure flow multi-site data
@@ -170,7 +141,6 @@ export default function AnalyticsPage() {
     const [rowData, setRowData] = useState<any>([]);
     const [totals, setTotals] = useState<any>(null);
     const [columnDefs, setColumnDefs] = useState<any>([]);
-    const [dataFrame, setDataFrame] = useState<DataFrameType>({});
     const [relative, setRelative] = useState('Select time range...');
     const [selectedSite, setSelectedSite] = useState<string>('');
     const [isDownloading, setIsDownloading] = useState(false);
@@ -179,112 +149,6 @@ export default function AnalyticsPage() {
         fetchAnalytics();
         fetchAnalyticsManureData();
     }, [startDate, endDate, selectedSite, timezone]);
-
-    // Add this new function to handle new column addition
-    const handleColumnAdded = (newData: DataFrameType, newColumn: Column) => {
-        // Update the dataframe with new data
-        setDataFrame(newData);
-        
-        // Convert the new data to row format
-        const newRowData = Object.keys(newData[Object.keys(newData)[0]]).map((index) => {
-            const row: Record<string, number | string> = {};
-            Object.keys(newData).forEach((key) => {
-                row[key] = newData[key][parseInt(index)];
-            });
-            return row;
-        });
-        
-        // Update row data
-        setRowData(newRowData);
-        
-        // Add the new column definition with formula
-        setColumnDefs([...columnDefs, {
-            headerName: newColumn.label,
-            field: newColumn.key,
-            type: 'number',
-            formula: newColumn.formula // Add formula to column definition
-        } as ColumnWithType]);
-    };
-
-    // Add this new function to handle column updates
-    const handleColumnUpdated = (newData: DataFrameType, updatedColumn: Column) => {
-      // Update the dataframe with new data
-      setDataFrame(newData);
-      
-      // Convert the new data to row format
-      const updatedRowData = Object.keys(newData[Object.keys(newData)[0]]).map((index) => {
-        const row: Record<string, number | string> = {};
-        Object.keys(newData).forEach((key) => {
-          row[key] = newData[key][parseInt(index)];
-        });
-        return row;
-      });
-      
-      // Update rowData
-      setRowData(updatedRowData);
-      
-      // Update the column definition
-      setColumnDefs((prevDefs: ColumnWithType[]) => prevDefs.map((col: ColumnWithType) => 
-        col.field === updatedColumn.key 
-          ? { ...col, formula: updatedColumn.formula }
-          : col
-      ));
-    };
-
-    // Add this function to handle formula updates from the table header
-    const handleFormulaUpdate = async (field: string, formula: string) => {
-      try {
-        const response = await fetch(`${BASE_URL}/reporting/v2/formula-calculator/`, {
-          method: 'POST',
-          headers: {
-            ...defaultHeaders,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            dataframe: dataFrame,
-            formula: formula,
-            new_column: field,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to calculate formula: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          // Update the dataframe with new data
-          setDataFrame(result.data);
-          
-          // Convert the new data to row format
-          const updatedRowData = Object.keys(result.data[Object.keys(result.data)[0]]).map((index) => {
-            const row: Record<string, number | string> = {};
-            Object.keys(result.data).forEach((key) => {
-              row[key] = result.data[key][parseInt(index)];
-            });
-            return row;
-          });
-          
-          // Update rowData
-          setRowData(updatedRowData);
-          
-          // Update the column definition
-          setColumnDefs((prevDefs: ColumnWithType[]) => prevDefs.map(col => 
-            col.field === field 
-              ? { ...col, formula: formula }
-              : col
-          ));
-
-          toast.success('Formula updated successfully');
-        } else {
-          throw new Error(result.message || 'Failed to apply formula');
-        }
-      } catch (error) {
-        console.error('Error updating formula:', error);
-        toast.error(error instanceof Error ? error.message : 'An error occurred');
-      }
-    };
 
     // Create chart config when data_summary changes
     useEffect(() => {
@@ -335,15 +199,6 @@ export default function AnalyticsPage() {
                 setDataSummary(data.data_summary);
                 setRowData(data.table_data);
                 setTotals(data.totals);
-                
-                // Convert row data to dataframe format
-                const newDataFrame: DataFrameType = {};
-                if (data.table_data.length > 0) {
-                    Object.keys(data.table_data[0]).forEach(key => {
-                        newDataFrame[key] = data.table_data.map((row: Record<string, number | string>) => row[key]);
-                    });
-                    setDataFrame(newDataFrame);
-                }
                 
                 // set column defs
                 setColumnDefs(Object.keys(data.table_data[0]).map((key: any) => {
@@ -524,7 +379,7 @@ export default function AnalyticsPage() {
                 <div className="text-lg font-medium">Loading analytics data...</div>
               </div>
             ) : chartConfig ? (
-              <Line options={options} data={chartConfig} />
+              <AgCharts options={chartConfig as AgChartOptions} />
             ) : (
               <div className="flex items-center justify-center h-full bg-white p-8 rounded-lg shadow-lg">
                 <div className="text-lg font-medium text-gray-500">No data available</div>
