@@ -319,9 +319,8 @@ export default function SupportDetailPage() {
         <div className="p-6 max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[40vh]">
           <h2 className="text-xl font-semibold mb-4">No support tickets found!</h2>
           <div className="bg-card border rounded-lg p-4 text-center">
-            <p className="text-lg mb-2">Here's a joke while you wait:</p>
-            <p className="italic text-muted-foreground">
-              Looks like you're the first one to submit a support ticket!
+            <p className="text-muted-foreground">
+              Be the first one! Request a feature, report a bug, or just say hi! 😊
             </p>
           </div>
         </div>
