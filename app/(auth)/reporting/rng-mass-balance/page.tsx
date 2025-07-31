@@ -48,6 +48,7 @@ interface MassBalanceResponse {
   data_summary: DataSummary | null;
   chart_title: string;
   tax_credit: Record<string, any>;
+  formulas?: Record<string, string>;
 }
 
 interface CsvExportResponse {
@@ -135,6 +136,7 @@ export default function RngMassBalancePage() {
   });
   const [viewAggregate, setViewAggregate] = useState<Record<string, any>>({});
   const [chartConfig, setChartConfig] = useState<ChartData<"bar", (number | [number, number] | null)[], unknown> | null>(null);
+  const [formulas, setFormulas] = useState<Record<string, string>>({});
   const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
   const [chartTitle, setChartTitle] = useState<string>('');
   const [taxCredit, setTaxCredit] = useState<Record<string, any>>({});
@@ -168,16 +170,17 @@ export default function RngMassBalancePage() {
   // Update the useEffect that processes rowData to also update dataFrame
   useEffect(() => {
     if (rowData && rowData.length > 0) {
-      // Update column definitions
+      // Update column definitions with formula indicator if available
       setColumnDefs(
         Object.keys(rowData[0]).map((key) => ({
           field: key,
-          headerName: key,
+          headerName: formulas[key] ? `${key} fxₓ` : key,
+          headerTooltip: formulas[key] || undefined,
           type: key === 'Timestamp' ? 'date' : 'number'
         } as ColumnWithType))
       );
     }
-  }, [rowData]);
+  }, [rowData, formulas]);
 
   // Create chart config when data_summary changes
   useEffect(() => {
@@ -262,6 +265,9 @@ export default function RngMassBalancePage() {
       setDataSummary(response.data_summary);
       setChartTitle(response.chart_title);
       setTaxCredit(response.tax_credit);
+      if (response.formulas) {
+        setFormulas(response.formulas);
+      }
     } catch (err) {
       setError('Failed to load mass balance data');
       console.error('Error fetching mass balance data:', err);
@@ -517,6 +523,10 @@ export default function RngMassBalancePage() {
           initialColumnDefs={columnDefs}
           pinnedTopRowData={[viewAggregate]}
           getRowStyle={getRowStyle}
+          formulas={formulas}
+          onFormulaUpdate={(field, formula)=>{
+            setFormulas(prev=>({...prev,[field]:formula}));
+          }}
         />
         <ToastContainer />
       </div>
