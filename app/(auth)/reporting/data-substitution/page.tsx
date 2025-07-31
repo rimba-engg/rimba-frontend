@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
-import { DateTime } from 'luxon';
 import { getStoredCustomer } from '@/lib/auth';
 import { ToastContainer, toast } from 'react-toastify';
 import { Loader2, ClockIcon, Factory, Calendar, Upload, X } from 'lucide-react';
@@ -24,14 +22,6 @@ interface DataSubstitutionEntry {
 // Mock data for Demo-RNG
 const MOCK_DATA: DataSubstitutionEntry[] = [
   {
-    start_timestamp: '2024-03-20 10:00:00',
-    end_timestamp: '2024-03-20 12:00:00',
-    missing_duration: 120,
-    missing_sensors: ['EcoHUB S001, EcoHUB S002'],
-    substitution_method: 'Pending',
-    substituted_by: '-'
-  },
-  {
     start_timestamp: '2024-03-20 14:00:00',
     end_timestamp: '2024-03-20 16:00:00',
     missing_duration: 120,
@@ -43,7 +33,7 @@ const MOCK_DATA: DataSubstitutionEntry[] = [
     start_timestamp: '2024-03-21 09:00:00',
     end_timestamp: '2024-03-21 11:00:00',
     missing_duration: 120,
-    missing_sensors: ['EcoHUB S001, Tox(ppb)'],
+    missing_sensors: ['Tox(ppb)'],
     substitution_method: 'Pending',
     substituted_by: '-'
   }
