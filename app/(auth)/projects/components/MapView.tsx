@@ -5,12 +5,12 @@ import 'leaflet/dist/leaflet.css';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, BarChart, FileText, Scale } from "lucide-react";
-import { projectsData } from './ProjectData';
 import { toast } from "sonner";
 import L from 'leaflet';
 import { getStoredCustomer, getStoredUser } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { trackProjectChange } from '@/lib/mixpanel';
+import { api } from '@/lib/api';
 
 // Fix for default marker icons in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -41,73 +41,46 @@ const yellowIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-interface Site {
-  plant_name: string;
+export interface Site {
+  id: number;
+  customer_id: number;
+  name: string;
   city: string;
   state: string;
   latitude: number;
   longitude: number;
-  image_url: string;
-  summary: string;
-  under_construction?: boolean;
-  address?: string;
+  image_url?: string | null;
+  summary?: string | null;
+  address?: string | null;
+  status: "active" | "under_construction" | "inactive";
 }
 
 const MapView = () => {
   const [selectedSites, setSelectedSites] = useState<Site[]>([]);
   const [activeIndex, setActiveIndex] = useState<number>(0);
-  const [customerName, setCustomerName] = useState<string>("");
   const [customerSites, setCustomerSites] = useState<Site[]>([]);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Get customer name from localStorage and filter sites
   useEffect(() => {
-    // Get customer name from localStorage
-    const currentCustomer = getStoredCustomer();
-    const customerName = currentCustomer?.name || "Demo-RNG";
-    console.log("currentCustomer", customerName);
-    setCustomerName(customerName);
-    
-    // Filter sites for the customer
-    let filteredSites: Site[] = [];
-    
-    if (customerName === "RNG Plant Portfolio") {
-      // Get all sites from all customers
-      filteredSites = getAllSitesFromData();
-    } else {
-      // Find customer by name and get their sites
-      const customerData = findCustomerByName(customerName);
-      
-      if (customerData && customerData.sites) {
-        filteredSites = customerData.sites as Site[];
+    const fetchSites = async () => {
+      const currentCustomer = getStoredCustomer();
+      const customerId = currentCustomer?.id;
+      if (!customerId) return;
+
+      try {
+        // Call your backend: GET /v2/site/{customer_id}/
+        const resp = await api.get<{ message: string; data: Site[]; status: string }>(`/v2/site/${customerId}/`);
+        setCustomerSites(resp.data);
+      } catch (err) {
+        toast.error("Failed to fetch sites");
+        setCustomerSites([]);
       }
-    }
-    
-    console.log("filteredSites", filteredSites);
-    setCustomerSites(filteredSites);
+    };
+    fetchSites();
   }, []);
-
-  // Helper function to find a customer by name
-  const findCustomerByName = (customerName: string): any => {
-    return projectsData.find(customer => customer.customer === customerName) || null;
-  };
-
-  // Helper function to get all sites from all customers
-  const getAllSitesFromData = (): Site[] => {
-    let allSites: Site[] = [];
-    
-    // Iterate through each customer and add their sites
-    projectsData.forEach(customer => {
-      if (customer.sites && Array.isArray(customer.sites)) {
-        allSites = [...allSites, ...customer.sites as Site[]];
-      }
-    });
-    
-    return allSites;
-  };
 
   // Initialize map on component mount - only after we have customer sites
   useEffect(() => {
@@ -149,7 +122,7 @@ const MapView = () => {
     // Add each site with its own marker
     customerSites.forEach(site => {
       if (site.latitude === undefined || site.longitude === undefined) {
-        console.warn(`Site ${site.plant_name} has invalid coordinates`, site);
+        console.warn(`Site ${site.name} has invalid coordinates`, site);
         return;
       }
       
@@ -166,7 +139,7 @@ const MapView = () => {
           s.longitude !== undefined && 
           `${Number(s.latitude).toFixed(5)},${Number(s.longitude).toFixed(5)}` === key
         )
-        .findIndex(s => s.plant_name === site.plant_name);
+        .findIndex(s => s.name === site.name);
       
       // Calculate position - add offset if this is not the first marker at this location
       let markerLat = Number(site.latitude);
@@ -186,23 +159,23 @@ const MapView = () => {
       // Create and add the marker
       try {
         const marker = L.marker([markerLat, markerLng], { 
-          icon: site.under_construction ? yellowIcon : greenIcon 
+          icon: site.status === "under_construction" ? yellowIcon : greenIcon 
         })
           .addTo(map)
           .bindPopup(`
             <div class="text-center">
-              <strong>${site.plant_name}</strong><br />
+              <strong>${site.name}</strong><br />
               ${site.city}, ${site.state}<br />
-              ${site.under_construction ? '<span style="color: #b8860b;">Under Construction</span>' : '<span style="color: #2e8b57;">Operational</span>'}
+              ${site.status === "under_construction" ? '<span style="color: #b8860b;">Under Construction</span>' : '<span style="color: #2e8b57;">Operational</span>'}
             </div>
           `);
         
         // Set up click handler
         marker.on('click', () => {
-          console.log(`Clicked on ${site.plant_name}`);
+          console.log(`Clicked on ${site.name}`);
           setSelectedSites([site]);
           setActiveIndex(0);
-          toast(`Viewing ${site.plant_name}`);
+          toast(`Viewing ${site.name}`);
           
           // Call handleSiteChange function when a site is selected
           handleSiteChange(site);
@@ -227,7 +200,7 @@ const MapView = () => {
           countIndicatorsAdded.add(key);
         }
       } catch (error) {
-        console.error(`Error adding marker for ${site.plant_name}:`, error);
+        console.error(`Error adding marker for ${site.name}:`, error);
       }
     });
     
@@ -267,7 +240,7 @@ const MapView = () => {
     const previousSiteName = currentSite ? JSON.parse(currentSite).name : null;
     
     // Track the change in Mixpanel if site actually changed
-    if (previousSiteName && previousSiteName !== site.plant_name) {
+    if (previousSiteName && previousSiteName !== site.name) {
       const userData = getStoredUser();
       const customerData = getStoredCustomer();
       
@@ -277,14 +250,14 @@ const MapView = () => {
           userData.email,
           customerData.name,
           previousSiteName,
-          site.plant_name
+          site.name
         );
       }
     }
     
     // Store only the site name in local storage
-    localStorage.setItem('selected_site', JSON.stringify({ name: site.plant_name }));
-    console.log(`Switched to site: ${site.plant_name}`);
+    localStorage.setItem('selected_site', JSON.stringify({ name: site.name }));
+    console.log(`Switched to site: ${site.name}`);
     
     // Zoom to the selected site
     if (mapRef.current) {
@@ -303,7 +276,7 @@ const MapView = () => {
     
     // Trigger a dropdown selection event for the navbar
     const navbarSiteChangeEvent = new CustomEvent('navbarSiteChange', {
-      detail: { siteName: site.plant_name }
+      detail: { siteName: site.name }
     });
     window.dispatchEvent(navbarSiteChangeEvent);
   };
@@ -311,7 +284,7 @@ const MapView = () => {
   const querySite = searchParams.get('site');
   useEffect(() => {
     if (querySite) {
-      var currentSite = customerSites.find(site => site.plant_name == querySite);
+      var currentSite = customerSites.find(site => site.name == querySite);
       if (currentSite) {
       setSelectedSites([currentSite]);
       setActiveIndex(0);
@@ -347,7 +320,7 @@ const MapView = () => {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-green-500" />
-                <CardTitle>{selectedSites[activeIndex].plant_name}</CardTitle>
+                <CardTitle>{selectedSites[activeIndex].name}</CardTitle>
               </div>
               <CardDescription>{selectedSites[activeIndex].city}, {selectedSites[activeIndex].state}</CardDescription>
               
@@ -378,8 +351,8 @@ const MapView = () => {
             <CardContent className="space-y-4">
               <div className="relative h-48 overflow-hidden rounded-md">
                 <img 
-                  src={selectedSites[activeIndex].image_url} 
-                  alt={selectedSites[activeIndex].plant_name}
+                  src={selectedSites[activeIndex].image_url || "/placeholder-image.jpg"} 
+                  alt={selectedSites[activeIndex].name}
                   className="w-full h-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = "/placeholder-image.jpg";
@@ -392,7 +365,7 @@ const MapView = () => {
               )}
             </CardContent>
 
-            {!selectedSites[activeIndex].under_construction && (
+            {!selectedSites[activeIndex].status.includes("under_construction") && (
             <CardFooter className="flex flex-col gap-2">
               <div className="grid grid-cols-3 gap-2 w-full">
                 <Button 
@@ -438,7 +411,7 @@ const MapView = () => {
                 </h3>
                 <div className="space-y-2">
                   {customerSites
-                    .filter(site => !site.under_construction)
+                    .filter(site => site.status === "active")
                     .map((site, index) => (
                       <div
                         key={`operational-${index}`}
@@ -449,7 +422,7 @@ const MapView = () => {
                           handleSiteChange(site);
                         }}
                       >
-                        <p className="font-medium text-sm">{site.plant_name}</p>
+                        <p className="font-medium text-sm">{site.name}</p>
                         <p className="text-xs text-gray-500">{site.city}, {site.state}</p>
                       </div>
                     ))}
@@ -464,7 +437,7 @@ const MapView = () => {
                 </h3>
                 <div className="space-y-2">
                   {customerSites
-                    .filter(site => site.under_construction)
+                    .filter(site => site.status === "under_construction")
                     .map((site, index) => (
                       <div
                         key={`construction-${index}`}
@@ -475,7 +448,7 @@ const MapView = () => {
                           handleSiteChange(site);
                         }}
                       >
-                        <p className="font-medium text-sm">{site.plant_name}</p>
+                        <p className="font-medium text-sm">{site.name}</p>
                         <p className="text-xs text-gray-500">{site.city}, {site.state}</p>
                       </div>
                     ))}
