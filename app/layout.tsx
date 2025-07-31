@@ -17,11 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
 
-  if (process.env.NODE_ENV === 'production') {
-    useEffect(() => {
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
       initMixpanel(); // Initialize Mixpanel
-    }, []);
-  }
+    }
+  }, []);
   
   return (
     <html lang="en">
