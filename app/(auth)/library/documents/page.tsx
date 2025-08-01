@@ -2,13 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Search, Filter, Download, Upload, Plus } from 'lucide-react';
+import { FileText, Upload, Eye, Link as LinkIcon } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { YearMonthSelect } from '@/components/ui/year-month-select';
 import { api,BASE_URL, defaultHeaders } from '@/lib/api';
-import { MONTHS } from '@/lib/constants';
 import { getStoredCustomer } from '@/lib/auth';
+
+import { AgGridReact } from 'ag-grid-react';
+import { AllEnterpriseModule, LicenseManager } from "ag-grid-enterprise";
+import { provideGlobalGridOptions, themeQuartz } from 'ag-grid-community';
+import { ModuleRegistry } from 'ag-grid-community';
+
+// Register all community features
+ModuleRegistry.registerModules([
+  AllEnterpriseModule,
+]);
+LicenseManager.setLicenseKey(process.env.NEXT_PUBLIC_AG_GRID_LICENSE_KEY || '');
+provideGlobalGridOptions({ theme: themeQuartz, sideBar: {toolPanels: ['columns', 'filters'], hiddenByDefault: true}, suppressContextMenu: false});
 
 
 interface Document {
@@ -28,9 +38,9 @@ interface DocumentResponse {
   };
 }
 
-const fetchDocuments = async (year: number, month: number): Promise<Document[]> => {
+const fetchDocuments = async (): Promise<Document[]> => {
   try {
-    const response = await api.get<DocumentResponse>(`/v2/dashboard/?current_year=${year}&current_month=${month}`);
+    const response = await api.get<DocumentResponse>('/v2/documents/');
     const data = response;
     console.log(data);
     if (data.status === 'success') {
@@ -52,74 +62,129 @@ const fetchDocuments = async (year: number, month: number): Promise<Document[]> 
   }
 };
 
+const DocumentNameRenderer = (props: any) => (
+  <div className="flex items-center gap-2">
+    <FileText className="w-4 h-4 text-muted-foreground" />
+    <span>{props.value}</span>
+  </div>
+);
+
+// Color palette for type pills
+const typeColors = [
+  "bg-blue-100 text-blue-800",
+  "bg-green-100 text-green-800",
+  "bg-yellow-100 text-yellow-800",
+  "bg-purple-100 text-purple-800",
+  "bg-pink-100 text-pink-800",
+  "bg-gray-100 text-gray-800",
+];
+
+function getTypeColor(type: string) {
+  let hash = 0;
+  for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
+  return typeColors[Math.abs(hash) % typeColors.length];
+}
+
+const TypePillRenderer = (props: any) => (
+  <span className={`px-2 py-1 rounded text-sm ${getTypeColor(props.value)}`}>{props.value}</span>
+);
+
+const StatusPillRenderer = (props: any) => {
+  const status = props.value;
+  let color = '';
+  switch (status) {
+    case 'reconciled':
+      color = 'bg-green-100 text-green-800'; break;
+    case 'pending':
+      color = 'bg-yellow-100 text-yellow-800'; break;
+    case 'extracted':
+      color = 'bg-blue-100 text-blue-800'; break;
+    case 'flagged':
+      color = 'bg-orange-100 text-orange-800'; break;
+    case 'review':
+      color = 'bg-red-100 text-red-800'; break;
+  }
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+};
+
+const ActionButtonsRenderer = (props: any) => {
+  const { data, context } = props;
+  const deleting = context.deletingDocumentId === data.id;
+  return (
+    <div className="flex gap-2">
+      <Button
+        variant="ghost"
+        className="text-primary hover:text-primary/80"
+        onClick={e => {
+          e.stopPropagation();
+          context.handleOpen(data.id);
+        }}
+      >
+        <Eye className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        className="text-muted-foreground hover:text-primary"
+        onClick={e => {
+          e.stopPropagation();
+          context.handleCopyUrl(data.id);
+        }}
+      >
+        <LinkIcon className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        className="text-red-500 hover:text-red-600"
+        onClick={e => {
+          e.stopPropagation();
+          context.handleDelete(data.id);
+        }}
+        disabled={deleting}
+      >
+        {deleting ? (
+          <div className="flex items-center gap-2">
+            <div className="spinner"></div>
+            Deleting...
+          </div>
+        ) : <Trash2 className="w-4 h-4" />}
+      </Button>
+    </div>
+  );
+};
+
 
 export default function DocumentsPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => {
-    const customer = getStoredCustomer();
-    console.log(customer);
-  }, []);
+  const loadDocuments = async () => {
+    try {
+      const data = await fetchDocuments();
+      setDocuments(data);
+    } catch (error) {
+      console.error('Failed to fetch documents:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
-    const loadDocuments = async () => {
-      try {
-        const data = await fetchDocuments(parseInt(selectedYear), selectedMonth + 1);
-        setDocuments(data);
-      } catch (error) {
-        console.error('Failed to fetch documents:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    const customer = getStoredCustomer();
+    console.log(customer);
     loadDocuments();
-  }, [selectedYear, selectedMonth]);
-
-  const filteredDocuments = documents.filter(doc =>
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.status.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const getStatusColor = (status: Document['status']) => {
-    switch (status) {
-      case 'reconciled':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'extracted':
-        return 'bg-blue-100 text-blue-800';
-      case 'flagged':
-        return 'bg-orange-100 text-orange-800';
-      case 'review':
-        return 'bg-red-100 text-red-800';
-    }
-  };
-
-  const getRowStyle = (status: Document['status']) => {
-    if (status === 'review') {
-      return 'bg-red-50 hover:bg-red-100/80';
-    }
-    return 'hover:bg-muted/50';
-  };
-
-  const handleRowClick = (documentId: string) => {
-    router.push(`/library/document?document_id=${documentId}`);
-  };
+  }, []);
 
   const handleDelete = async (documentId: string) => {
     console.log('Deleting document ID:', documentId);
@@ -141,36 +206,19 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleExportData = async () => {
-    try {
-      setIsExporting(true);
-      const response = await fetch(`${BASE_URL}/v2/extractions/bulk/download/`, {
-        method: 'POST',
-        headers: {
-          ...defaultHeaders
-        },
-        body: JSON.stringify({
-          month: Number(selectedMonth) + 1,
-          year: selectedYear
-        })
-      });
+  const handleOpen = (documentId: string) => {
+    router.push(`/library/document?document_id=${documentId}`);
+  };
 
-      if (!response.ok) throw new Error('Export failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `documents_${MONTHS[Number(selectedMonth)]}_${selectedYear}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Export error:', error);
-      alert('Failed to export data');
-    } finally {
-      setIsExporting(false);
+  const handleCopyUrl = async (documentId: string) => {
+    const url = `${window.location.origin}/library/document?document_id=${documentId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setToast('URL copied to clipboard');
+      setTimeout(() => setToast(null), 2000);
+    } catch (err) {
+      setToast('Failed to copy URL');
+      setTimeout(() => setToast(null), 2000);
     }
   };
 
@@ -181,7 +229,7 @@ export default function DocumentsPage() {
       for (let i = 0; i < files.length; i++) {
         formData.append('documents', files[i]);
       }
-      formData.append('current_month', (selectedMonth + 1).toString());
+      formData.append('current_month', new Date().getMonth().toString());
       const uploadHeaders = { ...defaultHeaders } as Record<string, string>;
       // For multipart/form-data, we should remove the Content-Type
       // and let the browser set it with the correct boundary
@@ -207,25 +255,62 @@ export default function DocumentsPage() {
     }
   };
 
+  const columnDefs = [
+    {
+      headerName: 'Document Name',
+      field: 'name' as keyof Document,
+      cellRenderer: DocumentNameRenderer,
+      flex: 2,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Upload Date',
+      field: 'uploadDate' as keyof Document,
+      valueFormatter: (params: any) => new Date(params.value).toLocaleDateString(),
+      flex: 1,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Type',
+      field: 'type' as keyof Document,
+      cellRenderer: TypePillRenderer,
+      flex: 1,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Status',
+      field: 'status' as keyof Document,
+      cellRenderer: StatusPillRenderer,
+      flex: 1,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Action',
+      field: 'id' as keyof Document,
+      cellRenderer: ActionButtonsRenderer,
+      flex: 1,
+      sortable: false,
+      filter: false,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-1">
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed top-4 right-4 bg-black text-white px-4 py-2 rounded shadow z-50 animate-fade-in">
+          {toast}
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Documents</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage and organize your compliance documents and reports.
-          </p>
         </div>
         <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="border-primary text-primary hover:bg-primary hover:text-white"
-            onClick={handleExportData}
-            disabled={isExporting}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {isExporting ? 'Exporting...' : 'Export'}
-          </Button>
           <Button
             onClick={() => setShowUploadModal(true)}
             className="bg-primary hover:bg-primary/90"
@@ -235,123 +320,32 @@ export default function DocumentsPage() {
           </Button>
         </div>
       </div>
-
+      {loading && (
+        <div className="flex justify-center items-center py-4">
+          <div className="spinner"></div>
+          <span className="ml-2">Loading documents...</span>
+        </div>
+      )}
       <div className="bg-card rounded-lg shadow">
-        <div className="p-6">
-          <div className="flex flex-col gap-4 mb-6">
-            <div className="flex justify-between items-center">
-              <div className="flex-1 max-w-sm">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search documents..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowFilterModal(!showFilterModal)}
-                className="ml-4"
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-            </div>
-            
-            <div className="max-w-md">
-              <YearMonthSelect
-                onYearChange={setSelectedYear}
-                onMonthChange={setSelectedMonth}
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4">Document Name</th>
-                  <th className="text-left py-3 px-4">Upload Date</th>
-                  <th className="text-left py-3 px-4">Type</th>
-                  <th className="text-left py-3 px-4">Status</th>
-                  <th className="text-left py-3 px-4">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-4">
-                      <div className="flex justify-center items-center">
-                        <div className="spinner"></div>
-                        <span className="ml-2">Loading documents...</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredDocuments.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center py-4 text-muted-foreground">
-                      No documents found
-                    </td>
-                  </tr>
-                ) : (
-                  filteredDocuments.map((doc) => (
-                    <tr
-                      key={doc.id}
-                      className={`border-b last:border-b-0 cursor-pointer transition-colors ${getRowStyle(doc.status)}`}
-                      onClick={() => handleRowClick(doc.id)}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <span>{doc.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {new Date(doc.uploadDate).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="bg-muted px-2 py-1 rounded text-sm">
-                          {doc.type}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)}`}>
-                          {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Button
-                          variant="destructive"
-                          className="bg-red-300 text-white hover:bg-red-600 disabled:bg-red-500/50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(doc.id);
-                          }}
-                          disabled={deletingDocumentId === doc.id}
-                        >
-                          {deletingDocumentId === doc.id ? (
-                            <div className="flex items-center gap-2">
-                              <div className="spinner"></div>
-                              Deleting...
-                            </div>
-                          ) : (
-                            'Delete'
-                          )}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        <div className="ag-theme-alpine" style={{ width: '100%', height: 500 }}>
+          <AgGridReact
+            rowData={documents}
+            columnDefs={columnDefs}
+            context={{ handleDelete, handleOpen, handleCopyUrl, deletingDocumentId }}
+            rowNumbers={true}
+            // onRowClicked={params => params.data && handleRowClick(params.data.id)}
+            overlayLoadingTemplate={`<div class='flex justify-center items-center py-4'><div class='spinner'></div><span class='ml-2'>Loading documents...</span></div>`}
+            loadingOverlayComponentParams={{ loading: loading }}
+            domLayout="autoHeight"
+            pagination={true}
+            paginationPageSize={20}
+            rowClassRules={{
+              'bg-red-50 hover:bg-red-100/80': params => params.data ? params.data.status === 'review' : false,
+              'hover:bg-muted/50': params => params.data ? params.data.status !== 'review' : false,
+            }}
+          />
         </div>
       </div>
-
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -403,13 +397,11 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
-
       {selectedFiles.map((file, index) => (
         <div key={index}>
           <p>{file.name}</p>
         </div>
       ))}
-
       <style jsx>{`
         .spinner {
           border: 4px solid rgba(0, 0, 0, 0.1);
@@ -419,11 +411,17 @@ export default function DocumentsPage() {
           height: 24px;
           animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
           to {
             transform: rotate(360deg);
           }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.2s;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
