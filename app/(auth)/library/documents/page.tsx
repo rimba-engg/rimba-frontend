@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/button';
 import { api,BASE_URL, defaultHeaders } from '@/lib/api';
 import { getStoredCustomer } from '@/lib/auth';
 
+import { AgGridReact } from 'ag-grid-react';
+import { AllEnterpriseModule, LicenseManager } from "ag-grid-enterprise";
+import { ModuleRegistry } from 'ag-grid-community';
+
+// Register all community features
+ModuleRegistry.registerModules([
+  AllEnterpriseModule,
+]);
+LicenseManager.setLicenseKey(process.env.NEXT_PUBLIC_AG_GRID_LICENSE_KEY || '');
+
 
 interface Document {
   id: string;
@@ -49,6 +59,62 @@ const fetchDocuments = async (): Promise<Document[]> => {
   }
 };
 
+const DocumentNameRenderer = (props: any) => (
+  <div className="flex items-center gap-2">
+    <FileText className="w-4 h-4 text-muted-foreground" />
+    <span>{props.value}</span>
+  </div>
+);
+
+const TypePillRenderer = (props: any) => (
+  <span className="bg-muted px-2 py-1 rounded text-sm">{props.value}</span>
+);
+
+const StatusPillRenderer = (props: any) => {
+  const status = props.value;
+  let color = '';
+  switch (status) {
+    case 'reconciled':
+      color = 'bg-green-100 text-green-800'; break;
+    case 'pending':
+      color = 'bg-yellow-100 text-yellow-800'; break;
+    case 'extracted':
+      color = 'bg-blue-100 text-blue-800'; break;
+    case 'flagged':
+      color = 'bg-orange-100 text-orange-800'; break;
+    case 'review':
+      color = 'bg-red-100 text-red-800'; break;
+  }
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+};
+
+const DeleteButtonRenderer = (props: any) => {
+  const { data, context } = props;
+  const deleting = context.deletingDocumentId === data.id;
+  return (
+    <Button
+      variant="destructive"
+      className="bg-red-300 text-white hover:bg-red-600 disabled:bg-red-500/50"
+      onClick={e => {
+        e.stopPropagation();
+        context.handleDelete(data.id);
+      }}
+      disabled={deleting}
+    >
+      {deleting ? (
+        <div className="flex items-center gap-2">
+          <div className="spinner"></div>
+          Deleting...
+        </div>
+      ) : 'Delete'}
+    </Button>
+  );
+};
+
 
 export default function DocumentsPage() {
   const router = useRouter();
@@ -77,32 +143,6 @@ export default function DocumentsPage() {
     console.log(customer);
     loadDocuments();
   }, []);
-
-  const getStatusColor = (status: Document['status']) => {
-    switch (status) {
-      case 'reconciled':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'extracted':
-        return 'bg-blue-100 text-blue-800';
-      case 'flagged':
-        return 'bg-orange-100 text-orange-800';
-      case 'review':
-        return 'bg-red-100 text-red-800';
-    }
-  };
-
-  const getRowStyle = (status: Document['status']) => {
-    if (status === 'review') {
-      return 'bg-red-50 hover:bg-red-100/80';
-    }
-    return 'hover:bg-muted/50';
-  };
-
-  const handleRowClick = (documentId: string) => {
-    router.push(`/library/document?document_id=${documentId}`);
-  };
 
   const handleDelete = async (documentId: string) => {
     console.log('Deleting document ID:', documentId);
@@ -157,8 +197,55 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleRowClick = (documentId: string) => {
+    router.push(`/library/document?document_id=${documentId}`);
+  };
+
+  const columnDefs = [
+    {
+      headerName: 'Document Name',
+      field: 'name' as keyof Document,
+      cellRenderer: DocumentNameRenderer,
+      flex: 2,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Upload Date',
+      field: 'uploadDate' as keyof Document,
+      valueFormatter: (params: any) => new Date(params.value).toLocaleDateString(),
+      flex: 1,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Type',
+      field: 'type' as keyof Document,
+      cellRenderer: TypePillRenderer,
+      flex: 1,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Status',
+      field: 'status' as keyof Document,
+      cellRenderer: StatusPillRenderer,
+      flex: 1,
+      filter: true,
+      sortable: true,
+    },
+    {
+      headerName: 'Action',
+      field: 'id' as keyof Document,
+      cellRenderer: DeleteButtonRenderer,
+      flex: 1,
+      sortable: false,
+      filter: false,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Documents</h1>
@@ -173,89 +260,30 @@ export default function DocumentsPage() {
           </Button>
         </div>
       </div>
-
+      {loading && (
+        <div className="flex justify-center items-center py-4">
+          <div className="spinner"></div>
+          <span className="ml-2">Loading documents...</span>
+        </div>
+      )}
       <div className="bg-card rounded-lg shadow">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4">Document Name</th>
-                <th className="text-left py-3 px-4">Upload Date</th>
-                <th className="text-left py-3 px-4">Type</th>
-                <th className="text-left py-3 px-4">Status</th>
-                <th className="text-left py-3 px-4">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-4">
-                    <div className="flex justify-center items-center">
-                      <div className="spinner"></div>
-                      <span className="ml-2">Loading documents...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : documents.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-4 text-muted-foreground">
-                    No documents found
-                  </td>
-                </tr>
-              ) : (
-                documents.map((doc) => (
-                  <tr
-                    key={doc.id}
-                    className={`border-b last:border-b-0 cursor-pointer transition-colors ${getRowStyle(doc.status)}`}
-                    onClick={() => handleRowClick(doc.id)}
-                  >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span>{doc.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      {new Date(doc.uploadDate).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-muted px-2 py-1 rounded text-sm">
-                        {doc.type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)}`}>
-                        {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Button
-                        variant="destructive"
-                        className="bg-red-300 text-white hover:bg-red-600 disabled:bg-red-500/50"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(doc.id);
-                        }}
-                        disabled={deletingDocumentId === doc.id}
-                      >
-                        {deletingDocumentId === doc.id ? (
-                          <div className="flex items-center gap-2">
-                            <div className="spinner"></div>
-                            Deleting...
-                          </div>
-                        ) : (
-                          'Delete'
-                        )}
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="ag-theme-alpine" style={{ width: '100%', height: 500 }}>
+          <AgGridReact
+            rowData={documents}
+            columnDefs={columnDefs}
+            context={{ handleDelete, deletingDocumentId }}
+            onRowClicked={params => params.data && handleRowClick(params.data.id)}
+            overlayLoadingTemplate={`<div class='flex justify-center items-center py-4'><div class='spinner'></div><span class='ml-2'>Loading documents...</span></div>`}
+            loadingOverlayComponentParams={{ loading: loading }}
+            domLayout="autoHeight"
+            suppressRowClickSelection={true}
+            rowClassRules={{
+              'bg-red-50 hover:bg-red-100/80': params => params.data ? params.data.status === 'review' : false,
+              'hover:bg-muted/50': params => params.data ? params.data.status !== 'review' : false,
+            }}
+          />
         </div>
       </div>
-
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -307,13 +335,11 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
-
       {selectedFiles.map((file, index) => (
         <div key={index}>
           <p>{file.name}</p>
         </div>
       ))}
-
       <style jsx>{`
         .spinner {
           border: 4px solid rgba(0, 0, 0, 0.1);
@@ -323,7 +349,6 @@ export default function DocumentsPage() {
           height: 24px;
           animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
           to {
             transform: rotate(360deg);
