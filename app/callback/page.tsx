@@ -4,6 +4,8 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useRouter } from 'next/navigation';
 import { createUserSession, getUserInfo, selectCustomer } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { InsightLoader } from '@/components/ui/loader';
+
 export default function CallbackPage() {
   const { 
       // Auth state:
@@ -86,12 +88,7 @@ export default function CallbackPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="bg-white p-4 rounded shadow-md border border-green-500">
-          <div className="flex items-center">
-            <span className="ml-2">Loading...</span>
-            <div className="spinner ml-2"></div>
-          </div>
-        </div>
+        <InsightLoader size="default" />
         <style jsx>{`
           .spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
@@ -118,12 +115,7 @@ export default function CallbackPage() {
 
   return (
     <div className="flex justify-center items-center h-screen">
-      <div className="bg-white p-4 rounded shadow-md border border-green-500">
-        <div className="flex items-center">
-          <span className="ml-2">Udderly amazing fuel incoming...</span>
-          <div className="spinner ml-2"></div>
-        </div>
-      </div>
+      <InsightLoader size="default" />
       <style jsx>{`
         .spinner {
           border: 4px solid rgba(0, 0, 0, 0.1);

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { type FactorsOfRevenueResponse, type ExtendedColumnWithType } from './types';
 import { ToastContainer, toast } from 'react-toastify';
-import { Loader2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import QueryTable from '@/components/table/QueryTable';
 import { Button } from '@/components/ui/button';
 import { TimezoneSelect } from '@/components/ui/timezone-select';
@@ -328,7 +329,7 @@ export default function FactorsOfRevenuePage() {
       {loading ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-            <Loader2 className="animate-spin" size={24} />
+            <InsightLoader size="default" />
             <div className="text-lg font-medium">Loading data...</div>
           </div>
         </div>
@@ -406,20 +407,18 @@ export default function FactorsOfRevenuePage() {
           {error ? (
             <div className="text-red-500">{error}</div>
           ) : (
-            <div className="h-[600px] w-full bg-white rounded-lg shadow-sm border">
-              {rowData.length > 0 ? (
-                <QueryTable
-                  initialRowData={rowData}
-                  initialColumnDefs={initialColumnDefs}
-                  pinnedTopRowData={[totals]}
-                  getRowStyle={getRowStyle}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  No data to display. Please select a date range and click Search.
-                </div>
-              )}
-            </div>
+            rowData.length > 0 ? (
+              <QueryTable
+                initialRowData={rowData}
+                initialColumnDefs={initialColumnDefs}
+                pinnedTopRowData={[totals]}
+                getRowStyle={getRowStyle}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                No data to display. Please select a date range and click Search.
+              </div>
+            )
           )}
         </>
       )}

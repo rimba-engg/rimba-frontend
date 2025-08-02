@@ -7,6 +7,7 @@ import { type Customer } from '@/lib/types';
 import { CustomerSelect } from './components/customer-select';
 import { api } from '@/lib/api';
 import { type UserInfoResponse } from '@/lib/types';
+import { InsightLoader } from '@/components/ui/loader';
 
 export default function SelectCustomerPage() {
   const router = useRouter();
@@ -43,11 +44,7 @@ export default function SelectCustomerPage() {
   }, [router]);
 
   if (!customers) {
-    return (
-      <div className="min-h-screen bg-muted flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <InsightLoader size="lg" />;
   }
 
   return <CustomerSelect customers={customers} />;

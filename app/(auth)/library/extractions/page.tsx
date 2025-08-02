@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Search, Filter, Download, Loader2 } from 'lucide-react';
+import { FileText, Search, Filter, Download } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -229,7 +230,7 @@ export default function ExtractionsPage() {
       <div className="bg-card rounded-lg shadow p-4">
         {loading ? (
           <div className="flex justify-center items-center">
-            <div className="spinner" />
+            <InsightLoader />
           </div>
         ) : (
           <QueryTable 

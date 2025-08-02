@@ -17,7 +17,7 @@ import {
   Legend
 } from 'chart.js';
 import { DateTime } from 'luxon';
-import { Loader2 } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import { useEffect } from 'react';
 import { useState } from 'react';
 import { Line } from 'react-chartjs-2';
@@ -282,7 +282,7 @@ export default function AnalyticsPage() {
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <InsightLoader size="sm" />
                   Downloading...
                 </>
               ) : (
@@ -375,7 +375,7 @@ export default function AnalyticsPage() {
           <div className="w-3/4 h-[300px]">
             {loading ? (
               <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-                <Loader2 className="animate-spin" size={24} />
+                <InsightLoader size="default" />
                 <div className="text-lg font-medium">Loading analytics data...</div>
               </div>
             ) : chartConfig ? (
@@ -390,7 +390,7 @@ export default function AnalyticsPage() {
           <div className="w-3/4 h-[300px]">
             {loadingManureData ? (
               <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-                <Loader2 className="animate-spin" size={24} />
+                <InsightLoader size="default" />
                 <div className="text-lg font-medium">Loading manure flow data...</div>
               </div>
             ) : chartConfigManureData ? (

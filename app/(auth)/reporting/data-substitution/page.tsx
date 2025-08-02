@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { getStoredCustomer } from '@/lib/auth';
 import { ToastContainer, toast } from 'react-toastify';
-import { Loader2, ClockIcon, Factory, Calendar, Upload, X } from 'lucide-react';
+import { ClockIcon, Factory, Calendar, Upload, X } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -137,7 +138,7 @@ export default function DataSubstitutionPage() {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-          <Loader2 className="animate-spin" size={24} />
+          <InsightLoader size="default" />
           <div className="text-lg font-medium">Loading data...</div>
         </div>
       </div>
@@ -306,7 +307,7 @@ export default function DataSubstitutionPage() {
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <InsightLoader size="default" />
                     Uploading...
                   </>
                 ) : (

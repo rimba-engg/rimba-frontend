@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Building2, FileText } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { api } from '@/lib/api';
-import { Loader } from '@/components/ui/loader';
+import { InsightLoader } from '@/components/ui/loader';
 
 const programs = [
   { id: 'rfs', name: 'RFS - Renewable Fuel Standard', description: 'Federal program requiring renewable fuel to be blended into transportation fuel' },
@@ -194,7 +194,7 @@ export default function DashboardPage() {
 
         <div className="flex justify-end gap-4">
           {isSaving ? (
-            <Loader size="sm" text="Saving..." className="px-6 py-2" />
+            <InsightLoader size="sm" className="px-6 py-2" />
           ) : (
             <Button type="submit">
               Save

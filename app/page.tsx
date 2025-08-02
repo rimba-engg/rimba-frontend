@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth0 } from '@auth0/auth0-react';
 import { getStoredCustomer } from '@/lib/auth';
+import { InsightLoader } from '@/components/ui/loader';
 
 export default function Home() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function Home() {
   // Return a loading state while checking auth
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <InsightLoader size="default" />
     </div>
   );
 }

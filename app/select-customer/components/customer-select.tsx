@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 
 interface CustomerSelectProps {
   customers: Customer[];
@@ -110,7 +110,7 @@ export function CustomerSelect({ customers }: CustomerSelectProps) {
             disabled={!selectedCustomerId || loading}
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <InsightLoader size="sm" />
             ) : (
               "Continue"
             )}

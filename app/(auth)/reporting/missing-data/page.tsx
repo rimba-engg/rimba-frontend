@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { api, BASE_URL, defaultHeaders } from '@/lib/api';
 import { DateTime } from 'luxon';
 import { ToastContainer, toast } from 'react-toastify';
-import { Loader2, ClockIcon, AlertTriangle, CheckCircle2, Download, Upload, X, Factory, Calendar } from 'lucide-react';
+import { ClockIcon, AlertTriangle, CheckCircle2, Download, Upload, X, Factory, Calendar } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -371,7 +372,7 @@ export default function DataSubstitutionPage() {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-          <Loader2 className="animate-spin" size={24} />
+          <InsightLoader size="default" />
           <div className="text-lg font-medium">Loading data...</div>
         </div>
       </div>
@@ -383,7 +384,7 @@ export default function DataSubstitutionPage() {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-          <Loader2 className="animate-spin" size={32} />
+          <InsightLoader size="lg" />
           <div className="text-lg font-medium">Substituting data...</div>
           <div className="text-sm text-gray-500">Please wait while we process your request</div>
         </div>
@@ -664,7 +665,7 @@ export default function DataSubstitutionPage() {
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-12 bg-gray-50 rounded-lg border border-dashed">
             <div className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <InsightLoader size="lg" />
               <h3 className="text-lg font-medium">Loading Data Summary</h3>
               <p className="text-gray-500">Please wait while we fetch the latest data...</p>
             </div>
@@ -729,7 +730,7 @@ export default function DataSubstitutionPage() {
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <InsightLoader size="sm" />
                     Uploading...
                   </>
                 ) : (

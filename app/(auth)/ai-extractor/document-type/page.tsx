@@ -1,9 +1,10 @@
 import { Suspense } from 'react';
 import DocumentTypeDetailClient from './dynamic-wrapper';
+import { InsightLoader } from '@/components/ui/loader';
 
 export default function DocumentTypeDetail() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<InsightLoader size="default" />}>
       <DocumentTypeDetailClient />
     </Suspense>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -107,7 +108,7 @@ export default function DocumentTypeModal({
               className="bg-primary hover:bg-primary/90"
             >
               {isSaving ? (
-                <Loader2 size={16} className="animate-spin" />
+                <InsightLoader size="sm" />
               ) : (
                 'Save Changes'
               )}
