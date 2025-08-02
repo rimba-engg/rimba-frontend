@@ -14,7 +14,7 @@ import {
   Legend
 } from 'chart.js';
 import { DateTime } from 'luxon';
-import { Loader2 } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import { useEffect } from 'react';
 import { useState } from 'react';
 import { Line } from 'react-chartjs-2';
@@ -109,7 +109,7 @@ export default function SiteUptimePage() {
         return (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
             <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-              <Loader2 className="animate-spin" size={24} />
+              <InsightLoader size="default" />
               <div className="text-lg font-medium">Loading data...</div>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function SiteUptimePage() {
             <div className="h-[60vh]">
               {loading ? (
                 <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-                  <Loader2 className="animate-spin" size={24} />
+                  <InsightLoader size="default" />
                   <div className="text-lg font-medium">Loading Site Uptime data...</div>
                 </div>
               ) : (

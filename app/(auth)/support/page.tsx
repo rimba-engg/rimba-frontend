@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';  
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { InsightLoader } from '@/components/ui/loader';
 
 interface SupportTicket {
   id: string;
@@ -183,7 +184,7 @@ export default function SupportDetailPage() {
   };
 
   if (loading) {
-    return <p className="p-6">Loading...</p>;
+    return <InsightLoader size="default" />;
   }
   if (error) {
     return <p className="p-6 text-destructive-foreground">{error}</p>;

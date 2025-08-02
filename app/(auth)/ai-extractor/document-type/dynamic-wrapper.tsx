@@ -42,14 +42,14 @@ import {
   FileText,
   Settings,
   Folder,
-  Loader2,
 } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import DocumentTypeModal from '../components/DocumentTypeModal';
 import { Badge } from '@/components/ui/badge';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 
 // A reusable LoadingButton component. If the button is in a loading state,
-// it disables itself and shows the Loader2 spinner before rendering the children.
+// it disables itself and shows the Loader spinner before rendering the children.
 interface LoadingButtonProps extends React.ComponentPropsWithoutRef<typeof Button> {
   isLoading: boolean;
   children: React.ReactNode;
@@ -58,7 +58,7 @@ interface LoadingButtonProps extends React.ComponentPropsWithoutRef<typeof Butto
 function LoadingButton({ isLoading, children, ...props }: LoadingButtonProps) {
   return (
     <Button {...props} disabled={props.disabled || isLoading}>
-      {isLoading ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
+      {isLoading ? <InsightLoader size="sm" /> : null}
       {children}
     </Button>
   );
@@ -365,7 +365,7 @@ export default function DocumentTypeDetailClient() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <InsightLoader size="default" />;
   }
 
   if (error) {

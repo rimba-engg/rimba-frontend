@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Search, Filter, Download, Loader2 } from 'lucide-react';
+import { FileText, Search, Filter, Download } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -553,7 +554,7 @@ export default function ExtractionsPage() {
         {loading && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
             <div className="flex justify-center items-center">
-              <div className="spinner"></div>
+              <InsightLoader className="mr-2" />
               <span className="ml-2">Loading extractions...</span>
             </div>
           </div>

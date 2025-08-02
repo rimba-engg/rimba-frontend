@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { ToastContainer, toast } from 'react-toastify';
-import { Download, Loader2 } from 'lucide-react'
+import { Download } from 'lucide-react'
+import { InsightLoader } from '@/components/ui/loader';
 import { api, BASE_URL, defaultHeaders } from '@/lib/api' 
 import { FloatingLabelInput } from '@/components/ui/floating-label-input';
 import { TimezoneSelect } from '@/components/ui/timezone-select';
@@ -262,7 +263,7 @@ export default function AirPermitsPage() {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-          <Loader2 className="animate-spin" size={24} />
+          <InsightLoader size="default" />
           <div className="text-lg font-medium">Loading data...</div>
         </div>
       </div>

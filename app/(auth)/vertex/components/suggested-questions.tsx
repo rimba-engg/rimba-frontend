@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { api } from "@/lib/api";
-import { LoaderCircle, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { InsightLoader } from '@/components/ui/loader';
 
 interface SuggestedQuestionsProps {
   onQuestionClick: (question: string) => void;
@@ -55,8 +56,7 @@ export function SuggestedQuestions({ onQuestionClick }: SuggestedQuestionsProps)
     return (
       <div className="w-full max-w-3xl mx-auto mb-6">
         <div className="text-center py-8">
-          <LoaderCircle className="w-6 h-6 animate-spin mx-auto mb-2 text-gray-400" />
-          {/* <p className="text-sm text-gray-500">Loading suggested questions...</p> */}
+          <InsightLoader size="default" />
         </div>
       </div>
     );

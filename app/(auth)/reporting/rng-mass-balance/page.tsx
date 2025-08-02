@@ -25,7 +25,8 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { ToastContainer, toast } from 'react-toastify';
-import { Info, Loader2 } from 'lucide-react';
+import { Info } from 'lucide-react';
+import { InsightLoader } from '@/components/ui/loader';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
 // Register necessary components
@@ -394,7 +395,7 @@ export default function RngMassBalancePage() {
     return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div className="flex flex-row items-center gap-4 bg-white p-8 rounded-lg shadow-lg">
-          <Loader2 className="animate-spin" size={24} />
+          <InsightLoader size="default" />
           <div className="text-lg font-medium">Loading data...</div>
         </div>
       </div>
@@ -454,7 +455,7 @@ export default function RngMassBalancePage() {
                 className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
                 disabled={csvLoading}
               >
-                {csvLoading ? <Loader2 className="animate-spin" size={20} /> : 'Download CSV'}
+                {csvLoading ? <InsightLoader size="sm" /> : 'Download CSV'}
               </button>
             </div>
           </div>

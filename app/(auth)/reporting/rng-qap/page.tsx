@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ToastContainer, toast } from 'react-toastify';
 import { Download } from 'lucide-react'
 import { BASE_URL, defaultHeaders } from '@/lib/api' 
+import { InsightLoader } from '@/components/ui/loader';
 
 const months = [
   { value: '01', label: 'January' },
@@ -119,9 +120,7 @@ export default function QAPReportPage() {
         </CardContent>
       </Card>
       {loading && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-muted-foreground">Loading...</div>
-        </div>
+        <InsightLoader size="default" />
       )}
       <ToastContainer />
     </div>

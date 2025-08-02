@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { Recycle, Zap } from 'lucide-react';
 import QueryTable from '@/components/table/QueryTable';
 import { ColumnWithType } from '@/components/table/QueryTable';
+import { InsightLoader } from '@/components/ui/loader';
 
 
 interface EmissionScope2Response {
@@ -116,9 +117,7 @@ export default function EmissionScope2Page() {
         />
       </div>
       {loading && (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-muted-foreground">Loading...</div>
-        </div>
+        <InsightLoader size="default" />
       )}
       <ToastContainer />
     </div>
